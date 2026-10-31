@@ -267,11 +267,22 @@ class Game {
       this.renderSettings();
     }));
     click('#reset-progress', () => {
-      if (confirm('Tüm yıldızlar, rekorlar ve başarımlar silinsin mi?')) {
-        this.progress.reset();
-        this.refreshMenu();
-        this.toast('🗑️', 'Sıfırlandı', 'İlerleme silindi.');
+      const b = $('#reset-progress');
+      if (!this.resetArmed) {
+        // two-step confirmation inside the page (no browser dialogs)
+        this.resetArmed = true;
+        b.textContent = 'Emin misin? Silmek için tekrar dokun';
+        setTimeout(() => {
+          this.resetArmed = false;
+          b.textContent = 'İlerlemeyi sıfırla';
+        }, 3000);
+        return;
       }
+      this.resetArmed = false;
+      b.textContent = 'İlerlemeyi sıfırla';
+      this.progress.reset();
+      this.refreshMenu();
+      this.toast('🗑️', 'Sıfırlandı', 'Yıldızlar, rekorlar ve başarımlar silindi.');
     });
     $('#rotate-ok').addEventListener('click', () => {
       $('#rotate-hint').classList.add('hidden');
