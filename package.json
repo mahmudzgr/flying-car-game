@@ -1,0 +1,12 @@
+{
+  "name": "roadster-flip",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Uçan elektrikli roadster ile rampa, takla ve itici kontrollü iniş oyunu (mobil web, 2.5D).",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tools/bot.mjs"
+  },
+  "license": "MIT"
+}

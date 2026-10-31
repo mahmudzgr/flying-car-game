@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2a55"/><stop offset="1" stop-color="#ff7a3d"/></linearGradient>
+    <linearGradient id="car" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b30f1c"/><stop offset="1" stop-color="#ff3b47"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <path d="M60 470 L250 330 L470 330 L470 512 L60 512 Z" fill="#2a2f3a" opacity=".55"/>
+  <g transform="translate(256 230) rotate(-18)">
+    <path d="M-170 30 Q-175 -5 -150 -12 L-70 -20 Q-30 -70 30 -72 Q80 -70 105 -30 L160 -22 Q182 -18 180 10 L178 30 Z" fill="url(#car)"/>
+    <path d="M-55 -22 Q-20 -62 28 -62 Q66 -60 88 -28 Z" fill="#0d1424"/>
+    <circle cx="-105" cy="34" r="30" fill="#111"/><circle cx="-105" cy="34" r="16" fill="#cfd6de"/>
+    <circle cx="112" cy="34" r="30" fill="#111"/><circle cx="112" cy="34" r="16" fill="#cfd6de"/>
+    <path d="M-40 40 L-60 130 L-20 130 Z" fill="#ffb347"/><path d="M40 40 L20 130 L60 130 Z" fill="#ffb347"/>
+    <path d="M-40 40 L-50 100 L-30 100 Z" fill="#fff6c8"/><path d="M40 40 L30 100 L50 100 Z" fill="#fff6c8"/>
+  </g>
+</svg>
