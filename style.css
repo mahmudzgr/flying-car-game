@@ -69,6 +69,22 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .big-btn.danger { background: rgba(255, 77, 77, 0.12); color: #ff9a9a; margin-top: 14px; width: 100%; }
 .big-btn.endless { background: linear-gradient(135deg, rgba(120, 80, 255, 0.35), rgba(56, 232, 255, 0.25)); border-color: rgba(150, 130, 255, 0.5); }
 
+/* progress backup */
+#backup .panel { display: flex; flex-direction: column; gap: 10px; }
+.backup-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0; }
+.backup-summary { font-weight: 800; color: var(--gold); font-size: 14px; }
+.backup-sep { margin-top: 6px; font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--muted); text-transform: uppercase; }
+#backup textarea {
+  width: 100%; resize: vertical; border-radius: 12px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.35); color: var(--text);
+  padding: 10px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all;
+  user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; touch-action: auto;
+}
+#backup textarea:focus { outline: 2px solid rgba(62, 226, 138, 0.6); }
+#backup-out { display: flex; flex-direction: column; gap: 8px; }
+.backup-msg { font-size: 13px; font-weight: 700; min-height: 18px; }
+.backup-msg.ok { color: var(--good); }
+.backup-msg.err { color: var(--bad); }
+
 /* garage */
 .garage-note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
 #paint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }

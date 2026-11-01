@@ -135,7 +135,25 @@
           <button data-q="auto">Oto</button><button data-q="high">Yüksek</button><button data-q="medium">Orta</button><button data-q="low">Düşük</button>
         </div>
       </div>
+      <button class="big-btn" id="open-backup">💾 İLERLEME YEDEĞİ</button>
       <button class="big-btn danger" id="reset-progress">İlerlemeyi sıfırla</button>
+    </div>
+  </section>
+
+  <section id="backup" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><button class="back" id="backup-back">‹</button><h2>İlerleme Yedeği</h2></div>
+      <p class="backup-note">İlerlemen bu tarayıcının yerel deposunda duruyor. Tarayıcı verilerini silersen ya da başka bir tarayıcı, cihaz veya adres kullanırsan orada görünmez. Yedek kodunu bir yere kaydet; geri yüklemek mevcut ilerlemeni silmez, ikisinin en iyisini birleştirir.</p>
+      <div id="backup-summary" class="backup-summary"></div>
+      <button class="big-btn primary" id="backup-make">YEDEK KODU OLUŞTUR</button>
+      <div id="backup-out" class="hidden">
+        <textarea id="backup-code" readonly rows="4" aria-label="Yedek kodu"></textarea>
+        <button class="big-btn" id="backup-copy">KOPYALA</button>
+      </div>
+      <div class="backup-sep">Yedekten geri yükle</div>
+      <textarea id="backup-in" rows="3" placeholder="UR1- ile başlayan yedek kodunu buraya yapıştır" aria-label="Geri yüklenecek yedek kodu"></textarea>
+      <button class="big-btn" id="backup-load">GERİ YÜKLE</button>
+      <div id="backup-msg" class="backup-msg"></div>
     </div>
   </section>
 

@@ -56,6 +56,17 @@ hedef merkezine yakınlık, kalan yakıt ve toplanan yıldızlar.
 - Otomatik grafik kalitesi (FPS düşerse kendini düşürür), PWA manifesti (ana ekrana eklenebilir), dış bağımlılık yok
   (Three.js `vendor/` içinde).
 
+## İlerleme ve kayıt
+
+- İlerleme (yıldızlar, rekorlar, başarımlar, ayarlar) tarayıcının yerel deposunda (`localStorage`) tutulur.
+  Güncellemeler aynı kayıt anahtarını kullanır ve eski kayıtları silmez; yeni alanlar (müzik, garaj, sonsuz mod)
+  eksikse varsayılanlarla eklenir. Bu, önceki sürümle oynanıp kaydedilmiş gerçek bir kayıtla test edildi.
+- Kayıt bozulursa (ör. yarım yazılmış veri) oyun sıfırdan başlamaz: aynı tarayıcıdaki güvenlik kopyasından
+  geri yükler, okunamayan veriyi de silmeden ayrı bir anahtarda saklar. Depolama dolarsa önce güvenlik kopyası,
+  gerekirse hayalet kayıtları feda edilir; yıldız ve başarımlar korunur.
+- **Ayarlar → İlerleme Yedeği:** ilerlemeni kısa bir yedek koduna (`UR1-…`) dönüştürür. Kodu başka bir
+  tarayıcıda/cihazda geri yükleyebilirsin; geri yükleme mevcut ilerlemeyi silmez, ikisinin en iyisini birleştirir.
+
 ## Çalıştırma
 
 ES modülleri kullandığı için bir HTTP sunucusu gerekir (dosyayı doğrudan açmak çalışmaz):

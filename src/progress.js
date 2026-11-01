@@ -48,7 +48,11 @@ export const PAINTS = [
   { id: 'gold', name: 'Altın', color: 0xd4a017, stars: 48 },
 ];
 
+const BACKUP_KEY = KEY + '-yedek'; // rolling safety copy in the same browser
+const SAVE_VERSION = 2;
+
 const defaults = () => ({
+  version: SAVE_VERSION,
   levels: {}, // id -> {stars, best, objectives:[bool], ghost}
   achievements: {},
   stats: { flips: 0, crashes: 0, landings: 0, runs: 0, playTime: 0 },
@@ -56,27 +60,166 @@ const defaults = () => ({
   endless: { bestScore: 0, bestStreak: 0, runs: 0 },
 });
 
+// Older saves simply lack the newer fields: fill them in, never drop what is already there.
+function normalize(d) {
+  const D = defaults();
+  const out = { ...D, ...d };
+  out.levels = d && typeof d.levels === 'object' && d.levels ? d.levels : {};
+  out.achievements = d && typeof d.achievements === 'object' && d.achievements ? d.achievements : {};
+  out.stats = { ...D.stats, ...(d && d.stats) };
+  out.settings = { ...D.settings, ...(d && d.settings) };
+  out.endless = { ...D.endless, ...(d && d.endless) };
+  out.version = SAVE_VERSION;
+  return out;
+}
+
+function parseSave(raw) {
+  try {
+    const d = JSON.parse(raw);
+    return d && typeof d === 'object' && typeof d.levels === 'object' ? d : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+const VALID_ACH = () => new Set(ACHIEVEMENTS.map((a) => a.id));
+
 export class Progress {
   constructor() {
     this.data = defaults();
+    this.storageOk = true;
+    this.recovered = null; // 'backup' when the main save was unreadable and the safety copy was used
+    let raw = null;
+    let backup = null;
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const d = JSON.parse(raw);
-        const D = defaults();
-        this.data = { ...D, ...d, stats: { ...D.stats, ...d.stats }, settings: { ...D.settings, ...d.settings }, endless: { ...D.endless, ...d.endless } };
-      }
+      raw = localStorage.getItem(KEY);
+      backup = localStorage.getItem(BACKUP_KEY);
     } catch (e) {
-      /* storage unavailable – play without saving */
+      this.storageOk = false; // storage blocked – play without saving
+      return;
+    }
+    const main = raw ? parseSave(raw) : null;
+    if (main) {
+      this.data = normalize(main);
+      return;
+    }
+    if (raw) {
+      // unreadable save: keep the original text untouched under another key instead of overwriting it
+      try {
+        localStorage.setItem(`${KEY}-bozuk-${Date.now()}`, raw);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    const b = backup ? parseSave(backup) : null;
+    if (b) {
+      this.data = normalize(b);
+      this.recovered = 'backup';
+      this.save();
     }
   }
 
   save() {
+    if (!this.storageOk) return false;
+    const write = () => {
+      const json = JSON.stringify(this.data);
+      localStorage.setItem(KEY, json);
+      const now = Date.now();
+      if (!this.lastBackup || now - this.lastBackup > 5 * 60 * 1000) {
+        try {
+          localStorage.setItem(BACKUP_KEY, json);
+          this.lastBackup = now;
+        } catch (e) {
+          /* the main save matters more than the safety copy */
+        }
+      }
+    };
     try {
-      localStorage.setItem(KEY, JSON.stringify(this.data));
+      write();
+      return true;
     } catch (e) {
-      /* ignore */
+      // storage full: free the safety copy, then the replay ghosts (the least important data), and retry
+      try {
+        localStorage.removeItem(BACKUP_KEY);
+        write();
+        return true;
+      } catch (e2) {
+        for (const l of Object.values(this.data.levels)) delete l.ghost;
+        try {
+          write();
+          return true;
+        } catch (e3) {
+          return false;
+        }
+      }
     }
+  }
+
+  // Portable backup code (ghost replays left out to keep it short).
+  exportCode() {
+    const levels = {};
+    for (const [id, l] of Object.entries(this.data.levels)) {
+      levels[id] = { s: l.stars || 0, b: Math.round(l.best || 0), o: (l.objectives || []).map((x) => (x ? 1 : 0)) };
+    }
+    const payload = { v: 1, levels, ach: this.data.achievements, stats: this.data.stats, endless: this.data.endless, paint: this.data.settings.paint };
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return 'UR1-' + btoa(bin);
+  }
+
+  // Merges a backup code into the current progress. Never removes anything: keeps the better of both.
+  importCode(code) {
+    const m = String(code || '').replace(/\s+/g, '').match(/^UR1-([A-Za-z0-9+/=]+)$/);
+    if (!m) throw new Error('Kod tanınmadı. "UR1-" ile başlayan kodun tamamını yapıştır.');
+    let p;
+    try {
+      const bin = atob(m[1]);
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      p = JSON.parse(new TextDecoder().decode(bytes));
+    } catch (e) {
+      throw new Error('Kod eksik ya da bozuk görünüyor. Tamamını kopyaladığından emin ol.');
+    }
+    if (!p || p.v !== 1 || typeof p.levels !== 'object' || !p.levels) throw new Error('Bu kod Uçan Roadster yedeği değil.');
+    const res = { levels: 0, stars: 0, ach: 0 };
+    const before = this.totalStars();
+    for (const [id, l] of Object.entries(p.levels)) {
+      if (!/^\d{1,3}$/.test(id) || !l || typeof l !== 'object') continue;
+      const cur = this.data.levels[id] || { stars: 0, best: 0, objectives: [] };
+      const io = Array.isArray(l.o) ? l.o : [];
+      const n = Math.max(io.length, (cur.objectives || []).length);
+      const objectives = [];
+      for (let i = 0; i < n; i++) objectives.push(!!((cur.objectives || [])[i] || io[i]));
+      const merged = {
+        stars: Math.max(cur.stars || 0, objectives.filter(Boolean).length, Math.min(3, Number(l.s) || 0)),
+        best: Math.max(cur.best || 0, Number(l.b) || 0),
+        objectives,
+        ghost: cur.ghost,
+      };
+      if (merged.stars !== (cur.stars || 0) || merged.best !== (cur.best || 0)) res.levels++;
+      this.data.levels[id] = merged;
+    }
+    const valid = VALID_ACH();
+    for (const [id, ts] of Object.entries(p.ach || {})) {
+      if (!valid.has(id)) continue;
+      if (!this.data.achievements[id]) {
+        this.data.achievements[id] = Number(ts) || Date.now();
+        res.ach++;
+      }
+    }
+    for (const k of Object.keys(this.data.stats)) {
+      const v = Number(p.stats && p.stats[k]);
+      if (Number.isFinite(v)) this.data.stats[k] = Math.max(this.data.stats[k] || 0, v);
+    }
+    for (const k of Object.keys(this.data.endless)) {
+      const v = Number(p.endless && p.endless[k]);
+      if (Number.isFinite(v)) this.data.endless[k] = Math.max(this.data.endless[k] || 0, v);
+    }
+    if (this.data.settings.paint === 'red' && typeof p.paint === 'string' && PAINTS.some((x) => x.id === p.paint)) this.data.settings.paint = p.paint;
+    res.stars = this.totalStars() - before;
+    this.lastBackup = 0;
+    this.save();
+    return res;
   }
 
   level(id) {
@@ -184,6 +327,7 @@ export class Progress {
     const settings = this.data.settings;
     this.data = defaults();
     this.data.settings = settings;
+    this.lastBackup = 0;
     this.save();
   }
 }

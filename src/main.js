@@ -81,6 +81,9 @@ class Game {
     this.last = performance.now();
     requestAnimationFrame((t) => this.frame(t));
     setTimeout(() => $('#loading').classList.add('hidden'), 50);
+    if (this.progress.recovered === 'backup') {
+      setTimeout(() => this.toast('💾', 'KAYIT KURTARILDI', 'Ana kayıt okunamadı; güvenlik kopyasından geri yüklendi.'), 800);
+    }
   }
 
   paintColor() {
@@ -90,7 +93,7 @@ class Game {
 
   // ---------------------------------------------------------------- screens
   showScreen(id) {
-    for (const s of ['menu', 'levels', 'achievements', 'settings', 'help', 'garage', 'briefing', 'pause', 'result']) {
+    for (const s of ['menu', 'levels', 'achievements', 'settings', 'help', 'garage', 'backup', 'briefing', 'pause', 'result']) {
       $('#' + s).classList.toggle('hidden', s !== id);
     }
     $('#hud').classList.toggle('hidden', !(id === null || id === 'pause'));
@@ -197,6 +200,26 @@ class Game {
       });
       grid.appendChild(b);
     }
+  }
+
+  openBackup() {
+    $('#backup-out').classList.add('hidden');
+    $('#backup-code').value = '';
+    this.backupMsg('', '');
+    this.renderBackupSummary();
+    this.showScreen('backup');
+  }
+
+  renderBackupSummary() {
+    const p = this.progress;
+    const done = LEVELS.filter((l) => p.level(l.id).stars > 0).length;
+    $('#backup-summary').textContent = `Bu cihazdaki ilerleme: ${done}/${LEVELS.length} bölüm · ★ ${p.totalStars()} · 🏆 ${Object.keys(p.data.achievements).length} başarım`;
+  }
+
+  backupMsg(text, cls) {
+    const el = $('#backup-msg');
+    el.textContent = text;
+    el.className = 'backup-msg ' + (cls || '');
   }
 
   // ---------------------------------------------------------------- levels
@@ -433,7 +456,7 @@ class Game {
       if (!this.resetArmed) {
         // two-step confirmation inside the page (no browser dialogs)
         this.resetArmed = true;
-        b.textContent = 'Emin misin? Silmek için tekrar dokun';
+        b.textContent = 'Emin misin? (Önce yedek almanı öneririm) Silmek için tekrar dokun';
         setTimeout(() => {
           this.resetArmed = false;
           b.textContent = 'İlerlemeyi sıfırla';
@@ -447,11 +470,54 @@ class Game {
       this.refreshMenu();
       this.toast('🗑️', 'Sıfırlandı', 'Yıldızlar, rekorlar ve başarımlar silindi.');
     });
+    click('#open-backup', () => this.openBackup());
+    click('#backup-back', () => { this.renderSettings(); this.showScreen('settings'); });
+    click('#backup-make', () => {
+      const code = this.progress.exportCode();
+      $('#backup-code').value = code;
+      $('#backup-out').classList.remove('hidden');
+      this.backupMsg(`Kod hazır (${code.length} karakter). Kopyalayıp not uygulamasına ya da kendine mesaj olarak kaydet.`, 'ok');
+      // ask the browser not to evict this site's data under storage pressure (user-initiated)
+      try {
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      } catch (e) { /* ignore */ }
+    });
+    $('#backup-copy').addEventListener('click', () => {
+      const ta = $('#backup-code');
+      const fallback = () => {
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        this.backupMsg(ok ? 'Kopyalandı ✓' : 'Kod seçildi; Kopyala ile panoya al.', 'ok');
+      };
+      try {
+        navigator.clipboard.writeText(ta.value).then(() => this.backupMsg('Kopyalandı ✓', 'ok'), fallback);
+      } catch (e) {
+        fallback();
+      }
+    });
+    click('#backup-load', () => {
+      try {
+        const res = this.progress.importCode($('#backup-in').value);
+        this.backupMsg(`Geri yüklendi ✓ ${res.levels} bölüm güncellendi, +${res.stars} yıldız, +${res.ach} başarım. Mevcut ilerlemen korundu.`, 'ok');
+        $('#backup-in').value = '';
+        this.scene.setPaint(this.paintColor());
+        this.renderBackupSummary();
+        this.refreshMenu();
+      } catch (e) {
+        this.backupMsg(e.message, 'err');
+      }
+    });
     $('#rotate-ok').addEventListener('click', () => {
       $('#rotate-hint').classList.add('hidden');
       try { sessionStorage.setItem('rot-ok', '1'); } catch (e) { /* ignore */ }
     });
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.closest && e.target.closest('textarea, input')) return; // keep paste available
+      e.preventDefault();
+    });
   }
 
   goFullscreen() {
@@ -492,7 +558,9 @@ class Game {
       btn.addEventListener('lostpointercapture', up);
     }
     const keyMap = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'thrust', KeyW: 'thrust', Space: 'thrust' };
+    const typing = (e) => e.target && e.target.closest && e.target.closest('textarea, input');
     window.addEventListener('keydown', (e) => {
+      if (typing(e)) return;
       if (e.code === 'Escape' || e.code === 'KeyP') {
         if (this.state === 'playing') this.pause();
         else if (this.state === 'paused') this.resume();
@@ -526,6 +594,7 @@ class Game {
       $(`.ctl[data-k="${k}"]`).classList.add('down');
     });
     window.addEventListener('keyup', (e) => {
+      if (typing(e)) return;
       if (e.code === 'KeyQ') { this.holds.delete('kQ'); return; }
       if (e.code === 'KeyE') { this.holds.delete('kE'); return; }
       const k = keyMap[e.code];
