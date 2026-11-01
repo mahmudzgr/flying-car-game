@@ -1,19 +1,89 @@
 // Procedural sound (WebAudio) – no audio files needed.
+
+// iPhone/iPad (every iOS browser uses WebKit). iPadOS reports itself as a Mac with touch.
+export const IS_IOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+// A tiny silent WAV (8 kHz, 8-bit, mono). Playing it through an <audio> element moves iOS into the
+// "playback" audio session, so Web Audio is not silenced by the ring/silent switch.
+function silentWavUrl() {
+  const n = 2000;
+  const buf = new Uint8Array(44 + n);
+  const dv = new DataView(buf.buffer);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) buf[o + i] = t.charCodeAt(i); };
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true);
+  str(36, 'data'); dv.setUint32(40, n, true);
+  buf.fill(128, 44);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
 export class Sound {
   constructor() {
     this.ctx = null;
     this.enabled = true;
     this.ready = false;
+    this.keepAlive = null;
   }
 
+  // 'none' (not started yet) | 'running' | 'suspended' | 'interrupted' (iOS) | 'closed'
+  get status() {
+    return this.ctx ? this.ctx.state : 'none';
+  }
+
+  // Ask for the "playback" audio session (plays even when the phone is on silent).
+  unlockSession() {
+    try {
+      if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    } catch (e) { /* not supported */ }
+    if (!IS_IOS || document.hidden) return;
+    if (!this.keepAlive) {
+      const a = document.createElement('audio');
+      a.src = silentWavUrl();
+      a.loop = true;
+      a.preload = 'auto';
+      a.setAttribute('playsinline', '');
+      a.setAttribute('x-webkit-airplay', 'deny');
+      this.keepAlive = a;
+      try {
+        if ('mediaSession' in navigator && window.MediaMetadata) navigator.mediaSession.metadata = new MediaMetadata({ title: 'Uçan Roadster' });
+      } catch (e) { /* ignore */ }
+    }
+    if (this.keepAlive.paused) {
+      const pr = this.keepAlive.play();
+      if (pr && pr.catch) pr.catch(() => {});
+    }
+  }
+
+  // Page hidden: stop everything; page visible again: the next touch wakes it up.
+  sleep() {
+    if (this.keepAlive) this.keepAlive.pause();
+    if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+  }
+
+  wake() {
+    if (!this.ctx) return;
+    this.unlockSession();
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+  }
+
+  // Must run inside a user gesture (touch/click): creates or wakes up the audio engine.
   init() {
+    this.unlockSession();
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.ctx.state !== 'running') {
+        // covers 'suspended' and the iOS-only 'interrupted' state (calls, lock screen, other apps)
+        this.ctx.resume().catch(() => {});
+        this.kick();
+      }
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ctx = (this.ctx = new AC());
+    ctx.onstatechange = () => { if (this.onState) this.onState(ctx.state); };
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    this.kick();
     this.master = ctx.createGain();
     this.master.gain.value = this.enabled ? 0.8 : 0;
     const comp = ctx.createDynamicsCompressor();
@@ -56,6 +126,18 @@ export class Sound {
     this.rainGain = this.loopNoise('bandpass', 2600, 0.35);
     this.ready = true;
     if (this.onReady) this.onReady();
+  }
+
+  // Start a 1-sample silent buffer inside the gesture: the classic WebKit audio unlock.
+  kick() {
+    try {
+      const ctx = this.ctx;
+      const b = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = b;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch (e) { /* ignore */ }
   }
 
   setAmbient(kind) {

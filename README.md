@@ -67,6 +67,13 @@ hedef merkezine yakınlık, kalan yakıt ve toplanan yıldızlar.
 - **Ayarlar → İlerleme Yedeği:** ilerlemeni kısa bir yedek koduna (`UR1-…`) dönüştürür. Kodu başka bir
   tarayıcıda/cihazda geri yükleyebilirsin; geri yükleme mevcut ilerlemeyi silmez, ikisinin en iyisini birleştirir.
 
+## Ses (iPhone notu)
+
+iPhone/iPad'deki tüm tarayıcılar (Chrome dahil) WebKit kullanır. WebKit'te Web Audio sesi, telefonun yandaki
+sessiz anahtarı açıkken kısılır ve ses motoru yalnızca bir dokunuşla başlatılabilir. Oyun bu yüzden ilk dokunuşta
+ses motorunu başlatır, iOS'ta sesi "medya oynatma" moduna alır (sessiz modda da duyulur) ve her dokunuşta askıda
+kalmış motoru yeniden uyandırır. **Ayarlar → Ses durumu / Ses testi** ile kontrol edilebilir.
+
 ## Çalıştırma
 
 ES modülleri kullandığı için bir HTTP sunucusu gerekir (dosyayı doğrudan açmak çalışmaz):

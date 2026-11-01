@@ -34,6 +34,7 @@ class Game {
     this.sound.enabled = S.sound;
     this.music = new Music(this.sound);
     this.music.enabled = S.music;
+    this.sound.onState = () => { if (this.screen === 'settings') this.renderAudioStatus(); };
     this.sound.onReady = () => {
       this.music.attach();
       this.music.setEnabled(this.progress.data.settings.music);
@@ -66,12 +67,15 @@ class Game {
     window.addEventListener('orientationchange', () => setTimeout(() => this.onResize(), 200));
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.state === 'playing') this.pause();
-      const ctx = this.sound.ctx;
-      if (ctx) {
-        if (document.hidden) ctx.suspend().catch(() => {});
-        else ctx.resume().catch(() => {});
-      }
+      if (document.hidden) this.sound.sleep();
+      else this.sound.wake();
     });
+    // Any touch/click anywhere starts or wakes the audio engine (iOS only allows it inside a gesture).
+    const unlockAudio = () => {
+      this.sound.init();
+      if (this.screen === 'settings') this.renderAudioStatus();
+    };
+    for (const ev of ['touchend', 'click', 'keydown']) document.addEventListener(ev, unlockAudio, { capture: true, passive: true });
 
     // background level for the main menu
     this.loadLevel(this.nextPlayableIndex(), false);
@@ -162,6 +166,26 @@ class Game {
     const S = this.progress.data.settings;
     $$('[data-set]').forEach((b) => b.classList.toggle('on', !!S[b.dataset.set]));
     $$('#quality-seg button').forEach((b) => b.classList.toggle('on', b.dataset.q === S.quality));
+    this.renderAudioStatus();
+  }
+
+  renderAudioStatus() {
+    const el = $('#audio-status');
+    if (!el) return;
+    const st = this.sound.status;
+    const S = this.progress.data.settings;
+    let text = 'Başlamadı — bir düğmeye dokun';
+    let cls = 'wait';
+    if (st === 'running') {
+      text = S.music || S.sound ? 'Çalışıyor ✓' : 'Çalışıyor (müzik ve efektler kapalı)';
+      cls = 'ok';
+    } else if (st === 'suspended' || st === 'interrupted') text = 'Beklemede — ekrana dokun';
+    else if (st === 'closed') {
+      text = 'Kapandı — sayfayı yenile';
+      cls = 'err';
+    }
+    el.textContent = text;
+    el.className = 'audio-status ' + cls;
   }
 
   renderGarage() {
@@ -438,7 +462,10 @@ class Game {
       this.progress.save();
       this.sound.init();
       if (k === 'sound') this.sound.setEnabled(S.sound);
-      if (k === 'music') this.music.setEnabled(S.music);
+      if (k === 'music') {
+        this.music.setEnabled(S.music);
+        if (S.music) setTimeout(() => this.music.stinger('win'), 120); // audible confirmation
+      }
       if (k === 'vibration' && S.vibration) this.vibrate(40);
       this.sound.sfx('click');
       this.renderSettings();
@@ -469,6 +496,15 @@ class Game {
       this.scene.setPaint(this.paintColor());
       this.refreshMenu();
       this.toast('🗑️', 'Sıfırlandı', 'Yıldızlar, rekorlar ve başarımlar silindi.');
+    });
+    click('#audio-test', () => {
+      this.sound.init();
+      setTimeout(() => {
+        this.sound.sfx('ach');
+        if (this.progress.data.settings.music) this.music.stinger('win');
+        this.renderAudioStatus();
+      }, 120);
+      setTimeout(() => this.renderAudioStatus(), 700);
     });
     click('#open-backup', () => this.openBackup());
     click('#backup-back', () => { this.renderSettings(); this.showScreen('settings'); });

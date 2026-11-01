@@ -43,7 +43,7 @@ export class Music {
     this.trackName = null;
     this.track = null;
     this.intensity = 0;
-    this.volume = 0.42;
+    this.volume = 0.55;
   }
 
   // Call after the AudioContext exists (first user gesture).
@@ -132,11 +132,16 @@ export class Music {
     }
   }
 
+  // master brightness per intensity (kept fairly open: phone speakers lose the low end anyway)
+  toneFor(level) {
+    return level >= 2 ? 18000 : level === 1 ? 12000 : 7000;
+  }
+
   setIntensity(level) {
     this.intensity = level;
     if (!this.ready) return;
     const t = this.ctx.currentTime;
-    this.tone.frequency.setTargetAtTime(level >= 2 ? 18000 : level === 1 ? 9000 : 3800, t, 0.4);
+    this.tone.frequency.setTargetAtTime(this.toneFor(level), t, 0.4);
   }
 
   // Crash: dip the music and muffle it, then recover.
@@ -149,7 +154,7 @@ export class Music {
     g.setTargetAtTime(this.volume, t + dur, 0.6);
     this.tone.frequency.cancelScheduledValues(t);
     this.tone.frequency.setTargetAtTime(500, t, 0.05);
-    this.tone.frequency.setTargetAtTime(this.intensity >= 2 ? 18000 : 3800, t + dur, 0.8);
+    this.tone.frequency.setTargetAtTime(this.toneFor(this.intensity), t + dur, 0.8);
   }
 
   // Short phrase in the current key: 'win' (rising major) or 'lose' (falling).
@@ -202,7 +207,7 @@ export class Music {
       const idx = (s / arpEvery) % 4;
       const n = root + 24 + tones[bar % 2 ? 3 - idx : idx];
       if (tr.arp === 'bell') this.bell(midiHz(n + 12), t, 0.05);
-      else this.pluck(midiHz(n), t, 0.16, lvl === 0 ? 0.03 : 0.045, tr.arp, true);
+      else this.pluck(midiHz(n), t, 0.16, lvl === 0 ? 0.042 : 0.048, tr.arp, true);
     }
 
     // drums
@@ -268,7 +273,7 @@ export class Music {
     const f = ctx.createBiquadFilter();
     f.type = 'lowpass';
     f.Q.value = 4;
-    f.frequency.setValueAtTime(380 + this.intensity * 260, t);
+    f.frequency.setValueAtTime(560 + this.intensity * 260, t); // enough harmonics for small speakers
     f.frequency.exponentialRampToValueAtTime(160, t + dur);
     const g = ctx.createGain();
     this.env(g, t, 0.01, vol, dur, 0.08);

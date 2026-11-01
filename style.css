@@ -69,6 +69,12 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .big-btn.danger { background: rgba(255, 77, 77, 0.12); color: #ff9a9a; margin-top: 14px; width: 100%; }
 .big-btn.endless { background: linear-gradient(135deg, rgba(120, 80, 255, 0.35), rgba(56, 232, 255, 0.25)); border-color: rgba(150, 130, 255, 0.5); }
 
+.audio-status { font-weight: 800; font-size: 13px; text-align: right; }
+.audio-status.ok { color: var(--good); }
+.audio-status.wait { color: var(--warn); }
+.audio-status.err { color: var(--bad); }
+#audio-test, #open-backup { margin-top: 10px; width: 100%; }
+
 /* progress backup */
 #backup .panel { display: flex; flex-direction: column; gap: 10px; }
 .backup-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0; }

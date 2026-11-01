@@ -496,7 +496,8 @@ export class GameScene {
     this.skyMat.uniforms.sunStr.value = th.space ? 0.6 : th.night ? 0.6 : 1;
     this.scene.fog = new THREE.Fog(th.fog, 120, th.fogFar);
     this.hemi.color.set(th.hemi[0]);
-    this.hemi.groundColor.set(th.hemi[1]);
+    // bounce light from below: mostly neutral (road), only a hint of the theme colour
+    this.hemi.groundColor.set(th.hemi[1]).lerp(new THREE.Color(0x4a4a4c), 0.7);
     this.hemi.intensity = th.space ? 0.35 : 0.9;
     this.baseHemi = this.hemi.intensity;
     this.baseSkyTop = new THREE.Color(th.skyTop);
@@ -594,7 +595,10 @@ export class GameScene {
     const m = this.sky.clone();
     m.material = this.skyMat;
     envScene.add(m);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshBasicMaterial({ color: th.top }));
+    // The car always sits on asphalt / a deck, so its chrome and paint should reflect a neutral grey
+    // ground (a grass-green ground here tinted the rims and the underside green).
+    const envGround = new THREE.Color(0x4c4f54).lerp(new THREE.Color(th.top), 0.08);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshBasicMaterial({ color: envGround }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -20;
     envScene.add(ground);
