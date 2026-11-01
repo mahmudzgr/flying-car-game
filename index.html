@@ -60,6 +60,7 @@
 
     <div id="pad-arrow" class="hidden"><span>▶</span><b id="pad-dist">0 m</b></div>
     <div id="warning" class="hidden"></div>
+    <div id="hint" class="hidden"></div>
     <div id="popups"></div>
     <div id="countdown" class="hidden"></div>
     <div id="flip-meter" class="hidden"></div>
@@ -85,7 +86,11 @@
       <button class="big-btn primary" id="m-play">OYNA</button>
       <div class="menu-row">
         <button class="big-btn" id="m-levels">BÖLÜMLER</button>
+        <button class="big-btn endless" id="m-endless">♾️ SONSUZ MOD</button>
+      </div>
+      <div class="menu-row">
         <button class="big-btn" id="m-ach">BAŞARIMLAR</button>
+        <button class="big-btn" id="m-garage">🎨 GARAJ</button>
       </div>
       <div class="menu-row">
         <button class="big-btn" id="m-help">NASIL OYNANIR</button>
@@ -109,10 +114,19 @@
     </div>
   </section>
 
+  <section id="garage" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Garaj</h2><div id="garage-stars" class="head-stat"></div></div>
+      <p class="garage-note">Yıldız topladıkça yeni boyalar açılır. Seçtiğin renk arkadaki araca hemen uygulanır.</p>
+      <div id="paint-grid"></div>
+    </div>
+  </section>
+
   <section id="settings" class="screen hidden">
     <div class="panel">
       <div class="panel-head"><button class="back" data-back>‹</button><h2>Ayarlar</h2></div>
-      <div class="setting"><span>Ses</span><button class="toggle" data-set="sound"></button></div>
+      <div class="setting"><span>Müzik</span><button class="toggle" data-set="music"></button></div>
+      <div class="setting"><span>Ses efektleri</span><button class="toggle" data-set="sound"></button></div>
       <div class="setting"><span>Titreşim</span><button class="toggle" data-set="vibration"></button></div>
       <div class="setting"><span>Yörünge asistanı</span><button class="toggle" data-set="assist"></button></div>
       <div class="setting"><span>Hayalet (en iyi koşun)</span><button class="toggle" data-set="ghost"></button></div>
@@ -136,7 +150,10 @@
         <div class="help-item"><div class="hk">🎯</div><div><b>İNİŞ:</b> Platforma 7 m/s'den yavaş ve iki tekerle in. Dikey hız göstergesi yeşilse güvendesin. Tavan yere değerse kaza!</div></div>
         <div class="help-item"><div class="hk">⭐</div><div><b>PUAN:</b> Takla (tek atlayışta kombo katlanır), havada kalma, yumuşak iniş, merkeze yakınlık, kalan yakıt ve yıldızlar puan kazandırır.</div></div>
         <div class="help-item"><div class="hk">🌀</div><div><b>DÖNEN RAMPA:</b> Rampa sürekli açı değiştirir. Dik açıda yüksek, yatık açıda uzun uçarsın. Rampa yükselirken üzerindeysen ekstra fırlatır!</div></div>
-        <div class="help-item"><div class="hk">⌨️</div><div><b>Klavye:</b> ←/→ veya A/D (yer: fren/gaz, hava: takla) · Boşluk/↑/W: itici · R: yeniden · Esc: duraklat</div></div>
+        <div class="help-item"><div class="hk">⛷️</div><div><b>KAYAK YAMACI:</b> Eğimli pistte önemli olan yüzeye <i>dik</i> çarpma hızıdır. Burnu yamaca paralel tutarsan 120 km/sa hızla bile iticisiz konarsın.</div></div>
+        <div class="help-item"><div class="hk">🧊</div><div><b>BUZ:</b> Sürtünme çok düşük, frenler zayıftır. Yatay hızını havada, burnu geriye yatırıp iticiyle kes.</div></div>
+        <div class="help-item"><div class="hk">♾️</div><div><b>SONSUZ MOD:</b> Her başarılı inişte yeni, biraz daha zor rastgele bir parkur. Tek hata seriyi bitirir.</div></div>
+        <div class="help-item"><div class="hk">⌨️</div><div><b>Klavye:</b> ←/→ veya A/D (yer: fren/gaz, hava: takla) · Boşluk/↑/W: itici · R: yeniden · M: müzik · Esc: duraklat</div></div>
       </div>
     </div>
   </section>
@@ -152,7 +169,7 @@
           <p class="tip" id="b-tip"></p>
         </div>
         <div class="bc-right">
-          <div class="obj-head">GÖREVLER</div>
+          <div class="obj-head" id="b-obj-head">GÖREVLER</div>
           <ul class="objectives" id="b-obj"></ul>
           <div class="menu-row">
             <button class="big-btn" id="b-back">GERİ</button>
@@ -170,7 +187,8 @@
       <button class="big-btn" id="p-restart">YENİDEN BAŞLA</button>
       <button class="big-btn" id="p-levels">BÖLÜMLER</button>
       <div class="setting compact"><span>Yörünge asistanı</span><button class="toggle" data-set="assist"></button></div>
-      <div class="setting compact"><span>Ses</span><button class="toggle" data-set="sound"></button></div>
+      <div class="setting compact"><span>Müzik</span><button class="toggle" data-set="music"></button></div>
+      <div class="setting compact"><span>Ses efektleri</span><button class="toggle" data-set="sound"></button></div>
     </div>
   </section>
 

@@ -15,7 +15,11 @@ kontrol ederek iniş platformuna **güvenli bir şekilde kon**.
 Bir tuşun anlamı **basıldığı anda** belirlenir: rampaya gazla çıkarken ▶'ye basılı tutarsan havada da gaz
 olarak kalır (istemeden takla atmazsın). Takla için tuşu bırakıp yeniden bas.
 
-Klavye: `←/→` veya `A/D`, itici `Boşluk/↑/W`, ayrıca `Q/E` her zaman takla iticisi. `R` yeniden başlat, `Esc` duraklat.
+Klavye: `←/→` veya `A/D`, itici `Boşluk/↑/W`, ayrıca `Q/E` her zaman takla iticisi. `R` yeniden başlat, `M` müzik, `Esc` duraklat.
+
+**Saf Fizik (iticisiz iniş):** Düz bir platforma itici kullanmadan inmek fiziksel olarak mümkün değil (düşüş
+hızı 7 m/s sınırını aşar). Kayak Atlayışı bölümündeki yamaç ise uçuş yoluna paralel tasarlandı: önemli olan yüzeye
+*dik* çarpma hızı olduğu için burnu yamaca paralel tutarak 120 km/sa hızla bile ~3 m/s ile konabilirsin.
 
 **Güvenli iniş kuralları**
 - İki teker platforma değmeli, dokunma hızı **7 m/s altında** olmalı (sol paneldeki dikey hız yeşil/sarı iken güvendesin).
@@ -33,12 +37,19 @@ hedef merkezine yakınlık, kalan yakıt ve toplanan yıldızlar.
 - **Dönen rampa:** kavisli, menteşeli rampa sürekli açı değiştirir. Rampa yükselirken üzerindeysen yüzey hızı
   aracı ekstra fırlatır ("mancınık etkisi"). Doğru anı yakalamak oyunun parçası.
 - **İticiler:** ana itici + burun/kuyruk yön iticileri, sınırlı yakıt, yakıt kutuları.
-- **10 bölüm, 8 farklı ortam:** çayır, kanyon, gökdelen çatısı, rüzgârlı vadi, mancınık rampa,
+- **16 bölüm, 14 farklı ortam:** çayır, kanyon, gökdelen çatısı, rüzgârlı vadi, mancınık rampa,
   Ay (g = 1,62 m/s², atmosfer yok), Mars (g = 3,71 m/s², çok ince atmosfer), dalgalarda sallanan/kayan deniz
-  platformu ve lav kanyonlu büyük final.
+  platformu, lav kanyonlu final, **kayak atlama yamacı**, **buzlu göl** (sürtünme ~0,1), **Titan**
+  (g = 1,35 m/s², Dünya'dan ~4 kat yoğun atmosfer, metan gölü), **sallanan vinç platformu**, **neon şehirde
+  asansör platformu** ve iki yönlü sert rüzgarlı **fırtına** (yağmur, şimşek).
+- **Sonsuz mod:** her başarılı inişte yeni, biraz daha zor, rastgele üretilmiş parkur (üretici, hedef hıza
+  pistte ulaşılabildiğini ve platforma ulaşan bir hız bandı olduğunu kontrol eder). Tek hata seriyi bitirir.
+- **Müzik:** dosyasız, WebAudio ile anlık üretilen müzik. Her ortamın kendi tonu/temposu var; menüde sakin,
+  sürüşte bas ve hi-hat, uçuşta tam davul ve melodi devreye girer. Kazada müzik kısılır, inişte zafer cümlesi çalar.
+- **Garaj:** yıldız topladıkça açılan 9 boya rengi.
 - **Görevler:** her bölümde 3 yıldızlık görev (yumuşak iniş, belirli takla türü/sayısı, isabet, yakıt tasarrufu,
   yıldız toplama, havada kalma, puan…). Bir sonraki bölüm, öncekinden en az 1 yıldızla açılır.
-- **22 başarım** (Kuş Tüyü, On İkiden, Saf Fizik, Mancınık Ustası, Kasırga…), istatistikler, yerel kayıt.
+- **31 başarım** (Kuş Tüyü, On İkiden, Saf Fizik, Mancınık Ustası, Kasırga, Uçan Kayakçı, Maratoncu…), istatistikler, yerel kayıt.
 - **Oynanışı geliştiren ekler:** yörünge asistanı (tahmini iniş noktası yeşil/kırmızı), hedef hız bandı,
   iniş uyarıları ("İTİCİYİ ATEŞLE!", "BURNU DÜZELT!"), en iyi koşunun **hayalet** tekrarı, kusursuz inişte ağır çekim,
   kamera sarsıntısı, titreşim (destekleyen telefonlarda), tamamen kodla üretilmiş sesler.
@@ -68,8 +79,9 @@ Fizik ve kurallar render katmanından bağımsızdır; `tools/bot.mjs` her böl�
 (farklı hız, rampa zamanlaması ve takla sayısıyla) oynayıp bölümlerin çözülebilir olduğunu doğrular:
 
 ```bash
-node tools/bot.mjs        # tüm bölümler
-node tools/bot.mjs 4      # sadece 4. bölüm
+node tools/bot.mjs           # tüm bölümler (bot hedef hıza ulaşınca rampaya gazsız girer)
+node tools/bot.mjs 11        # sadece 11. bölüm (kayak: bot ana iticiyi hiç kullanmaz)
+node tools/endless-test.mjs  # sonsuz mod üreticisinin bölümlerini dener
 ```
 
 ## Proje yapısı
@@ -82,10 +94,12 @@ src/run.js                Oyun kuralları: takla sayımı, iniş değerlendirme,
 src/scene.js              Three.js 2.5D diorama, kamera, efektler
 src/carModel.js           Prosedürel araç modeli
 src/effects.js            Parçacık sistemi
-src/audio.js              WebAudio ile sentezlenen sesler
+src/audio.js              WebAudio ile sentezlenen ses efektleri
+src/music.js              Prosedürel müzik (adım sıralayıcı, temaya göre parçalar)
 src/progress.js           Kayıt, yıldızlar, başarımlar
 src/main.js               Durum makinesi, giriş, HUD
 tools/bot.mjs             Otomatik pilot / denge testi
+tools/endless-test.mjs    Sonsuz mod üreticisi testi
 vendor/three.module.min.js  Three.js r170 (MIT)
 ```
 

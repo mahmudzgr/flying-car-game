@@ -411,7 +411,8 @@ export class Car {
         Ft -= vt * 2500 * perWheel;
       }
       Ft -= vt * S.rollC;
-      const maxF = S.mu * N;
+      // surface grip multiplier (ice ≈ 0.1, asphalt = 1)
+      const maxF = S.mu * (wh.body.data.mu ?? 1) * N;
       wh.slip = Math.abs(Ft) > maxF ? 1 : 0;
       if (Ft > maxF) Ft = maxF;
       else if (Ft < -maxF) Ft = -maxF;
@@ -453,7 +454,7 @@ export class Car {
       const tx = q.ny, ty = -q.nx;
       const vt = rvx2 * tx + rvy2 * ty;
       let Ft = -vt * 8000;
-      const maxF = S.hullMu * Fn;
+      const maxF = S.hullMu * Math.min(1, q.body.data.mu ?? 1) * Fn;
       if (Ft > maxF) Ft = maxF;
       else if (Ft < -maxF) Ft = -maxF;
       applyAt(px, py, q.nx * Fn + tx * Ft, q.ny * Fn + ty * Ft);

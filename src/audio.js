@@ -19,6 +19,7 @@ export class Sound {
     const comp = ctx.createDynamicsCompressor();
     this.master.connect(comp);
     comp.connect(ctx.destination);
+    this.comp = comp; // the music bus joins here (independent of the SFX volume)
 
     // white noise buffer
     const len = ctx.sampleRate * 2;
@@ -51,7 +52,16 @@ export class Sound {
     this.rcsGain = this.loopNoise('highpass', 2500, 0.5);
     // Wind / rolling noise
     this.windGain = this.loopNoise('lowpass', 500, 0.4);
+    // Weather ambience (rain hiss)
+    this.rainGain = this.loopNoise('bandpass', 2600, 0.35);
     this.ready = true;
+    if (this.onReady) this.onReady();
+  }
+
+  setAmbient(kind) {
+    this.ambient = kind;
+    if (!this.ready) return;
+    this.rainGain.gain.setTargetAtTime(kind === 'rain' ? 0.12 : 0, this.ctx.currentTime, 0.5);
   }
 
   loopNoise(type, freq, q) {
@@ -151,6 +161,10 @@ export class Sound {
       case 'fail': this.tone(330, 0.3, 'square', 0.1, -120); this.tone(220, 0.45, 'square', 0.1, -100, 0.25); break;
       case 'ach': [0, 7, 12, 16, 19].forEach((s, i) => this.tone(660 * Math.pow(2, s / 12), 0.25, 'sine', 0.14, 0, i * 0.07)); break;
       case 'warn': this.tone(1200, 0.08, 'square', 0.07); break;
+      case 'thunder':
+        this.noise(2.8, 420, 0.75, 'lowpass', p.delay || 0);
+        this.noise(1.6, 160, 0.9, 'lowpass', (p.delay || 0) + 0.1);
+        break;
       default: break;
     }
   }

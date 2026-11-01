@@ -183,7 +183,9 @@ export class Run {
           this.jumpAirtime += this.airborneFor;
           break;
         }
-        if (car.wheelsDown === 2 && this.groundedFor > 0.6) {
+        // settled on both wheels (or came to rest in an odd pose after a long time)
+        const settled = (car.wheelsDown === 2 && this.groundedFor > 0.6) || (since > 6 && car.speed < 1.5 && touching);
+        if (settled) {
           const tags = new Set(car.wheels.map((w) => w.tag));
           if (tags.has('pad') || tc.onPad) {
             this.phase = 'landed';
@@ -203,7 +205,8 @@ export class Run {
               this.phase = 'missed';
               this.emit('missed');
               const pad = this.L.pad;
-              const px0 = pad.body.state.ox - pad.len / 2, px1 = pad.body.state.ox + pad.len / 2;
+              const shift = pad.body.state.ox - pad.body.origin.x; // moving platforms
+              const px0 = pad.x0 + shift, px1 = pad.x1 + shift;
               const tx = this.touch.x;
               const why = tx > px1 ? `Platformu ${Math.round(tx - px1)} m aştın — daha yavaş gir veya havada fren yap.`
                 : tx < px0 ? `Platforma ${Math.round(px0 - tx)} m kısa kaldın — daha hızlı gir.`
@@ -217,7 +220,7 @@ export class Run {
       case 'landed': {
         const padV = this.L.pad.body.state;
         const rel = Math.hypot(car.vx - padV.vx, car.vy - padV.vy);
-        if ((rel < 0.6 && this.time - this.landedT > 0.8) || this.time - this.landedT > 7) {
+        if ((rel < 0.6 && this.time - this.landedT > 0.8) || this.time - this.landedT > (this.def.pad.settle || 7)) {
           this.phase = 'complete';
           this.finish(true);
         }

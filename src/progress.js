@@ -10,7 +10,7 @@ export const ACHIEVEMENTS = [
   { id: 'feather', icon: '🪶', name: 'Kuş Tüyü', desc: '1,0 m/s altında dokun.' },
   { id: 'bullseye', icon: '🎯', name: 'On İkiden', desc: 'Hedef merkezine 1 m yakın in.' },
   { id: 'miser', icon: '⛽', name: 'Yakıt Cimrisi', desc: '%75 ve üzeri yakıtla bitir.' },
-  { id: 'pure', icon: '🪂', name: 'Saf Fizik', desc: 'Ana iticiyi hiç kullanmadan in.' },
+  { id: 'pure', icon: '🪂', name: 'Saf Fizik', desc: 'Ana iticiyi hiç kullanmadan in. (İpucu: Kayak Atlayışı)' },
   { id: 'lastdrop', icon: '🫗', name: 'Son Damla', desc: '%5 altında yakıtla başarılı iniş.' },
   { id: 'catapult', icon: '🏹', name: 'Mancınık Ustası', desc: 'Rampa yükselirken fırla (güçlü rampa itişi).' },
   { id: 'speed', icon: '⚡', name: 'Işık Hızı', desc: 'Rampaya 160 km/sa üzerinde gir.' },
@@ -24,13 +24,36 @@ export const ACHIEVEMENTS = [
   { id: 'campaign', icon: '🏁', name: 'Görev Tamamlandı', desc: 'Tüm bölümleri bitir.' },
   { id: 'perfect', icon: '🏆', name: 'Mükemmeliyetçi', desc: 'Tüm bölümlerde 3 yıldız al.' },
   { id: 'score15k', icon: '💎', name: 'Rekortmen', desc: 'Tek bölümde 15.000 puan yap.' },
+  { id: 'ski', icon: '⛷️', name: 'Uçan Kayakçı', desc: 'Kayak atlama yamacına güvenle in.' },
+  { id: 'ice', icon: '🧊', name: 'Buz Pateni', desc: 'Buzlu Göl\'de kar setine çarpmadan dur.' },
+  { id: 'titan', icon: '🪐', name: 'Metan Denizcisi', desc: 'Titan bölümünü bitir.' },
+  { id: 'crane', icon: '🏗️', name: 'Vinç Operatörü', desc: 'Sallanan vinç platformuna in.' },
+  { id: 'lift', icon: '🛗', name: 'Asansör Sörfü', desc: 'Hareket eden asansör platformuna in.' },
+  { id: 'storm', icon: '⛈️', name: 'Fırtına Avcısı', desc: 'Fırtına bölümünü bitir.' },
+  { id: 'endless5', icon: '♾️', name: 'Maratoncu', desc: 'Sonsuz modda üst üste 5 iniş yap.' },
+  { id: 'endless10', icon: '🚀', name: 'Durdurulamaz', desc: 'Sonsuz modda üst üste 10 iniş yap.' },
+  { id: 'painter', icon: '🎨', name: 'Boyacı', desc: 'Garajda aracının rengini değiştir.' },
+];
+
+// Garage paints, unlocked by total stars
+export const PAINTS = [
+  { id: 'red', name: 'Çok Katmanlı Kırmızı', color: 0xc4111f, stars: 0 },
+  { id: 'white', name: 'İnci Beyazı', color: 0xe9ecef, stars: 6 },
+  { id: 'black', name: 'Gece Siyahı', color: 0x15171c, stars: 12 },
+  { id: 'blue', name: 'Derin Mavi', color: 0x1f4fb5, stars: 18 },
+  { id: 'silver', name: 'Gümüş', color: 0x9aa3ad, stars: 24 },
+  { id: 'green', name: 'Zümrüt', color: 0x0f7a4a, stars: 30 },
+  { id: 'orange', name: 'Mars Turuncusu', color: 0xe8611a, stars: 36 },
+  { id: 'purple', name: 'Neon Mor', color: 0x7a2bd6, stars: 42 },
+  { id: 'gold', name: 'Altın', color: 0xd4a017, stars: 48 },
 ];
 
 const defaults = () => ({
   levels: {}, // id -> {stars, best, objectives:[bool], ghost}
   achievements: {},
   stats: { flips: 0, crashes: 0, landings: 0, runs: 0, playTime: 0 },
-  settings: { sound: true, vibration: true, assist: true, quality: 'auto', ghost: true },
+  settings: { sound: true, music: true, vibration: true, assist: true, quality: 'auto', ghost: true, paint: 'red' },
+  endless: { bestScore: 0, bestStreak: 0, runs: 0 },
 });
 
 export class Progress {
@@ -40,7 +63,8 @@ export class Progress {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        this.data = { ...defaults(), ...d, stats: { ...defaults().stats, ...d.stats }, settings: { ...defaults().settings, ...d.settings } };
+        const D = defaults();
+        this.data = { ...D, ...d, stats: { ...D.stats, ...d.stats }, settings: { ...D.settings, ...d.settings }, endless: { ...D.endless, ...d.endless } };
       }
     } catch (e) {
       /* storage unavailable – play without saving */
@@ -70,14 +94,23 @@ export class Progress {
     return Object.values(this.data.levels).reduce((a, l) => a + (l.stars || 0), 0);
   }
 
-  // Records a finished run; returns {newBest, newAchievements:[...]}
-  recordRun(def, run, levels) {
+  unlock(id, out) {
+    if (!this.data.achievements[id]) {
+      this.data.achievements[id] = Date.now();
+      const a = ACHIEVEMENTS.find((x) => x.id === id);
+      if (out && a) out.newAch.push(a);
+      this.save();
+    }
+  }
+
+  // Records a finished run; returns {newBest, newAch:[...]}
+  recordRun(def, run, levels, { endless = false } = {}) {
     const r = run.result;
     const st = this.data.stats;
     st.runs++;
     if (!r.success) st.crashes++;
     const out = { newBest: false, newAch: [] };
-    if (r.success) {
+    if (r.success && !endless) {
       st.landings++;
       st.flips += r.backflips + r.frontflips;
       const prev = this.level(def.id);
@@ -94,12 +127,11 @@ export class Progress {
       }
       this.data.levels[def.id] = lv;
     }
-    const unlock = (id) => {
-      if (!this.data.achievements[id]) {
-        this.data.achievements[id] = Date.now();
-        out.newAch.push(ACHIEVEMENTS.find((a) => a.id === id));
-      }
-    };
+    if (r.success && endless) {
+      st.landings++;
+      st.flips += r.backflips + r.frontflips;
+    }
+    const unlock = (id) => this.unlock(id, out);
     if (r.success) {
       unlock('first_land');
       const n = r.backflips + r.frontflips;
@@ -117,14 +149,33 @@ export class Progress {
       if (r.starsTotal > 0 && r.starsCollected >= r.starsTotal) unlock('collector');
       if (def.theme === 'moon') unlock('moon');
       if (def.theme === 'mars') unlock('mars');
-      if (def.theme === 'sea') unlock('sea');
+      if (def.theme === 'sea' || def.theme === 'storm') unlock('sea');
       if (r.score >= 15000) unlock('score15k');
+      if (def.pad.type === 'hill') unlock('ski');
+      if ((def.pad.mu ?? 1) < 0.5) unlock('ice');
+      if (def.theme === 'titan') unlock('titan');
+      if (def.pad.motion && def.pad.motion.type === 'pendulum') unlock('crane');
+      if (def.pad.motion && def.pad.motion.type === 'lift') unlock('lift');
+      if (def.theme === 'storm' && !endless) unlock('storm');
     }
     if (r.launchSpeed * 3.6 >= 160) unlock('speed');
     if (st.flips >= 50) unlock('flips50');
     if (st.crashes >= 10) unlock('crash10');
     if (levels.every((l) => this.level(l.id).stars > 0)) unlock('campaign');
     if (levels.every((l) => this.level(l.id).stars >= 3)) unlock('perfect');
+    this.save();
+    return out;
+  }
+
+  // Endless mode bookkeeping; returns {newBest, newAch}
+  recordEndless(streak, total) {
+    const e = this.data.endless;
+    const out = { newBest: total > e.bestScore && e.bestScore > 0, newAch: [] };
+    e.runs++;
+    e.bestScore = Math.max(e.bestScore, total);
+    e.bestStreak = Math.max(e.bestStreak, streak);
+    if (streak >= 5) this.unlock('endless5', out);
+    if (streak >= 10) this.unlock('endless10', out);
     this.save();
     return out;
   }

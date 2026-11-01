@@ -13,11 +13,22 @@ export function autopilot(run, cfg) {
   inp.gas = inp.brake = inp.thrust = inp.rotL = inp.rotR = false;
   if (run.phase === 'drive') {
     if (run.time < cfg.wait) return;
-    if (car.vx < cfg.speed) inp.gas = true;
+    // like a player following the HUD: reach the target speed, then coast up the ramp
+    if (car.vx < cfg.speed && (!cfg.coast || car.x < L.rampX)) inp.gas = true;
     return;
   }
   if (run.phase !== 'air' && run.phase !== 'touchdown') return;
   const g = run.world.gravity;
+  // ski hill: align with the slope below, never use the main thruster
+  if (L.pad.hill) {
+    const below = run.world.raycast(car.x, car.y, 0, -1, 300);
+    const target = below ? Math.atan2(-below.nx, below.ny) : 0;
+    const err = wrap(car.a - target);
+    const desired = Math.max(-6, Math.min(6, -3.2 * err));
+    if (car.w < desired - 0.35) inp.rotL = true;
+    else if (car.w > desired + 0.35) inp.rotR = true;
+    return;
+  }
   // horizontal guidance: predict the touchdown x and tilt back to brake if overshooting
   let target = L.pad.body.state.angle;
   const rh0 = restHeight(g);
@@ -47,7 +58,8 @@ export function autopilot(run, cfg) {
   // suicide burn toward the surface below (or pad height)
   const rh = restHeight(g);
   const hit = run.world.raycast(car.x, car.y, 0, -1, 200);
-  const surfY = hit ? hit.y : L.pad.y;
+  // aim the burn at the pad height while the pad is still ahead (like a player watching the pad)
+  const surfY = Math.max(hit ? hit.y : L.pad.y, car.x < L.pad.body.state.ox + L.pad.len / 2 + 5 ? L.pad.y : -1e9);
   const h = Math.max(0.1, car.y - rh - surfY);
   const netA = car.thrustAccel * Math.cos(car.a) - g;
   const vt = -1.2;
@@ -70,6 +82,7 @@ export function simulate(def, cfg, maxT = 60) {
 if (typeof process !== "undefined" && import.meta.url === `file://${process.argv[1]}`) main();
 function main() {
 const only = process.argv[2] ? Number(process.argv[2]) : null;
+const COAST = !process.argv.includes('--gas');
 let allOk = true;
 for (const def of LEVELS) {
   if (only && def.id !== only) continue;
@@ -83,7 +96,7 @@ for (const def of LEVELS) {
   for (const speed of speeds) {
     for (let wait = 0; wait < def.ramp.period; wait += def.ramp.period / 5) {
       for (const flips of [0, 1, 2, 3]) {
-        const run = simulate(def, { speed, wait, flips, dir: flips % 2 ? 1 : -1, lead: true });
+        const run = simulate(def, { speed, wait, flips, dir: flips % 2 ? 1 : -1, lead: true, coast: COAST });
         total++;
         const r = run.result || { success: false, reason: 'timeout ' + run.phase };
         if (r.success) {
