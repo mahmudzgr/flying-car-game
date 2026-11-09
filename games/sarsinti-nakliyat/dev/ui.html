@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Sarsıntı — Arayüz laboratuvarı</title><link rel="stylesheet" href="../style.css">
+<style>#dock{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9;background:#fffc;padding:6px;border-radius:8px}</style></head>
+<body style="background:#8fd3ff"><div id="dock"></div><div id="ui"></div>
+<script type="module">
+// Arayüz ekibi: ui/ ekranlarını sahte snapshot ile deneyin.
+import { createUI } from '../src/ui/index.js';
+import { createInput } from '../src/input.js';
+import { createSave } from '../src/save.js';
+import { CAMPAIGN } from '../src/data/levels/index.js';
+const save = createSave(); save.load(); const input = createInput(window);
+const log = (n) => (...a) => console.log('flow.' + n, ...a);
+const flow = { startLevel: log('startLevel'), retry: log('retry'), pause: log('pause'), resume: log('resume'), toMenu: log('toMenu'), nextLevel: log('nextLevel') };
+const ui = createUI({ root: document.getElementById('ui'), input, save, flow, levels: CAMPAIGN });
+const fakeSnap = { run: { distance: 120, progress: 0.4, status: 'running', time: 12 }, cargoSummary: { total: 3, onboard: 2, delivered: 0, lost: 1 }, pickups: 15, vehicle: { speed: 9 }, combo: { count: 3, multiplier: 2 } };
+const fakeRes = { result: 'win', stars: 2, score: 1234, time: 33.3, cargoDelivered: 3, cargoTotal: 3, reason: 'finish' };
+const dock = document.getElementById('dock');
+for (const [n, f] of [['menu', () => ui.show('menu')], ['hud', () => { ui.show('hud'); ui.hudUpdate(fakeSnap); }], ['pause', () => ui.show('pause')], ['sonuç ✓', () => ui.show('result', { result: fakeRes, reward: { total: 250 } })], ['sonuç ✗', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'headHit' } })]]) {
+  const b = document.createElement('button'); b.textContent = n; b.onclick = f; dock.append(b);
+}
+</script></body></html>

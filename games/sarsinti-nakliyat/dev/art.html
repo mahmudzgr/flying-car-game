@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sarsıntı — Sanat laboratuvarı</title>
+<style>html,body{margin:0;height:100%;background:#222;font:14px system-ui}canvas{width:100%;height:100%;display:block}#bar{position:fixed;top:8px;left:8px;color:#fff;background:#0008;padding:6px 10px;border-radius:8px}</style></head>
+<body><canvas id="c"></canvas>
+<div id="bar">Sanat laboratuvarı · bölüm: <select id="lv"></select> araç: <select id="veh"><option>tosun</option><option>zipir</option></select>
+ <label><input type="checkbox" id="dbg"> fizik çizgileri</label> · gaz: → / fren: ←</div>
+<script type="module">
+// Grafik ekibi: renderer ve art/ fonksiyonlarını gerçek sim ile (klavyeyle sürerek) deneyin.
+import { createSim } from '../src/sim/sim.js';
+import { createRenderer } from '../src/render/index.js';
+import { createInput } from '../src/input.js';
+import { LEVELS } from '../src/data/levels/index.js';
+import { SIM } from '../src/config.js';
+const c = document.getElementById('c'), lv = document.getElementById('lv'), veh = document.getElementById('veh'), dbg = document.getElementById('dbg');
+for (const id of Object.keys(LEVELS)) lv.add(new Option(id));
+const input = createInput(window), r = createRenderer(c, {});
+let sim, snap, acc = 0, last = performance.now();
+function load() { sim?.destroy(); sim = createSim({ level: LEVELS[lv.value], vehicleId: veh.value }); sim.on('*', (e) => r.onEvent(e)); r.setLevel(sim.static); snap = sim.snapshot(); }
+lv.onchange = veh.onchange = load; dbg.onchange = () => r.setOptions({ debug: dbg.checked });
+window.addEventListener('resize', () => r.resize()); load();
+(function f(now) { const dt = Math.min((now - last) / 1000, SIM.maxFrameDt); last = now; acc += dt * snap.timeScale;
+  while (acc >= SIM.step) { sim.step(input.read()); acc -= SIM.step; } snap = sim.snapshot(); r.render(snap, acc / SIM.step, dt); requestAnimationFrame(f); })(last);
+</script></body></html>
