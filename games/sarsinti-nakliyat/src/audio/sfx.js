@@ -170,7 +170,7 @@ export function createSfx(env, hooks) {
       case 'slowmo': hooks.slowmo(e.scale ?? 0.4, e.duration ?? 1); if (reserve(n, 0.6)) { tone({ type: 'sawtooth', f: 700, f2: 90, dur: 0.5, g: 0.06, lp: 1600, lp2: 300, a: 0.01, pm: false, sweep: 1 }); noise({ src: 'pink', f: 1800, f2: 200, q: 0.6, dur: 0.5, g: 0.1, a: 0.01, pm: false }); thump(0.25, 80, 40, 0.3); } break;
       case 'bridgeStress': if (reserve(n, 0.5)) { const s = clamp(e.stress ?? 0.5); creak(0.07 + 0.1 * s, 80 + s * 70, 0.35 + s * 0.2); if (s > 0.7) woodSnap(0.1, 0.1); } break;
       case 'bridgeBreak': if (reserve(n, 1.8)) { for (let i = 0; i < 7; i++) woodSnap(i * rnd(0.03, 0.09), 0.2); pluck({ f: 98, dur: 1.2, g: 0.2, type: 'triangle', strings: [0], bright: 900, rev: 0.2 }); noise({ src: 'brown', ft: 'lowpass', f: 500, dur: 1, g: 0.3, a: 0.05, t: 0.1 }); thump(0.4, 90, 38, 0.4, 0.3); hooks.duck(0.5, 1); } break;
-      case 'seesaw': if (reserve('bridgeStress', 0.5)) { creak(0.07, 140, 0.3); thump(0.15, 120, 70, 0.1, 0.2); } break;
+      case 'seesaw': if (reserve('bridgeStress', 0.5)) { const w = clamp(Math.abs(e.angVel ?? 1) / 2); creak(0.04 + 0.08 * w, 110 + 70 * w, 0.3); if (w > 0.6) thump(0.15, 120, 70, 0.1, 0.2); } break;
       case 'hazardTrigger': if (reserve(n, 1.8)) {
         if (e.type === 'rock') { noise({ src: 'brown', ft: 'lowpass', f: 500, f2: 250, dur: 1.6, g: 0.4, a: 0.25 }); for (let i = 0; i < 6; i++) thump(0.18, rnd(80, 120), 45, 0.12, 0.15 + i * rnd(0.12, 0.2)); noise({ f: 2000, q: 1, dur: 0.05, g: 0.2 }); }
         else if (e.type === 'snowball') { noise({ src: 'pink', f: 300, f2: 800, q: 0.5, dur: 1.5, g: 0.22, a: 0.4 }); noise({ src: 'brown', ft: 'lowpass', f: 300, dur: 1.5, g: 0.3, a: 0.3 }); }
