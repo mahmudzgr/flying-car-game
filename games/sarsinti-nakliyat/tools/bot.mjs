@@ -54,7 +54,7 @@ function findGaps(st, x0 = -Infinity, x1 = Infinity) {
 function senseZones(snap, st, x) {
   const zones = [];
   for (const p of st.props ?? []) {
-    if (p.type === 'bridge' && x > p.x - 18 && x < p.x + p.len + 4) zones.push({ x0: p.x - 7, x1: p.x + p.len + 3, speed: 6 });
+    if (p.type === 'bridge' && x > p.x - 18 && x < p.x + p.len + 4) zones.push({ x0: p.x - 15, x1: p.x + p.len + 3, speed: 5.5 });
     if (p.type === 'seesaw' && x > p.x - 18 && x < p.x + p.len + 6) zones.push({ x0: p.x - 6, x1: p.x + p.len + 4, speed: 7.5 });
   }
   for (const w of st.water ?? []) if (x > w.x0 - 18 && x < w.x1 + 4) zones.push({ x0: w.x0 - 7, x1: w.x1 + 3, speed: 5 });

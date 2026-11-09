@@ -83,12 +83,12 @@ const TEMPLATES = {
   bridge: {   // zayıf tahtalı köprü: yavaş geç
     minD: 0.1, w: 2.5, biomes: ['kanyon', 'bataklik', 'elma'], minDByBiome: { elma: 0.35 },
     build(c) {
-      const L = c.ri(12, 16), a = L * 0.3, b = L - 2 * a;
+      const L = c.ri(12, 16), a = L * 0.4, b = L - 2 * a;
       const weak = [];
-      if (c.d > 0.22) weak.push(c.ri(4, L - 5));
-      if (c.d > 0.6) weak.push(c.ri(4, L - 5));
+      if (c.d > 0.22) weak.push(c.ri(5, L - 5));
+      if (c.d > 0.6) weak.push(c.ri(5, L - 5));
       return {
-        pieces: [{ type: 'flat', len: 14, surface: 'dirt' }, { type: 'pts', pts: [[a, -3], [b, 0], [a, 3]], surface: 'wet' }, { type: 'flat', len: 14, surface: 'dirt' }],
+        pieces: [{ type: 'flat', len: 14, surface: 'dirt' }, { type: 'pts', pts: [[a, -1.6], [b, 0], [a, 1.6]], surface: 'wet' }, { type: 'flat', len: 14, surface: 'dirt' }],
         objects: [{ type: 'bridge', x: 14, len: L, planks: L, weak: [...new Set(weak)] }, { type: 'coins', x: 15, n: 3, spacing: 4, h: 1.0 }],
         zones: [{ x0: 8, x1: 14 + L + 3, speed: 6 }],
         heavy: true,
@@ -109,8 +109,8 @@ const TEMPLATES = {
     minD: 0.28, w: 2, biomes: ['elma', 'kanyon', 'bataklik'],
     build(c) {
       return {
-        pieces: [{ type: 'flat', len: 14, surface: c.S.road }, { type: 'flat', len: 6, surface: c.S.road }, { type: 'flat', len: 18, surface: c.S.road }],
-        objects: [{ type: 'seesaw', x: 14, len: 6 }],
+        pieces: [{ type: 'flat', len: 14, surface: c.S.road }, { type: 'pts', pts: [[0.3, -0.3]], surface: 'wet' }, { type: 'flat', len: 8, surface: 'wet' }, { type: 'slope', len: 8, dy: 0.3, surface: c.S.road }, { type: 'flat', len: 12, surface: c.S.road }],
+        objects: [{ type: 'seesaw', x: 14.3, len: 6 }],
         zones: [{ x0: 8, x1: 30, speed: 6 }],
         heavy: true,
       };
