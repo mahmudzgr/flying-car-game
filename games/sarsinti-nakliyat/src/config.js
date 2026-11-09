@@ -16,6 +16,7 @@ export const SIM = {
   chainEdge: 1.0,           // zemin poliçizgisi kenar uzunluğu (≤1,2 m)
   startWallHeight: 8,       // bölüm başında geri çıkışı engelleyen duvar
   killDepth: 14,            // en alçak zeminin bu kadar altı = uçurum çizgisi (killY)
+  roundCargoDamping: 1.5,   // yuvarlak kargo (karpuz/balya) yuvarlanma sönümü
   settleTime: 0.5,          // başlangıçta aracın yere oturması için hareketsiz bırakıldığı süre (sn, saat durur)
 };
 
@@ -52,21 +53,21 @@ export const VEHICLES = {
     // Şasi parçaları (fizik fikstürü + çizim ipucu). role: body | cab | roof | rail
     parts: [
       { part: 'chassis', x: 0,     y: 0,    w: 3.6, h: 0.9 },
-      { part: 'cab',     x: 0.65,  y: 0.7,  w: 1.4, h: 0.5 },
-      { part: 'roof',    x: 0.65,  y: 1.0,  w: 1.2, h: 0.1 },
-      { part: 'chassis', x: -1.75, y: 0.62, w: 0.1, h: 0.3 },   // arka kapak (alçak kenarlık)
+      { part: 'cab',     x: 1.1,   y: 0.7,  w: 1.2, h: 0.5 },
+      { part: 'roof',    x: 1.1,   y: 1.0,  w: 1.0, h: 0.1 },
+      { part: 'chassis', x: -1.75, y: 0.68, w: 0.1, h: 0.46 },  // arka kapak (kenarlık)
     ],
     wheels: [
       { id: 'rear',  x: -1.25, y: -0.35, driven: true },
       { id: 'front', x: 1.25,  y: -0.35, driven: false },
     ],
     wheelR: 0.38, wheelMass: 35,
-    freqHz: 2.2, zeta: 0.55, travel: [-0.12, 0.12],
+    freqHz: 1.7, zeta: 0.55, travel: [-0.14, 0.14],
     motorTorque: 1300, maxWheelSpeed: 52, brakeTorque: 1800,
-    airTorque: 5500, airMaxW: 7, grip: 1.0, drag: 0.55,
+    airTorque: 5500, airMaxW: 7, grip: 1.0, drag: 0.55, pitchGain: 2.5,
     capacity: 6,
-    bay: { x0: -1.7, x1: -0.1, floorY: 0.45, rail: 0.3 },          // kargo bölmesi (şasi yerel)
-    seat: { x: 0.55, y: 0.95 },                                     // sürücü gövdesi merkezi (şasi yerel)
+    bay: { x0: -1.68, x1: 0.48, floorY: 0.45, rail: 0.46 },          // kargo bölmesi (şasi yerel)
+    seat: { x: 1.0, y: 0.95 },                                     // sürücü gövdesi merkezi (şasi yerel)
   },
   zipir: {
     id: 'zipir', name: 'Zıpır', kind: 'Bagi', implemented: true,
@@ -78,6 +79,7 @@ export const VEHICLES = {
       { part: 'roof',    x: 0.3,  y: 1.15, w: 1.0, h: 0.08 },    // roll kafesi tavanı
       { part: 'cab',     x: 0.8,  y: 0.75, w: 0.1, h: 0.8 },     // ön ayak
       { part: 'cab',     x: -0.2, y: 0.75, w: 0.1, h: 0.8 },     // arka ayak
+      { part: 'chassis', x: -1.28, y: 0.5,  w: 0.08, h: 0.3 },   // arka kenarlık
     ],
     wheels: [
       { id: 'rear',  x: -1.1, y: -0.15, driven: true },
@@ -86,9 +88,9 @@ export const VEHICLES = {
     wheelR: 0.42, wheelMass: 25,
     freqHz: 3.2, zeta: 0.35, travel: [-0.22, 0.22],
     motorTorque: 1100, maxWheelSpeed: 62, brakeTorque: 1200,
-    airTorque: 3200, airMaxW: 9, grip: 0.95, drag: 0.35,
+    airTorque: 3200, airMaxW: 9, grip: 0.95, drag: 0.35, pitchGain: 1.5,
     capacity: 3,
-    bay: { x0: -1.25, x1: -0.35, floorY: 0.35, rail: 0.2 },
+    bay: { x0: -1.22, x1: -0.3, floorY: 0.35, rail: 0.3 },
     seat: { x: 0.3, y: 0.85 },
   },
   pasa: {

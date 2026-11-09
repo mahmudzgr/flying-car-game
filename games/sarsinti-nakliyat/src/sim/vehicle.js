@@ -140,6 +140,12 @@ export function driveVehicle(veh, input, opt) {
     if (s && s.softAbove && sp > s.softAbove) chassis.applyForceToCenter(V(-v.x * 0.25 * 0.5, 0), true);
   }
 
+  // ağırlık aktarımı abartısı (görsel/his): gazda burun kalkar, frende çöker (config: pitchGain)
+  if (onGround > 0 && cfg.pitchGain) {
+    let pt = veh.load * cfg.motorTorque * cfg.pitchGain;
+    if (brk > 0.1 && fwdSpeed > 1) pt -= brk * cfg.brakeTorque * cfg.pitchGain * 0.8;
+    if (pt) chassis.applyTorque(pt, true);
+  }
   // hava torku (TASARIM §3.3)
   const frac = onGround === 0 ? 1 : onGround < wheels.length ? 0.35 : 0;
   if (frac > 0) {

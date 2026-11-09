@@ -50,17 +50,26 @@ export function createSim(opts) {
   const cargo = [];
   {
     const bay = cfg.bay;
-    let cursor = bay.x0, rowY = bay.floorY, rowH = 0, n = 0;
+    // "Skyline" yerleştirme: her parça, bölmenin en alçak uygun yerine konur (önce zemin dolar, yuvarlaklar üste çıkmaz).
+    const RES = 0.05, cols = Math.max(1, Math.floor((bay.x1 - bay.x0) / RES));
+    const sky = new Array(cols).fill(bay.floorY);
+    let n = 0;
     for (const grp of level.cargo ?? []) {
       const def = CARGO[grp.type];
       if (!def) throw new Error(`Bilinmeyen kargo: ${grp.type}`);
       for (let i = 0; i < (grp.count ?? 1); i++) {
         if (n >= cfg.capacity) { warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`); break; }
         const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
-        if (cursor + w > bay.x1 + 1e-6 && cursor > bay.x0) { cursor = bay.x0; rowY += rowH + 0.02; rowH = 0; }
-        const local = V(cursor + w / 2, rowY + h / 2 + 0.01);
-        cursor += w + 0.02; rowH = Math.max(rowH, h);
-        const body = world.createBody({ type: 'dynamic', position: veh.chassis.getWorldPoint(local), angle: veh.chassis.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: 0.1 });
+        const span = Math.min(cols, Math.ceil((w + 0.02) / RES));
+        let bestX = 0, bestY = Infinity;
+        for (let x0 = 0; x0 + span <= cols; x0++) {
+          let top = -Infinity;
+          for (let k = x0; k < x0 + span; k++) if (sky[k] > top) top = sky[k];
+          if (top < bestY - 1e-9) { bestY = top; bestX = x0; }
+        }
+        for (let k = bestX; k < Math.min(cols, bestX + span); k++) sky[k] = bestY + h + 0.01;
+        const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
+        const body = world.createBody({ type: 'dynamic', position: veh.chassis.getWorldPoint(local), angle: veh.chassis.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
         const shape = def.shape === 'box' ? pl.Box(w / 2, h / 2) : pl.Circle(V(0, 0), def.r);
         const area = def.shape === 'box' ? w * h : Math.PI * def.r * def.r;
         const c = { id: `c${n}`, type: grp.type, def, body, hp: def.hp, hpMax: def.hp, state: 'onboard', restT: 0, w, h };
