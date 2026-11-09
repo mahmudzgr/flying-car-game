@@ -318,8 +318,10 @@ label.srow > span { min-width: 74px; }
 .pop.blue { background: #bfe6ff; }
 .pop.red { background: var(--red); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
 @keyframes popin { 0% { opacity: 0; transform: translateY(8px) scale(.6); } 12% { opacity: 1; transform: translateY(0) scale(1.12); } 22% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
-.toast { left: 50%; top: 42%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: min(86vw, 520px); padding: 8px 16px; border-radius: 16px; background: rgba(42,34,48,.9); color: #fff; font-size: 16px; font-weight: 800; border: 3px solid #fff; animation: toastin .25s ease-out; }
+.toast { left: 50%; top: calc(var(--pad-t) + 50px); transform: translateX(-50%); text-align: left; width: max-content; display: flex; align-items: center; gap: 8px; max-width: min(60vw, 520px); padding: 6px 14px; font-size: 15px; line-height: 1.2; border-radius: 16px; background: rgba(42,34,48,.9); color: #fff; font-weight: 800; border: 3px solid #fff; animation: toastin .25s ease-out; }
 .toast .ico { width: 24px; height: 24px; }
+
+.toast:not([hidden]) ~ .pops { top: calc(var(--pad-t) + 106px); }
 @keyframes toastin { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
 .flash { inset: 0; opacity: 0; box-shadow: inset 0 0 90px 14px rgba(232,69,60,.75); }
 .flash.go { animation: flash .4s ease-out; }

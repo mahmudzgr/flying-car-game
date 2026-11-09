@@ -21,8 +21,8 @@ export function createHud(ctx) {
       <div class="combo" id="h-combo" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring-bg" cx="20" cy="20" r="17"/><circle class="ring" id="h-ring" cx="20" cy="20" r="17" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="0" transform="rotate(-90 20 20)"/></svg><b id="h-mult">×1</b><small id="h-count"></small></div>
       <div class="speed"><b id="h-speed">0</b><small>km/s</small></div>
     </div>
-    <div class="pops" id="h-pops" aria-live="polite"></div>
     <div class="toast" id="h-toast" hidden role="status"></div>
+    <div class="pops" id="h-pops" aria-live="polite"></div>
     <div class="flash" id="h-flash" aria-hidden="true"></div>`;
   const $ = (id) => el.querySelector('#' + id);
   const n = { cargo: $('h-cargo'), time: $('h-time'), pfill: $('h-pfill'), pcar: $('h-pcar'), prog: $('h-prog'), dist: $('h-dist'), ticks: $('h-ticks'),
