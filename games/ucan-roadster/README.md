@@ -1,5 +1,8 @@
 # Uçan Roadster 🚗🔥
 
+> [Oyun Salonu](../../README.md)'nun oyunlarından biri. Ana menünün sol üstündeki **‹ OYUNLAR** düğmesi oyun
+> seçim ekranına döner.
+
 Mobilde (ve masaüstünde) tarayıcıdan oynanan, **2.5D** bir fizik oyunu: görüntü 3D (Three.js), kontroller ve fizik 2D.
 Elektrikli roadster ile **dönen rampaya** doğru hızlan, havada **takla** at, ardından **soğuk gaz iticilerini**
 kontrol ederek iniş platformuna **güvenli bir şekilde kon**.
@@ -76,30 +79,29 @@ kalmış motoru yeniden uyandırır. **Ayarlar → Ses durumu / Ses testi** ile 
 
 ## Çalıştırma
 
-ES modülleri kullandığı için bir HTTP sunucusu gerekir (dosyayı doğrudan açmak çalışmaz):
+ES modülleri kullandığı için bir HTTP sunucusu gerekir (dosyayı doğrudan açmak çalışmaz). Sunucuyu deponun
+**kök dizininde** başlat:
 
 ```bash
 python3 -m http.server 8080
-# tarayıcıda: http://localhost:8080
+# oyun seçim ekranı: http://localhost:8080
+# doğrudan oyun:    http://localhost:8080/games/ucan-roadster/
 ```
 
 Telefonda denemek için bilgisayarla aynı Wi-Fi'de `http://<bilgisayarın-ip-adresi>:8080` adresini aç.
-
-### GitHub Pages ile yayınlama
-
-Depo ayarlarında **Settings → Pages → Build and deployment → Source: Deploy from a branch**, dal olarak bu dalı
-(veya birleştirildikten sonra `main`) ve `/ (root)` klasörünü seç. Birkaç dakika sonra oyun
-`https://<kullanıcı-adı>.github.io/flying-car-game/` adresinde açılır. Derleme adımı yoktur.
+GitHub Pages ile yayınlama, kök dizindeki [README](../../README.md) dosyasında anlatılıyor;
+yayınlandığında oyun `https://mahmudzgr.github.io/flying-car-game/games/ucan-roadster/` adresinde açılır.
 
 ## Otomatik pilot testi
 
 Fizik ve kurallar render katmanından bağımsızdır; `tools/bot.mjs` her bölümü gerçek fizikle yüzlerce kez
-(farklı hız, rampa zamanlaması ve takla sayısıyla) oynayıp bölümlerin çözülebilir olduğunu doğrular:
+(farklı hız, rampa zamanlaması ve takla sayısıyla) oynayıp bölümlerin çözülebilir olduğunu doğrular.
+Deponun kök dizininden:
 
 ```bash
-node tools/bot.mjs           # tüm bölümler (bot hedef hıza ulaşınca rampaya gazsız girer)
-node tools/bot.mjs 11        # sadece 11. bölüm (kayak: bot ana iticiyi hiç kullanmaz)
-node tools/endless-test.mjs  # sonsuz mod üreticisinin bölümlerini dener
+node games/ucan-roadster/tools/bot.mjs           # tüm bölümler (bot hedef hıza ulaşınca rampaya gazsız girer)
+node games/ucan-roadster/tools/bot.mjs 11        # sadece 11. bölüm (kayak: bot ana iticiyi hiç kullanmaz)
+node games/ucan-roadster/tools/endless-test.mjs  # sonsuz mod üreticisinin bölümlerini dener
 ```
 
 ## Proje yapısı
@@ -119,6 +121,8 @@ src/main.js               Durum makinesi, giriş, HUD
 tools/bot.mjs             Otomatik pilot / denge testi
 tools/endless-test.mjs    Sonsuz mod üreticisi testi
 vendor/three.module.min.js  Three.js r170 (MIT)
+cover.webp                Oyun seçim ekranındaki kapak görseli
+manifest.webmanifest      Ana ekrana eklenebilir uygulama bilgisi (simgeler: icon.svg, icon-*.png)
 ```
 
 > Not: Oyundaki araç gerçek bir ürünün resmi modeli değildir; prosedürel olarak üretilmiş genel bir elektrikli

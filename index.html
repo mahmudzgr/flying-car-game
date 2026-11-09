@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0d0b1f" />
+  <meta name="description" content="Tarayıcıda oynanan, mobil uyumlu oyunlar. Bir oyun seç ve hemen oyna; kurulum gerekmez." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Oyun Salonu" />
+  <title>Oyun Salonu</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="hub/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="hub/icon-192.png" />
+  <link rel="stylesheet" href="hub/hub.css" />
+  <script type="module" src="hub/hub.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <img class="mark" src="hub/icon.svg" width="56" height="56" alt="" />
+      <div class="titles">
+        <h1>Oyun Salonu</h1>
+        <p class="lead">Bir oyun seç, hemen oyna. Kurulum yok; ilerlemen bu tarayıcıda saklanır.</p>
+      </div>
+    </header>
+
+    <main>
+      <div class="section-head">
+        <h2 id="games-title">Oyunlar</h2>
+        <span class="count" id="games-count" hidden></span>
+      </div>
+      <ul class="games" id="games" aria-labelledby="games-title"></ul>
+      <p class="status" id="status" role="status"></p>
+      <noscript><p class="status">Oyunları görmek ve oynamak için JavaScript'i etkinleştir.</p></noscript>
+    </main>
+
+    <footer class="foot">
+      <p>Her oyunun ilerlemesi bu tarayıcıda ayrı ayrı saklanır; tarayıcı verilerini silersen ilerleme de silinir.</p>
+    </footer>
+  </div>
+</body>
+</html>
