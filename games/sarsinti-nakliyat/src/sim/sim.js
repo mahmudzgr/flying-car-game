@@ -1,22 +1,26 @@
 // Sarsıntı Nakliyat — simülasyon çekirdeği. DOM/window/canvas/audio KULLANMAZ (Node'da çalışır).
 // Sözleşme: docs/MIMARI.md §4 (Sim API), §5 (Snapshot), §6 (Olaylar).
 import * as pl from '../../vendor/planck.mjs';
-import { SIM, CAT, CARGO, CARGO_LOSS, DRIVER, OBJECTS, RULES, SCORING, SURFACES, WHEELSPIN_SLIP, VEHICLES } from '../config.js';
+import { SIM, CAT, CARGO, CARGO_LOSS, DRIVER, ENDLESS, OBJECTS, RULES, SCORING, SURFACES, WHEELSPIN_SLIP, VEHICLES } from '../config.js';
 import { createBus } from './bus.js';
 import { buildTerrain, heightAt, topNear } from './terrain.js';
 import { effectiveVehicle } from './upgrades.js';
 import { createProps } from './props.js';
 import { buildVehicle, driveVehicle, wrapAngle } from './vehicle.js';
+import { createEndlessGen } from '../data/endless.js';
+import { createEndless } from './endless.js';
 
 const V = pl.Vec2;
 const DT = SIM.step;
 
 /**
  * @typedef {{throttle:number, brake:number}} SimInput   0..1 (dokunmatik/klavye 0 ya da 1)
- * @param {{level:object, vehicleId?:string, upgrades?:object, settings?:{assistLanding?:boolean}, seed?:number}} opts
+ * @param {{level?:object, endless?:{seed:number}, vehicleId?:string, upgrades?:object, settings?:{assistLanding?:boolean}}} opts
+ *   endless verilirse Uzun Yol (sonsuz mod): level üreteçten gelir, zemin akar (docs/MIMARI.md §14).
  */
 export function createSim(opts) {
-  const level = opts.level;
+  const egen = opts.endless ? createEndlessGen(opts.endless.seed ?? 1) : null;
+  const level = egen ? egen.level : opts.level;
   const vehicleId = opts.vehicleId ?? 'tosun';
   if (!VEHICLES[vehicleId]?.implemented) throw new Error(`Araç henüz uygulanmadı: ${vehicleId}`);
   const cfg = effectiveVehicle(vehicleId, opts.upgrades);
@@ -26,16 +30,21 @@ export function createSim(opts) {
 
   // ---- dünya + zemin ----
   const world = new pl.World({ gravity: V(0, SIM.gravity) });
-  const terr = buildTerrain(level.terrain);
+  const terr = buildTerrain(egen ? { ...level.terrain, open: true } : level.terrain);
   const ground = world.createBody({ type: 'static' });
-  ground.createFixture(pl.Chain(terr.xs.map((x, i) => V(x, terr.ys[i])), false), {
-    friction: 1, restitution: 0, filterCategoryBits: CAT.ground, filterMaskBits: 0xffff, userData: { k: 'ground' },
-  });
-  const killY = level.killY ?? terr.minY - SIM.killDepth;
+  if (!egen) {
+    ground.createFixture(pl.Chain(terr.xs.map((x, i) => V(x, terr.ys[i])), false), {
+      friction: 1, restitution: 0, filterCategoryBits: CAT.ground, filterMaskBits: 0xffff, userData: { k: 'ground' },
+    });
+  }   // Uzun Yol: zemin parçaları createEndless() içinde (hayalet köşeli zincir parçaları)
+  let killY = level.killY ?? terr.minY - SIM.killDepth;
   const cpOpt = opts.checkpoint ?? null;   // {x, time}: kontrol noktasından yeniden doğma
   const rear = Math.min(...cfg.parts.map((p) => p.x - p.w / 2), ...(cfg.trailer ? cfg.trailer.parts.map((p) => cfg.trailer.hitch.x + p.x - p.w / 2) : [0]));
   const spawnX = cpOpt ? cpOpt.x : Math.max(level.spawn?.x ?? terr.startX + 3, terr.startX - rear + 0.6);   // römork/uzun araç başlangıç duvarına girmesin
-  const finishX = level.finish?.x === undefined || level.finish.x === 'end' ? terr.endX : level.finish.x;
+  let finishX = egen ? 1e9 : level.finish?.x === undefined || level.finish.x === 'end' ? terr.endX : level.finish.x;   // Uzun Yol: bir sonraki teslim noktası
+
+  let staticSnap = null;   // aşağıda kurulur (Uzun Yol akışı yerinde günceller)
+  let endless = null;
 
   // ---- takip edilen gövdeler (ara değerleme için önceki poz) ----
   const tracked = [];
@@ -52,69 +61,72 @@ export function createSim(opts) {
 
   // ---- kargo ----
   const cargo = [];
-  {
+  let cargoSeq = 0;
+  /** Kargo listesini ([{type,count}]) araç bölmesine dizer. moving=true: araç hareket halindeyken (Uzun Yol'da teslimden sonra yenileme). */
+  function loadCargo(list, moving = false) {
     const bay = cfg.trailer?.bay ?? cfg.bay;
     // "Skyline" yerleştirme: her parça, bölmenin en alçak uygun yerine konur (önce zemin dolar, yuvarlaklar üste çıkmaz).
     const RES = 0.05, cols = Math.max(1, Math.floor((bay.x1 - bay.x0) / RES));
     const sky = new Array(cols).fill(bay.floorY);
-    let n = 0;
     // yerleşim sırası: yuvarlaklar (karpuz/balya) önce → arka kapağa dayanır; kutular önlerine. Kimlik (c0..) bölüm sırasına göredir.
     const items = [];
-    for (const grp of level.cargo ?? []) {
+    for (const grp of list ?? []) {
       if (!CARGO[grp.type]) throw new Error(`Bilinmeyen kargo: ${grp.type}`);
-      for (let i = 0; i < (grp.count ?? 1); i++) items.push({ type: grp.type, idx: items.length });
+      for (let i = 0; i < (grp.count ?? 1); i++) items.push({ type: grp.type, idx: cargoSeq + items.length });
     }
+    cargoSeq += items.length;
     const order = [...items.slice(0, cfg.capacity)].sort((a, b) => (CARGO[a.type].shape === 'circle' ? 0 : 1) - (CARGO[b.type].shape === 'circle' ? 0 : 1) || a.idx - b.idx);
     if (items.length > cfg.capacity) warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`);
+    const made = [];
     for (const it of order) {
-      {
-        const def = CARGO[it.type], grp = { type: it.type };
-        {
-        const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
-        const span = Math.min(cols, Math.ceil((w + 0.02) / RES));
-        // profil: dairede alt/üst eğrisi (yuvarlaklar birbirinin arasına oturur), kutuda düz
-        const prof = (k) => {
-          if (def.shape === 'box') return [0, h];
-          const dx = (k + 0.5 - span / 2) * RES, q = Math.sqrt(Math.max(0, def.r * def.r - dx * dx));
-          return [def.r - q, def.r + q];
-        };
-        let bestX = 0, bestY = Infinity;
-        for (let x0 = 0; x0 + span <= cols; x0++) {
-          let yb = bay.floorY;
-          for (let k = 0; k < span; k++) yb = Math.max(yb, sky[x0 + k] - prof(k)[0]);
-          if (yb < bestY - 1e-9) { bestY = yb; bestX = x0; }
-        }
-        for (let k = 0; k < span; k++) sky[bestX + k] = bestY + prof(k)[1] + 0.01;
-        const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
-        const body = world.createBody({ type: 'dynamic', position: veh.bayBody.getWorldPoint(local), angle: veh.bayBody.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
-        const shape = def.shape === 'box' ? pl.Box(w / 2, h / 2) : pl.Circle(V(0, 0), def.r);
-        const area = def.shape === 'box' ? w * h : Math.PI * def.r * def.r;
-        const c = { id: `c${it.idx}`, type: grp.type, def, body, hp: def.hp, hpMax: def.hp, state: 'onboard', restT: 0, w, h };
-        body.createFixture(shape, {
-          density: def.mass / area, friction: def.friction, restitution: def.restitution,
-          filterCategoryBits: CAT.cargo, filterMaskBits: CAT.ground | CAT.chassis | CAT.cargo | CAT.object,
-          userData: { k: 'cargo', c },
-        });
-        c.pose = track(body, { w, h, r: def.r ?? 0 });
-        cargo.push(c); n++;
-        }
+      const def = CARGO[it.type];
+      const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
+      const span = Math.min(cols, Math.ceil((w + 0.02) / RES));
+      // profil: dairede alt/üst eğrisi (yuvarlaklar birbirinin arasına oturur), kutuda düz
+      const prof = (k) => {
+        if (def.shape === 'box') return [0, h];
+        const dx = (k + 0.5 - span / 2) * RES, q = Math.sqrt(Math.max(0, def.r * def.r - dx * dx));
+        return [def.r - q, def.r + q];
+      };
+      let bestX = 0, bestY = Infinity;
+      for (let x0 = 0; x0 + span <= cols; x0++) {
+        let yb = bay.floorY;
+        for (let k = 0; k < span; k++) yb = Math.max(yb, sky[x0 + k] - prof(k)[0]);
+        if (yb < bestY - 1e-9) { bestY = yb; bestX = x0; }
       }
+      for (let k = 0; k < span; k++) sky[bestX + k] = bestY + prof(k)[1] + 0.01;
+      const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
+      const wpos = veh.bayBody.getWorldPoint(local);
+      const body = world.createBody({ type: 'dynamic', position: wpos, angle: veh.bayBody.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
+      const shape = def.shape === 'box' ? pl.Box(w / 2, h / 2) : pl.Circle(V(0, 0), def.r);
+      const area = def.shape === 'box' ? w * h : Math.PI * def.r * def.r;
+      const c = { id: `c${it.idx}`, type: it.type, def, body, hp: def.hp, hpMax: def.hp, state: 'onboard', restT: 0, w, h };
+      body.createFixture(shape, {
+        density: def.mass / area, friction: def.friction, restitution: def.restitution,
+        filterCategoryBits: CAT.cargo, filterMaskBits: CAT.ground | CAT.chassis | CAT.cargo | CAT.object,
+        userData: { k: 'cargo', c },
+      });
+      if (moving) { body.setLinearVelocity(veh.bayBody.getLinearVelocityFromWorldPoint(wpos)); body.setAngularVelocity(veh.bayBody.getAngularVelocity()); }
+      c.pose = track(body, { w, h, r: def.r ?? 0 });
+      Object.assign(c.pose, { x: wpos.x, y: wpos.y, a: body.getAngle(), px: wpos.x, py: wpos.y, pa: body.getAngle() });
+      cargo.push(c); made.push(c);
     }
     cargo.sort((a, b) => parseInt(a.id.slice(1)) - parseInt(b.id.slice(1)));
+    return made;
   }
+  loadCargo(egen ? egen.loadFor(0, { capacity: cfg.capacity, vehicleId }) : level.cargo);
 
   // ---- nesneler ----
   const objects = [];   // dinamik/tetikli nesneler
   const coins = [];
   const hints = (level.hints ?? []).filter((h) => !cpOpt || h.x > spawnX).map((h) => ({ ...h, shown: false }));
   const props = createProps({ world, ground, terr, track, objects, warnings, spawnX, emit: (n, d) => emit(n, d), loseCargo: (c, r) => lose(c, r) });
-  const objList = [...(level.objects ?? [])].filter((o) => !cpOpt || (o.x ?? 0) >= spawnX - 3 || o.type === 'water').sort((a, b) => (a.type === 'water' ? -1 : 0) - (b.type === 'water' ? -1 : 0));
-  for (const o of objList) {
+  function buildObject(o) {
     const gy = heightAt(terr, o.x);
     switch (o.type) {
       case 'coins': {
         const nC = o.n ?? 5, sp = o.spacing ?? 1.5;
-        for (let i = 0; i < nC; i++) { const x = o.x + i * sp; coins.push({ id: `k${coins.length}`, x, y: heightAt(terr, x) + (o.h ?? 1.2), taken: false }); }
+        for (let i = 0; i < nC; i++) { const x = o.x + i * sp; coins.push({ id: `k${coinSeq++}`, x, y: heightAt(terr, x) + (o.h ?? 1.2), taken: false }); }
         break;
       }
       case 'barrels': {
@@ -122,7 +134,7 @@ export function createSim(opts) {
         for (let r = 0; r < rows; r++) for (let cI = 0; cI < cols - (r % 2 ? 1 : 0); cI++) {
           const body = world.createBody({ type: 'dynamic', position: V(o.x + cI * (d.w + 0.03) + (r % 2 ? d.w / 2 : 0), gy + d.h / 2 + r * (d.h + 0.01) + 0.01) });
           body.createFixture(pl.Box(d.w / 2, d.h / 2), { density: d.mass / (d.w * d.h), friction: d.friction, restitution: d.restitution, filterCategoryBits: CAT.object, filterMaskBits: 0xffff, userData: { k: 'obj' } });
-          const ob = { id: `o${objects.length}`, type: 'barrel', body, hit: false };
+          const ob = { id: `o${objSeq++}`, type: 'barrel', body, hit: false };
           ob.pose = track(body, { w: d.w, h: d.h, r: 0 });
           objects.push(ob);
         }
@@ -132,7 +144,7 @@ export function createSim(opts) {
         const r = o.r ?? 1.0, trig = o.trigger?.x ?? o.x - 20;
         const body = world.createBody({ type: 'static', position: V(o.x, gy + r) });
         body.createFixture(pl.Circle(V(0, 0), r), { density: (o.mass ?? OBJECTS.rock.mass) / (Math.PI * r * r), friction: OBJECTS.rock.friction, restitution: OBJECTS.rock.restitution, filterCategoryBits: CAT.object, filterMaskBits: 0xffff, userData: { k: 'obj' } });
-        const ob = { id: `o${objects.length}`, type: 'rock', body, trig, triggered: false, vx: o.vx ?? -3, near: false };
+        const ob = { id: `o${objSeq++}`, type: 'rock', body, trig, triggered: false, vx: o.vx ?? -3, near: false };
         ob.pose = track(body, { w: 0, h: 0, r });
         objects.push(ob);
         break;
@@ -142,6 +154,9 @@ export function createSim(opts) {
         else warnings.push(`Bilinmeyen nesne türü (atlandı): ${o.type}`);
     }
   }
+  let coinSeq = 0, objSeq = 0;
+  const objList = [...(level.objects ?? [])].filter((o) => !cpOpt || (o.x ?? 0) >= spawnX - 3 || o.type === 'water').sort((a, b) => (a.type === 'water' ? -1 : 0) - (b.type === 'water' ? -1 : 0));
+  for (const o of objList) buildObject(o);
 
   // ---- durum ----
   const S = {
@@ -169,11 +184,11 @@ export function createSim(opts) {
 
   world.on('pre-solve', (c) => {
     const A = c.getFixtureA().getUserData(), B = c.getFixtureB().getUserData();
-    let w = null, g = null;
-    if (A?.k === 'wheel' && B?.k === 'ground') { w = wheelById[A.id]; g = c.getChildIndexB(); }
-    else if (B?.k === 'wheel' && A?.k === 'ground') { w = wheelById[B.id]; g = c.getChildIndexA(); }
+    let w = null, g = null, gd = null;
+    if (A?.k === 'wheel' && B?.k === 'ground') { w = wheelById[A.id]; g = c.getChildIndexB(); gd = B; }
+    else if (B?.k === 'wheel' && A?.k === 'ground') { w = wheelById[B.id]; g = c.getChildIndexA(); gd = A; }
     if (!w) return;
-    const sid = terr.surf[g] ?? 'asphalt';
+    const sid = (gd.surf ?? terr.surf)[g] ?? 'asphalt';
     w.surface = sid;
     c.setFriction(Math.max(0.02, cfg.grip * SURFACES[sid].mu));
   });
@@ -192,7 +207,7 @@ export function createSim(opts) {
     for (const [X, Y, fx] of [[A, B, fa], [B, A, fb]]) {
       if (X.k === 'wheel' && Y.k === 'ground') {
         const w = wheelById[X.id]; w.contacts++;
-        w.surface = terr.surf[groundChild(c, fa.getUserData()?.k === 'ground' ? fa : fb)] ?? w.surface;
+        w.surface = (Y.surf ?? terr.surf)[groundChild(c, fa.getUserData()?.k === 'ground' ? fa : fb)] ?? w.surface;
         emit('wheelContact', { wheel: w.id, surface: w.surface, started: true });
       } else if ((X.k === 'chassis' || X.k === 'wheel') && Y.prop?.type === 'barrel' && !Y.prop.hit) {
         Y.prop.hit = true;
@@ -237,7 +252,7 @@ export function createSim(opts) {
   }
   function lose(cg, reason) {
     if (cg.state !== 'onboard') return;
-    cg.state = 'lost'; cg.reason = reason; S.stats.cargoLost++;
+    cg.state = 'lost'; cg.reason = reason; cg.t1 = S.t; S.stats.cargoLost++;
     S.air.cargoOk = false;
     emit('cargoLost', { id: cg.id, type: cg.type, reason });
     burn('cargoLost');
@@ -277,6 +292,11 @@ export function createSim(opts) {
     if (S.status !== 'running') return;
     S.status = result === 'win' ? 'won' : 'failed'; S.reason = reason;
     bank();
+    if (endless) {   // Uzun Yol: kazanma yok; ölüm = bitiş. Skor = banka kombo + mesafe + teslim edilen kargo değeri
+      S.result = endless.result(reason, S.score, veh.chassis.getPosition());
+      emit('levelEnd', S.result);
+      return;
+    }
     const delivered = cargo.filter((c) => c.state === 'delivered');
     const dist = Math.max(0, Math.min(chassisPose.x, finishX) - terr.startX);
     let score = S.score + Math.round(dist * SCORING.perMeter);
@@ -410,6 +430,12 @@ export function createSim(opts) {
       if (farFromCar && c.body.getLinearVelocity().length() < 0.3) { c.restT += DT; if (c.restT > CARGO_LOSS.restTime) lose(c, 'fell'); } else c.restT = 0;
     }
 
+    // Uzun Yol: teslim, üretim, temizlik
+    if (endless) {
+      const er = endless.update(p);
+      if (er?.fail) { emit('crash', { reason: er.fail, pos: er.pos }); endLevel('fail', er.fail); return; }
+    }
+
     // kuruşlar, ipuçları, tehlikeler
     for (const k of coins) {
       if (!k.taken && Math.hypot(k.x - p.x, k.y - p.y) < 1.3) {
@@ -460,7 +486,7 @@ export function createSim(opts) {
     if (level.timeLimit && S.t >= level.timeLimit) { endLevel('fail', 'timeout'); return; }
 
     // bitiş
-    if (p.x >= finishX) {
+    if (!endless && p.x >= finishX) {
       for (const c of cargo) {
         if (c.state !== 'onboard') continue;
         const cp = c.body.getPosition();
@@ -487,6 +513,17 @@ export function createSim(opts) {
     if (airTime >= SCORING.cargoAirMin && a.cargoOk && cargo.length) addMove(SCORING.cargoAir);
   }
 
+  // ---- Uzun Yol akışı (zemin üretimi, teslim, temizlik) ----
+  if (egen) {
+    endless = createEndless({
+      gen: egen, world, ground, terr, tracked, objects, coins, cargo, props, S, emit, cfg, vehicleId, spawnX,
+      buildObject, loadCargo, cargoValue, lose, st: () => staticSnap, finishX: () => finishX,
+      setKillY: (y) => { killY = y; if (staticSnap) staticSnap.killY = y; },
+      setFinish: (x) => { finishX = x; if (staticSnap) { staticSnap.finishX = x; staticSnap.finishY = x < 1e8 ? heightAt(terr, x) : staticSnap.finishY; } },
+    });
+    S.pendingCoins = true;
+  }
+
   // ---- yerleşme: saat durmuşken aracı oturt ----
   for (let i = 0; i < Math.round(SIM.settleTime / DT); i++) {
     driveVehicle(veh, { throttle: 0, brake: 0 }, { dt: DT, assistLanding: false, groundDist: 1 });
@@ -498,7 +535,7 @@ export function createSim(opts) {
   S.live = false;
 
   // ---- statik anlık görüntü (bölüm başına bir kez) ----
-  const staticSnap = {
+  staticSnap = {
     levelId: level.id, name: level.name, biome: level.biome ?? 'elma', music: level.music ?? null,
     terrain: { xs: terr.xs, ys: terr.ys, surf: terr.surf },
     startX: terr.startX, startY: heightAt(terr, terr.startX), finishX, finishY: heightAt(terr, finishX), killY, spawn: { x: spawnX, y: spawnY },
@@ -507,6 +544,8 @@ export function createSim(opts) {
       trailer: cfg.trailer ? { parts: cfg.trailer.parts, hitch: cfg.trailer.hitch, wheels: cfg.trailer.wheels.map((w) => ({ id: w.id, x: w.x, y: w.y, r: w.r ?? cfg.wheelR })), bay: cfg.trailer.bay } : null },
     props: props.staticProps, water: props.waters, checkpoints: props.checkpoints.map((c) => ({ id: c.id, x: c.x, y: c.y })),
     hints: level.hints ?? [],
+    mode: egen ? 'endless' : 'level',
+    biomes: egen ? endless.state.biomes : null,   // Uzun Yol: [{x0, biome}] (biyom x0'dan başlar); static.biome = aracın bulunduğu biyom
   };
 
   // ---- dinamik anlık görüntü ----
@@ -515,7 +554,7 @@ export function createSim(opts) {
     run: { status: 'running', reason: null, time: 0, distance: 0, progress: 0, timeLeft: null },
     vehicle: null, driver: null, cargo: [], objects: [], coins: coins.map((k) => ({ id: k.id, x: k.x, y: k.y, taken: false })),
     combo: { count: 0, multiplier: 1, timeLeft01: 0, pending: 0 },
-    score: 0, pickups: 0, cargoSummary: { total: cargo.length, onboard: 0, delivered: 0, lost: 0 },
+    score: 0, pickups: 0, endless: null, cargoSummary: { total: cargo.length, onboard: 0, delivered: 0, lost: 0 },
   };
   const readPoses = () => {
     for (const { body, pose } of tracked) { const p = body.getPosition(); pose.x = p.x; pose.y = p.y; pose.a = body.getAngle(); }
@@ -528,7 +567,7 @@ export function createSim(opts) {
     const run = snap.run;
     run.status = S.status; run.reason = S.reason; run.time = S.t;
     run.distance = Math.max(0, chassisPose.x - terr.startX);
-    run.progress = Math.max(0, Math.min(1, (chassisPose.x - terr.startX) / (finishX - terr.startX)));
+    run.progress = endless ? 0 : Math.max(0, Math.min(1, (chassisPose.x - terr.startX) / (finishX - terr.startX)));
     run.timeLeft = level.timeLimit ? Math.max(0, level.timeLimit - S.t) : null;
     snap.vehicle = {
       id: vehicleId, ...chassisPose, vx: v.x, vy: v.y, w: veh.chassis.getAngularVelocity(), speed: v.length(),
@@ -543,12 +582,21 @@ export function createSim(opts) {
     snap.driver = { state: veh.driver.ejected ? 'ragdoll' : 'seated', torso: torsoPose, head: headPose };
     snap.cargo = cargo.map((c) => ({ id: c.id, type: c.type, ...c.pose, hp: c.hp, hpMax: c.hpMax, state: c.state, reason: c.reason ?? null }));
     snap.objects = objects.map((o) => ({ id: o.id, type: o.type, ...o.pose, active: o.type === 'rock' || o.type === 'snowball' ? !!o.triggered : true }));
+    if (endless && (endless.consumeCoinsDirty() || S.pendingCoins)) { S.pendingCoins = false; snap.coins = coins.map((k) => ({ id: k.id, x: k.x, y: k.y, taken: k.taken })); }
     for (let i = 0; i < coins.length; i++) snap.coins[i].taken = coins[i].taken;
     snap.combo.count = S.combo.count; snap.combo.multiplier = S.combo.mult; snap.combo.pending = Math.round(S.combo.pending);
     snap.combo.timeLeft01 = S.combo.count ? Math.max(0, S.combo.timer / SCORING.comboWindow) : 0;
     snap.score = S.score; snap.pickups = S.pickups;
     const cs = snap.cargoSummary;
     cs.onboard = cargo.filter((c) => c.state === 'onboard').length; cs.delivered = cargo.filter((c) => c.state === 'delivered').length; cs.lost = cargo.filter((c) => c.state === 'lost').length;
+    if (endless) {   // Uzun Yol: sayaçlar kümülatif (gövdeler temizlenir)
+      const E = endless.state;
+      let carried = 0; for (const c of cargo) if (c.state === 'onboard') carried += cargoValue(c);
+      cs.total = E.loaded; cs.delivered = E.deliveredItems; cs.lost = S.stats.cargoLost;
+      snap.endless = endless.fillSnapshot(snap.endless ?? {}, chassisPose, carried);
+      run.progress = snap.endless.leg;
+      snap.score = S.score + Math.round(snap.endless.distance * SCORING.perMeter) + E.cargoPts;
+    }
     return snap;
   }
   readPoses();
@@ -568,6 +616,6 @@ export function createSim(opts) {
     /** Dünya ve dinleyicileri bırakır. Sıfırlama = destroy() + yeni createSim(). */
     destroy() { bus.clear(); world.clearForces?.(); for (let b = world.getBodyList(); b;) { const n = b.getNext(); world.destroyBody(b); b = n; } },
     /** Yalnızca test/hata ayıklama: ham planck nesneleri. */
-    _debug: { world, veh, cargo, objects, terr, props },
+    _debug: { world, veh, cargo, objects, terr, props, get endless() { return endless; } },
   };
 }

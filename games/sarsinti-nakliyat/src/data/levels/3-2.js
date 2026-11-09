@@ -1,3 +1,4 @@
+// (Tahterevalli 6 m: 8 m'lik tahtaya hiçbir araç tırmanamıyor, bkz. ISTEKLER.)
 // Bölge 3 / Bölüm 2 — "Tahterevalli Tepesi": denge noktası. Tahterevalli, ağırlık merkezi ortayı geçince devrilir:
 // yavaş ve düzgün git, tam ortada hafifçe gazı bırak. İlk tahterevalli alçak ve kolay; sonra iki art arda; finalde çift + kısa tepe.
 export default {
@@ -5,6 +6,7 @@ export default {
   name: 'Tahterevalli Tepesi',
   region: 3, order: 2,
   biome: 'bataklik', music: 'bataklik', difficulty: 4,
+  recommended: { vehicle: 'tosun', tier: 2 },
   teaches: 'Ağırlık aktarımı, denge noktası',
 
   terrain: {
@@ -41,34 +43,34 @@ export default {
   },
   spawn: { x: 3 }, finish: { x: 'end' },
   cargo: [{ type: 'crate', count: 4 }, { type: 'milk', count: 2 }],
-  minDelivered: 2,
-  parTime: 60, timeLimit: null,
+  minDelivered: 1,
+  parTime: 62, timeLimit: null,
   checkpoints: [],
   objects: [
-    { type: 'seesaw', x: 88, len: 6 },
-    { type: 'seesaw', x: 188, len: 6 },
-    { type: 'seesaw', x: 206, len: 6 },
-    { type: 'seesaw', x: 310, len: 6 },
-    { type: 'seesaw', x: 321, len: 6 },
+    { type: 'seesaw', x: 88.3, len: 6 },
+    { type: 'seesaw', x: 188.6, len: 6 },
+    { type: 'seesaw', x: 206.9, len: 6 },
+    { type: 'seesaw', x: 311.2, len: 6 },
+    { type: 'seesaw', x: 322.5, len: 6 },
     { type: 'coins', x: 24, n: 5, spacing: 1.7, h: 1.1 },
-    { type: 'coins', x: 94, n: 5, spacing: 1.6, h: 1.4 },      // tahterevalli üstü: yavaş gidersen topla
-    { type: 'coins', x: 152, n: 5, spacing: 1.8, h: 1.1 },
-    { type: 'coins', x: 204, n: 5, spacing: 1.6, h: 1.4 },
-    { type: 'coins', x: 250, n: 5, spacing: 1.6, h: 1.4 },
-    { type: 'coins', x: 306, n: 6, spacing: 2.0, h: 2.0 },
-    { type: 'coins', x: 344, n: 8, spacing: 1.6, h: 1.4 },     // çift tahterevalli: en riskli sıra
+    { type: 'coins', x: 90, n: 4, spacing: 1.3, h: 1.4 },      // tahterevalli üstü: yavaş gidersen topla
+    { type: 'coins', x: 118, n: 5, spacing: 1.8, h: 1.1 },
+    { type: 'coins', x: 189, n: 4, spacing: 1.3, h: 1.4 },
+    { type: 'coins', x: 207, n: 4, spacing: 1.3, h: 1.4 },
+    { type: 'coins', x: 252, n: 6, spacing: 2.0, h: 2.0 },
+    { type: 'coins', x: 312, n: 10, spacing: 1.3, h: 1.4 },     // çift tahterevalli: en riskli sıra
     { type: 'coins', x: 410, n: 6, spacing: 1.8, h: 1.1 },
   ],
   hints: [
     { x: 4, text: 'Bu bölümde tahterevalliler var', icon: 'seesaw' },
     { x: 76, text: 'Tahterevalli: ortaya kadar yavaş git, ağırlığın devirir', icon: 'seesaw' },
-    { x: 100, text: 'Ortada gazı bırak, denge bulunsun', icon: 'warn' },
-    { x: 190, text: 'İki tahterevalli art arda: sakin ol', icon: 'seesaw' },
-    { x: 332, text: 'Son: çift tahterevalli! Denge noktasını hatırla', icon: 'warn' },
+    { x: 98, text: 'Ortada gazı bırak, denge bulunsun', icon: 'warn' },
+    { x: 176, text: 'İki tahterevalli art arda: sakin ol', icon: 'seesaw' },
+    { x: 296, text: 'Son: çift tahterevalli! Denge noktasını hatırla', icon: 'warn' },
   ],
   stars: {
     2: [{ kind: 'deliveredAll', label: '6 kargonun hepsi' }],
-    3: [{ kind: 'intact', label: 'Hiç hasar ve kayıp yok' }, { kind: 'time', max: 65, label: '65 sn altında' }],
+    3: [{ kind: 'intact', label: 'Hiç hasar ve kayıp yok' }, { kind: 'time', max: 68, label: '68 sn altında' }],
   },
   reward: { base: 190 },
   bot: { speed: 7 },

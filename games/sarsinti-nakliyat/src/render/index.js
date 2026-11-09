@@ -7,7 +7,7 @@ import { interpolateSnapshot } from './interp.js';
 import { drawDebug } from './debug.js';
 import { createParticles, createSkids, createTexts, createAmbient } from './particles.js';
 import {
-  drawSky, drawParallax, drawTerrain, drawForeground, heightAt, slopeAt, clearTerrainCache, clearBackdropCache,
+  drawSky, drawParallax, drawTerrain, drawForeground, heightAt, slopeAt, clearTerrainCache, clearBackdropCache, prewarmBackdrop, prewarmTerrain,
   drawFinish, drawHintSign, drawVehicleBack, drawVehicleFront, drawShadow, drawDriver, drawCargo, flashCargo, resetCargoFx,
   drawObject, drawBridge, drawProps, drawWater, drawCheckpoint, drawCoin, EXHAUST, ART,
 } from '../art/draw.js';
@@ -32,7 +32,7 @@ export function createRenderer(canvas, opts = {}) {
   const o = { debug: !!opts.debug, quality: opts.quality ?? 'high', shake: opts.shake ?? 2 };
   const range = { x0: 0, x1: 0, y0: 0, y1: 0 };
   const bridgeGroups = [[], [], [], []], plain = [];
-  let vigCv = null, vigKey = '';
+  let vigCv = null, vigKey = '', bgBiome = null, bgPrev = null, bgFade = 1;
 
   function applyQuality() {
     ART.quality = o.quality;
@@ -60,6 +60,11 @@ export function createRenderer(canvas, opts = {}) {
     return vigCv;
   };
 
+  function drawBackdrop(biome, cam, scale) {
+    drawSky(ctx, biome, view);
+    drawParallax(ctx, biome, 3, cam.x, view, scale, cam.y);
+    for (let l = 0; l < 3; l++) drawParallax(ctx, biome, l, cam.x, view, scale, cam.y);
+  }
   // ------------------------------------------------------------ yardımcılar
   const sc = () => (o.shake / 2);
   function addShake(a) { if (o.shake) shakeAmt = Math.max(shakeAmt, Math.min(10, a) * sc()); }
@@ -163,9 +168,11 @@ export function createRenderer(canvas, opts = {}) {
     else if (o.shake && s.vehicle.speed > 6) for (const w of s.vehicle.wheels) if (w.onGround && w.surface === 'gravel') { jy = Math.sin(T * 90) * 0.6 * sc(); break; }
 
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    drawSky(ctx, st.biome, view);
-    drawParallax(ctx, st.biome, 3, cam.x, view, scale, cam.y);
-    for (let l = 0; l < 3; l++) drawParallax(ctx, st.biome, l, cam.x, view, scale, cam.y);
+    // gökyüzü + parallax; Uzun Yol'da biyom değişince 2 sn'lik çapraz geçiş
+    if (st.biome !== bgBiome) { bgPrev = bgBiome; bgBiome = st.biome; bgFade = bgPrev ? 0 : 1; }
+    if (bgFade < 1) bgFade = Math.min(1, bgFade + dt / 2);
+    if (bgFade < 1 && bgPrev) { drawBackdrop(bgPrev, cam, scale); ctx.globalAlpha = bgFade; drawBackdrop(bgBiome, cam, scale); ctx.globalAlpha = 1; }
+    else drawBackdrop(bgBiome, cam, scale);
 
     const cy = cam.y + camera.bounce;
     ctx.setTransform(view.dpr * scale, 0, 0, -view.dpr * scale, view.dpr * (view.w / 2 - cam.x * scale + jx), view.dpr * (view.h / 2 + cy * scale + jy));
@@ -226,7 +233,7 @@ export function createRenderer(canvas, opts = {}) {
 
     // ekran katmanı
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    if (o.quality !== 'low' || st.biome === 'zirve') { ambient.update(dtP, st.biome, cam.x - lastCamX, view); ambient.draw(ctx, st.biome, view, T, o.quality); }
+    if (o.quality !== 'low' || st.biome === 'zirve') { ambient.update(dtP, bgBiome, cam.x - lastCamX, view); ambient.draw(ctx, bgBiome, view, T, o.quality); }
     lastCamX = cam.x;
     // hız çizgileri
     const spd = v.speed;
@@ -335,9 +342,10 @@ export function createRenderer(canvas, opts = {}) {
     /** Bölüm başında bir kez: sim.static. */
     setLevel(staticSnap) {
       if (st) clearTerrainCache(st);
-      st = staticSnap; camera.reset(); shakeAmt = 0; flash = 0; vig = 0; out = null; cur = null; lastMult = 1;
+      st = staticSnap; bgBiome = st.biome; bgPrev = null; bgFade = 1; camera.reset(); shakeAmt = 0; flash = 0; vig = 0; out = null; cur = null; lastMult = 1;
       particles.clear(); skids.clear(); texts.clear(); resetCargoFx(); clearBackdropCache();
-      ART.biome = st.biome;
+      ART.biome = st.biome; ART.dpr = view.dpr;
+      try { prewarmBackdrop(st.biome, view, view.dpr); prewarmTerrain(st, (st.spawn?.x ?? 0) - 20, (st.spawn?.x ?? 0) + 45); } catch (e) { /* önbellek ısıtma isteğe bağlı */ }
     },
     render,
     onEvent: onEventWrap,

@@ -105,6 +105,17 @@ export function createProps(ctx) {
         }
       }
     },
+    /** Uzun Yol: x'in gerisinde kalan köprü/tahterevalli/kütük/su/kar topu kayıtlarını atar (gövdeleri çağıran yok eder). Diziler yerinde kısalır. */
+    cull(cullX) {
+      const dropIf = (arr, f) => { for (let i = arr.length - 1; i >= 0; i--) if (f(arr[i])) arr.splice(i, 1); };
+      dropIf(bridges, (b) => b.x + b.len < cullX);
+      dropIf(staticProps, (p) => (p.type === 'bridge' ? p.x + p.len : p.x + p.len) < cullX);
+      dropIf(seesaws, (o) => o.body.getPosition().x < cullX);
+      dropIf(logs, (o) => o.body.getPosition().x < cullX);
+      dropIf(waters, (w) => w.x1 < cullX);
+      dropIf(snowballs, (o) => o.body.getPosition().x < cullX);
+      dropIf(checkpoints, (c) => c.x < cullX);
+    },
     /** Her adım (world.step'ten sonra). chassis: planck gövdesi, S: sim durumu. Döner: {fail?:reason} */
     update(S, dt, chassis, cargo) {
       const cp = chassis.getPosition();

@@ -8,6 +8,7 @@ export default {
   region: 2, order: 4,
   biome: 'kanyon', music: 'kanyon', difficulty: 3,
   teaches: 'Hız kazanma, iniş açısı',
+  recommended: { vehicle: 'tosun', tier: 1 },   // 12 m'lik dev çukur: Paşa atlayamaz
 
   terrain: {
     surface: 'gravel',

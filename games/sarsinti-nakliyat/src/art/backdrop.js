@@ -50,6 +50,8 @@ function getStrip(biome, layer, view, dpr) {
   strips.set(key, s);
   return s;
 }
+/** Bölüm başında şeritleri önceden çiz (ilk karelerde takılma olmasın). */
+export function prewarmBackdrop(biome, view, dpr) { ART.dpr = dpr; for (let l = 0; l < 4; l++) getStrip(biome, l, view, dpr); }
 export function clearBackdropCache() { strips.clear(); skyKey = ''; }
 
 /** Parallax katmanı (ekran pikselleri). layer: 0 uzak, 1 orta, 2 yakın, 3 bulut. camX/camY metre. */
@@ -177,12 +179,12 @@ const PAINT = {
       ground(g, P, B + 6, h, b.far);
     },
     (g, P, h, B, H, b) => {   // orta: mangrov ağaçları + fener
-      hills(g, P, B + 8, 10, b.mid, 41, [2]);
+      hills(g, P, B + 8, 10, mix(b.mid, b.haze, 0.25), 41, [2]);
       for (let i = 0; i < 9; i++) wrap(P, 100, (i + hash(i * 4.4) * 0.6) * (P / 9), (x) => {
         const s = 0.8 + hash(i * 2.9) * 0.6, y = B + 14;
         g.strokeStyle = shade(b.mid, -0.35); g.lineWidth = 7 * s; g.lineCap = 'round';
         g.beginPath(); g.moveTo(x - 20 * s, y + 4); g.quadraticCurveTo(x - 10 * s, y - 30 * s, x, y - 58 * s); g.moveTo(x + 22 * s, y + 4); g.quadraticCurveTo(x + 10 * s, y - 30 * s, x, y - 58 * s); g.moveTo(x, y + 2); g.lineTo(x, y - 60 * s); g.stroke();
-        blob(g, x, y - 74 * s, 30 * s, shade(b.mid, -0.1)); blob(g, x - 24 * s, y - 62 * s, 20 * s, shade(b.mid, -0.1)); blob(g, x + 26 * s, y - 64 * s, 21 * s, shade(b.mid, -0.1)); blob(g, x - 5 * s, y - 82 * s, 22 * s, b.mid);
+        { const dk = mix(b.mid, b.haze, 0.15), lt = mix(b.mid, b.haze, 0.3); blob(g, x, y - 74 * s, 30 * s, dk); blob(g, x - 24 * s, y - 62 * s, 20 * s, dk); blob(g, x + 26 * s, y - 64 * s, 21 * s, dk); blob(g, x - 5 * s, y - 82 * s, 22 * s, lt); }
         g.strokeStyle = rgba(b.mid, 0.9); g.lineWidth = 2; for (let k = 0; k < 6; k++) { const mx = x - 34 * s + k * 13 * s; g.beginPath(); g.moveTo(mx, y - 62 * s); g.quadraticCurveTo(mx + 2, y - 48 * s, mx - 1, y - (30 + hash(i * 3 + k) * 20) * s); g.stroke(); }
       });
       for (let i = 0; i < 3; i++) wrap(P, 40, (i + 0.5) * (P / 3) + 30, (x) => { const y = B + 14; g.fillStyle = '#5a4a38'; g.fillRect(x - 2, y - 50, 4, 54); g.fillStyle = b.accent; g.beginPath(); g.arc(x, y - 56, 7, 0, TAU); g.fill(); g.fillStyle = 'rgba(240,200,60,.25)'; g.beginPath(); g.arc(x, y - 56, 22, 0, TAU); g.fill(); });
@@ -197,7 +199,7 @@ const PAINT = {
       });
     },
     (g, P, h, B, H, b) => {   // sis
-      for (let i = 0; i < 4; i++) wrap(P, 300, (i + 0.5) * (P / 4), (x) => { const y = 100 + i * 70; const gr = g.createRadialGradient(x, y, 10, x, y, 260); gr.addColorStop(0, 'rgba(225,240,232,.5)'); gr.addColorStop(1, 'rgba(225,240,232,0)'); g.fillStyle = gr; g.fillRect(x - 260, y - 130, 520, 260); });
+      for (let i = 0; i < 4; i++) wrap(P, 300, (i + 0.5) * (P / 4), (x) => { const y = h * (0.3 + i * 0.12); g.save(); g.translate(x, y); g.scale(1, (h * 0.3) / 260); const gr = g.createRadialGradient(0, 0, 10, 0, 0, 260); gr.addColorStop(0, 'rgba(225,240,232,.5)'); gr.addColorStop(1, 'rgba(225,240,232,0)'); g.fillStyle = gr; g.fillRect(-260, -260, 520, 520); g.restore(); });
     },
   ],
   zirve: [

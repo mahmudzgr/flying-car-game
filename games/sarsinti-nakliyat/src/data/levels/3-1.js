@@ -37,7 +37,7 @@ export default {
   },
   spawn: { x: 3 }, finish: { x: 'end' },
   cargo: [{ type: 'crate', count: 3 }, { type: 'milk', count: 3 }],
-  minDelivered: 2,
+  minDelivered: 1,
   parTime: 70, timeLimit: null,
   objects: [
     { type: 'coins', x: 22, n: 5, spacing: 1.7, h: 1.1 },

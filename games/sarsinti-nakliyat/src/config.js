@@ -247,3 +247,23 @@ export const CAMERA = {
   anchorX: 0.33,                 // araç ekranın soluna doğru (0..1)
   maxDpr: 2,
 };
+
+/** Uzun Yol (sonsuz mod) ayarları (TASARIM §6). Mesafeler metre. */
+export const ENDLESS = {
+  genAhead: 260,          // araçtan bu kadar ileriye kadar zemin üretilir (teslim aralığından büyük: ileride hep bir bayrak vardır)
+  spawnAhead: 80,         // dinamik nesneler (varil, köprü, kütük...) araç bu kadar yaklaşınca kurulur (gövde bütçesi)
+  keepBehind: 60,         // araçtan bu kadar geride kalan nesne/kargo/zemin gövdesi yok edilir
+  trimBehind: 90,         // zemin dizisi (görsel) bu kadar geriden kırpılır; fizik parçaları keepBehind'da atılır
+  tickEvery: 10,          // üretim/temizlik denetimi kaç adımda bir (teslim denetimi her adım)
+  startLen: 30,           // başlangıç düzlüğü
+  biomeLen: 400,          // her 400 m'de biyom değişir (elma → kanyon → bataklik → zirve → …)
+  deliveryEvery: 150,     // teslim noktası aralığı (m)
+  padLen: 18,             // teslim düzlüğü uzunluğu
+  difficultyScale: 1500,  // zorluk = 1 − e^(−mesafe/ölçek)
+  cargoStart: 3,          // ilk yükte kargo sayısı; her `cargoStep` teslimde +1 (araç kapasitesine kadar)
+  cargoStep: 2,
+  payFactor: 1,           // teslim kuruşu = sağlam kargo değeri × payFactor
+  deliveredLinger: 3,     // teslim edilen kargo gövdesi bu kadar sn sonra yok edilir
+  lostLinger: 6,          // kaybedilen kargo gövdesi bu kadar sn sonra (ya da arkada kalınca) yok edilir
+  goneDelay: 0.8,         // son kargo kaybından 'cargoGone' bitişine (sn)
+};

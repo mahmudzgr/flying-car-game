@@ -36,7 +36,7 @@ import { BIOMES, SURFACE_TOP } from '../src/art/palette.js';
 
 const c = document.getElementById('c');
 const $ = (id) => document.getElementById(id);
-const PAGES = ['Araçlar', 'Sürücü + Kargo', 'Nesneler', 'Zemin', 'Biyomlar', 'Sür'];
+const PAGES = ['Araçlar', 'Sürücü ve Kargo', 'Nesneler', 'Zemin', 'Biyomlar', 'Sür'];
 let page = new URLSearchParams(location.search).get('p') ?? 'Araçlar';
 const tabs = $('tabs');
 for (const p of PAGES) { const b = document.createElement('button'); b.textContent = p; b.onclick = () => setPage(p); b.dataset.p = p; tabs.appendChild(b); }
@@ -191,22 +191,22 @@ function pageObjects(t, anim) {
   A.drawFinish(ctx2, -4, 0, px, 'start'); A.drawFinish(ctx2, 3.5, 0, px, 'finish');
   ['throttle', 'brake', 'jump', 'cargo', 'warn', 'info'].forEach((ic, i) => A.drawHintSign(ctx2, 8.8 + (i - 2.5) * 0.0 + i * 0.9 - 2, 0, ic, px, t));
 }
+const surfCache = {};
 function pageSurfaces(t) {
   const b = $('bio').value;
   const surfs = ['asphalt', 'dirt', 'grass', 'gravel', 'sand', 'mud', 'wet', 'snow', 'ice', 'water'];
-  const st = flatStatic && flatStatic.biome === b ? flatStatic : (flatStatic = makeStatic(b, surfs, 6));
   bg(b);
   A.drawParallax(ctx2, b, 3, 0, view, 20, 0); A.drawParallax(ctx2, b, 0, 0, view, 20, 0); A.drawParallax(ctx2, b, 1, 0, view, 20, 0);
-  const s = view.w / 62, ox = 10, oy = view.h * 0.62;
-  world(-ox * s + 0, oy, s);
-  const range = { x0: ox - 1, x1: ox + 63, y0: -8, y1: 8 };
-  ctx2.save(); A.drawTerrain(ctx2, st, range, 1 / s); A.drawForeground(ctx2, st, range, 1 / s, t);
-  ctx2.restore();
-  ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#fff'; ctx2.font = '600 11px system-ui'; ctx2.textAlign = 'center';
-  surfs.forEach((n, i) => ctx2.fillText(n, (i * 6 + 3 - ox) * s + ox * s - ox * s + 0, oy + 70 + (i % 2) * 14));
-  // yakın plan
-  const s2 = view.w / 14; world(-2 * s2 * 0 - 6 * s2, view.h * 0.9, s2);
-  const r2 = { x0: 6, x1: 20, y0: -3, y1: 3 }; A.drawTerrain(ctx2, st, r2, 1 / s2);
+  const s = view.w / 31;
+  for (let row = 0; row < 2; row++) {
+    const key = b + row; const st = surfCache[key] ?? (surfCache[key] = makeStatic(b, surfs.slice(row * 5, row * 5 + 5), 6));
+    const oy = view.h * (0.42 + row * 0.42);
+    world(0.5 * s, oy, s);
+    const range = { x0: -1, x1: 31, y0: -(oy / s), y1: 4 };
+    A.drawTerrain(ctx2, st, range, 1 / s); A.drawForeground(ctx2, st, range, 1 / s, t);
+    ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#000b'; ctx2.font = '700 12px system-ui'; ctx2.textAlign = 'center';
+    surfs.slice(row * 5, row * 5 + 5).forEach((n, i) => { const x = (i * 6 + 3.5) * s; ctx2.fillRect(x - 28, oy + 40, 56, 18); ctx2.fillStyle = '#fff'; ctx2.fillText(n, x, oy + 53); ctx2.fillStyle = '#000b'; });
+  }
 }
 function pageBiomes(t) {
   const ids = Object.keys(BIOMES);
@@ -240,7 +240,7 @@ function frame(now) {
   } else if (!driving()) {
     fit(); const anim = $('anim').checked; if (anim) T += dt; A.ART.t = T;
     ctx2.setTransform(1, 0, 0, 1, 0, 0); ctx2.fillStyle = '#222'; ctx2.fillRect(0, 0, c.width, c.height);
-    ({ 'Araçlar': pageVehicles, 'Sürücü + Kargo': pageActors, 'Nesneler': pageObjects, 'Zemin': pageSurfaces, 'Biyomlar': pageBiomes })[page](T, anim);
+    ({ 'Araçlar': pageVehicles, 'Sürücü ve Kargo': pageActors, 'Nesneler': pageObjects, 'Zemin': pageSurfaces, 'Biyomlar': pageBiomes })[page](T, anim);
   }
   requestAnimationFrame(frame);
 }

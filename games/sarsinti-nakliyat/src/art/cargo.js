@@ -47,21 +47,23 @@ function melon(ctx, c, px) {
 }
 
 function eggs(ctx, c, px) {
-  const w = c.w, h = c.h, n = c.hpMax || 6, hp = c.hp, slot = (w - 0.08) / n;
-  // kolinin içi (koyu), sonra yumurtalar, sonra ön kutu kenarı
-  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h * 0.62, 0.04); fs(ctx, px, '#cdb78f', 2.2);
+  const w = c.w, h = c.h, n = c.hpMax || 6, hp = c.hp, slot = (w - 0.06) / n;
+  // koli tabanı (arka), yumurtalar, ön kenar
+  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h * 0.7, 0.04); fs(ctx, px, '#cdb78f', 2.2);
   for (let i = 0; i < n; i++) {
-    const cx = -w / 2 + 0.04 + slot * (i + 0.5);
-    if (i < hp) { ctx.beginPath(); ctx.ellipse(cx, -h * 0.02 + 0.03, slot * 0.4, h * 0.3, 0, 0, TAU); fs(ctx, px, '#fffaf0', 1.5); ctx.beginPath(); ctx.ellipse(cx - slot * 0.12, 0.05, slot * 0.1, h * 0.1, 0.3, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill(); }
-    else { // kırık: sarı lekeli boş yuva
-      ctx.beginPath(); ctx.ellipse(cx, -h * 0.12, slot * 0.38, h * 0.1, 0, 0, TAU); ctx.fillStyle = '#ffc928'; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(cx - slot * 0.3, -h * 0.05); ctx.lineTo(cx - slot * 0.1, h * 0.04); ctx.lineTo(cx + slot * 0.05, -h * 0.04); ctx.lineTo(cx + slot * 0.3, h * 0.03); ctx.lineWidth = 1.4 * px; ctx.strokeStyle = '#d9c9a4'; ctx.stroke();
+    const cx = -w / 2 + 0.03 + slot * (i + 0.5);
+    if (i < hp) {
+      ctx.beginPath(); ctx.ellipse(cx, h * 0.12, slot * 0.47, h * 0.36, 0, 0, TAU); fs(ctx, px, '#fffaf0', 1.5);
+      ctx.beginPath(); ctx.ellipse(cx - slot * 0.14, h * 0.2, slot * 0.1, h * 0.12, 0.3, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fill();
+    } else { // kırık: sarı sızıntılı boş yuva
+      ctx.beginPath(); ctx.ellipse(cx, -h * 0.02, slot * 0.42, h * 0.12, 0, 0, TAU); ctx.fillStyle = '#ffc928'; ctx.fill(); ctx.lineWidth = 1.2 * px; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - slot * 0.35, h * 0.1); ctx.lineTo(cx - slot * 0.12, h * 0.22); ctx.lineTo(cx + slot * 0.05, h * 0.08); ctx.lineTo(cx + slot * 0.35, h * 0.2);
+      ctx.lineWidth = 1.5 * px; ctx.strokeStyle = '#d9c9a4'; ctx.stroke();
     }
   }
-  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h * 0.46, 0.05); fs(ctx, px, '#f4e6c8', 2.2);
-  ctx.beginPath(); rr(ctx, -w * 0.22, -h * 0.38, w * 0.44, h * 0.2, 0.03); ctx.fillStyle = '#e8453c'; ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(0, -h * 0.28, 0.035, 0.028, 0, 0, TAU); ctx.fill();
-  // kırık yumurta işareti (en az biri kırıksa kırmızı çarpı)
+  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h * 0.4, 0.04); fs(ctx, px, '#f4e6c8', 2.2);
+  ctx.beginPath(); rr(ctx, -w * 0.2, -h * 0.4, w * 0.4, h * 0.2, 0.03); ctx.fillStyle = '#e8453c'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(0, -h * 0.3, 0.035, 0.026, 0, 0, TAU); ctx.fill();
 }
 
 function milk(ctx, c, px) {
@@ -105,9 +107,9 @@ function piano(ctx, c, px) {
   ctx.beginPath(); rr(ctx, -w * 0.08, -h * 0.4, 0.04, 0.1, 0.02); fs(ctx, px, '#d9b45a', 1.2); ctx.beginPath(); rr(ctx, w * 0.04, -h * 0.4, 0.04, 0.1, 0.02); fs(ctx, px, '#d9b45a', 1.2);
   for (const sx of [-1, 1]) { ctx.beginPath(); rr(ctx, sx * w * 0.42 - 0.06, -h * 0.5, 0.12, 0.14, 0.03); fs(ctx, px, Kl, 1.8); circle(ctx, sx * w * 0.42, -h * 0.5, 0.045); fs(ctx, px, '#c9d1d8', 1.4); }
   if (broken) { // çatlak + kırık kapak
-    ctx.beginPath(); ctx.moveTo(-w * 0.35, h * 0.5); ctx.lineTo(-w * 0.2, h * 0.28); ctx.lineTo(-w * 0.28, h * 0.12); ctx.lineTo(-w * 0.1, -h * 0.06);
+    ctx.beginPath(); ctx.moveTo(-w * 0.35, h * 0.4); ctx.lineTo(-w * 0.2, h * 0.28); ctx.lineTo(-w * 0.28, h * 0.12); ctx.lineTo(-w * 0.1, -h * 0.06);
     ctx.lineWidth = 0.025; ctx.strokeStyle = '#e8453c'; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w * 0.32, h * 0.5); ctx.lineTo(w * 0.24, h * 0.25); ctx.lineTo(w * 0.34, h * 0.1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w * 0.32, h * 0.4); ctx.lineTo(w * 0.24, h * 0.25); ctx.lineTo(w * 0.34, h * 0.1); ctx.stroke();
   }
 }
 
