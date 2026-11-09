@@ -5,5 +5,5 @@ export { drawTerrain, drawForeground, heightAt, slopeAt, clearTerrainCache } fro
 export { drawVehicle, drawVehicleBack, drawVehicleFront, drawShadow, fakeVehicle, EXHAUST, HEADLIGHT } from './vehicles.js';
 export { drawDriver } from './driver.js';
 export { drawCargo, flashCargo, cargoFlash, resetCargoFx } from './cargo.js';
-export { drawObject, drawCoin, drawFinish, drawHintSign, drawBridgeRopes, warnTri } from './objects.js';
+export { drawObject, drawCoin, drawFinish, drawHintSign, drawBridgeRopes, drawBridge, drawProps, drawWater, drawCheckpoint, warnTri } from './objects.js';
 export { ART } from './util.js';

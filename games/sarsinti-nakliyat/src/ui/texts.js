@@ -25,6 +25,21 @@ export const FAIL = {
     lines: ['Müşteri boş kasaya bakakaldı.', 'Yükün yarısı yolda kaldı, makbuz kesilemez.', 'Teslimat noktasında "bu kadar mı?" sesleri yankılandı.'],
     tips: ['Frene erken bas, yükün öne kaymasına izin verme.', 'Tümseklerde gazı bırak; kargo havalanmasın.'],
   },
+  stuck: {
+    title: 'Saplandın!',
+    lines: ['Beş saniyedir yerinde sayıyorsun; araba "emekli oldum" dedi.', 'Tekerlekler dönüyor, dünya dönmüyor.', 'Park etmek için güzel yer, ama teslimat yarım kaldı.'],
+    tips: ['Gazı kısıp geri vites dene, sonra hızlan.', 'Kumda ve çamurda gazı yumuşak ver; tekerlek kazımasın.'],
+  },
+  water: {
+    title: 'Suya düştün!',
+    lines: ['Araba yüzmeyi denedi, kargo sonradan haber verecek.', 'Su soğuktu, kask ıslandı, moral bozuldu.'],
+    tips: ['Suya girmeden önce kütük ve platformları kullan.', 'Su kenarında hızı koru ama sürücü kafasını unutma.'],
+  },
+  chased: {
+    title: 'Yakalandın!',
+    lines: ['Arkandaki dev bir tur bindirdi.', 'Kaçamadın; kaya "ben de teslimat yapayım" dedi.', 'Kar topu bu sefer daha hızlıydı.'],
+    tips: ['Tehlike okunu izle ve gazı hiç bırakma.', 'Engelleri ezmek yerine yavaşlamadan yan çizgiyi tut.'],
+  },
   crash: {
     title: 'Kaza!',
     lines: ['Sigorta "yine mi?" diyor.', 'Bu iş böyle olmadı, bir daha deneyelim.'],

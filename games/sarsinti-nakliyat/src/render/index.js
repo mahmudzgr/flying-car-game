@@ -9,7 +9,7 @@ import { createParticles, createSkids, createTexts, createAmbient } from './part
 import {
   drawSky, drawParallax, drawTerrain, drawForeground, heightAt, slopeAt, clearTerrainCache, clearBackdropCache,
   drawFinish, drawHintSign, drawVehicleBack, drawVehicleFront, drawShadow, drawDriver, drawCargo, flashCargo, resetCargoFx,
-  drawObject, drawBridgeRopes, drawCoin, EXHAUST, ART,
+  drawObject, drawBridge, drawProps, drawWater, drawCheckpoint, drawCoin, EXHAUST, ART,
 } from '../art/draw.js';
 import { BIOMES, SURFACE_TOP, SURFACE_LIGHT, SURFACE_DARK } from '../art/palette.js';
 
@@ -31,7 +31,7 @@ export function createRenderer(canvas, opts = {}) {
   const wheelAcc = [0, 0, 0, 0, 0, 0]; let exhAcc = 0; const lastContact = [null, null, null, null, null, null];
   const o = { debug: !!opts.debug, quality: opts.quality ?? 'high', shake: opts.shake ?? 2 };
   const range = { x0: 0, x1: 0, y0: 0, y1: 0 };
-  const planks = [];
+  const bridgeGroups = [[], [], [], []], plain = [];
   let vigCv = null, vigKey = '';
 
   function applyQuality() {
@@ -176,13 +176,36 @@ export function createRenderer(canvas, opts = {}) {
     drawFinish(ctx, st.finishX, st.finishY, px, 'finish');
     const hs = st.hints;
     if (hs) for (let i = 0; i < hs.length; i++) { const h = hs[i]; if (h.x > range.x0 - 1 && h.x < range.x1 + 1) drawHintSign(ctx, h.x, heightAt(st, h.x), h.icon, px, T); }
-    // nesneler (planklar halatla)
-    planks.length = 0;
+    drawProps(ctx, st, range, px);
+    drawWater(ctx, st.water, range, px, T, false);
+    const cps = st.checkpoints;
+    if (cps) for (const cp of cps) if (cp.x > range.x0 - 2 && cp.x < range.x1 + 2) drawCheckpoint(ctx, cp, s.vehicle.x > cp.x - 0.3, px, T);
+    // nesneler (köprü tahtaları halatla)
+    const bridges = st.props ? st.props : null;
+    for (let i = 0; i < bridgeGroups.length; i++) bridgeGroups[i].length = 0;
+    plain.length = 0;
     for (const ob of s.objects) {
       if (ob.x < range.x0 - 6 || ob.x > range.x1 + 6) continue;
-      if (ob.type === 'plank') planks.push(ob); else drawObject(ctx, ob, px);
+      if (ob.type === 'plank') {
+        let placed = false;
+        if (bridges) for (let bi = 0, k = 0; bi < bridges.length; bi++) {
+          const b = bridges[bi]; if (b.type !== 'bridge') continue;
+          if (ob.x >= b.x - 0.5 && ob.x <= b.x + b.len + 0.5 && ob.y > b.y - 2.5) {
+            const idx = Math.floor((ob.x - b.x) / (b.len / b.planks));
+            ob.weak = !!b.weak && b.weak.includes(idx) && Math.abs(ob.y - b.y) < 1.2;
+            if (k < bridgeGroups.length) bridgeGroups[k].push(ob);
+            placed = true; break;
+          }
+          k++;
+        }
+        if (!placed) { ob.weak = false; drawObject(ctx, ob, px); }
+      } else drawObject(ctx, ob, px);
     }
-    if (planks.length) { drawBridgeRopes(ctx, planks, px); for (const p of planks) drawObject(ctx, p, px); }
+    if (bridges) for (let bi = 0, k = 0; bi < bridges.length; bi++) {
+      const b = bridges[bi]; if (b.type !== 'bridge') continue;
+      const g = bridgeGroups[k++]; if (!g || !g.length) continue;
+      drawBridge(ctx, b, g, st, px); for (const p of g) drawObject(ctx, p, px);
+    }
     for (const k of s.coins) if (!k.taken && k.x > range.x0 - 1 && k.x < range.x1 + 1) drawCoin(ctx, k, px, T);
     // gölge
     const v = s.vehicle;
@@ -192,6 +215,7 @@ export function createRenderer(canvas, opts = {}) {
     drawDriver(ctx, s.driver, px, T);
     drawVehicleFront(ctx, v, st.vehicle, px, T);
     for (const c of s.cargo) { if (c.x < range.x0 - 4 || c.x > range.x1 + 4) continue; drawCargo(ctx, c, px); }
+    drawWater(ctx, st.water, range, px, T, true);
 
     // partiküller
     continuousFx(s, dtP);
@@ -285,7 +309,8 @@ export function createRenderer(canvas, opts = {}) {
       }
       case 'crash': { const p = e.pos ?? v; for (let i = 0; i < 12 * q; i++) particles.spawn(1, p.x, p.y + 0.3, (Math.random() - 0.5) * 3, 0.5 + Math.random() * 2.5, 1 + Math.random() * 0.6, 0.14, '#5b535e', 0.6, 1.2, 0.4, 0, 0.7); break; }
       case 'hazardTrigger': { const p = e.pos ?? v; dustBurst(p.x, p.y - 0.5, 'dirt', 14, 3, 2); addShake(3); break; }
-      case 'surfaceChange': { const w = v.wheels.find((q2) => q2.id === e.wheel); if (w) { wheelContact(w, cp); dustBurst(cp.x, cp.y, e.to ?? 'dirt', 3, 1.5, 1); } break; }
+      case 'surfaceChange': {
+        if (e.to === 'water' || e.from === 'water') { const w0 = v.wheels.find((q2) => q2.id === e.wheel); if (w0) { for (let i = 0; i < 14 * q; i++) particles.spawn(0, w0.x, w0.y, (Math.random() - 0.5) * 5, 1.5 + Math.random() * 4, 0.7, 0.05 + Math.random() * 0.06, i % 3 ? '#bfe6f5' : '#ffffff', -12, 0, 0, 0, 1); particles.spawn(4, w0.x, w0.y, 0, 0, 0.5, 0.4, '#ffffff', 0, 0, 3, 0, 0.9); } break; } const w = v.wheels.find((q2) => q2.id === e.wheel); if (w) { wheelContact(w, cp); dustBurst(cp.x, cp.y, e.to ?? 'dirt', 3, 1.5, 1); } break; }
       case 'suspension': { if (e.bottomOut) { const w = v.wheels.find((q2) => q2.id === e.wheel); if (w) { sparks(w.x, w.y + 0.2, 4, 0, 1); addShake(1.5); } } break; }
       case 'levelEnd': {
         if (e.result === 'win') { const fx = st.finishX; for (let i = 0; i < 70 * q; i++) { const a = Math.PI * (0.25 + Math.random() * 0.5), sp = 6 + Math.random() * 8; particles.spawn(6, fx + (Math.random() - 0.5) * 3, st.finishY + 3, Math.cos(a) * sp * (Math.random() - 0.5) * 1.6, Math.sin(a) * sp, 1.8 + Math.random(), 0.07 + Math.random() * 0.05, ['#ffd23c', '#e8453c', '#19b5a5', '#fff', '#ff7a3c'][i % 5], -7, 0.6, 0, 6, 1); } texts.add('TESLİM!', fxClamp(v.x), v.y + 2.4, 0.8, '#7be08a', 1.6, 1.0); }

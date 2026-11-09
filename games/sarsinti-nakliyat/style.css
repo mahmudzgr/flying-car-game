@@ -329,16 +329,23 @@ label.srow > span { min-width: 74px; }
 
 /* ---------- dokunmatik düğmeler ---------- */
 .touch { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 var(--sr) var(--sb) var(--sl); }
-.pad { --pw: clamp(120px, 30vw, 300px); --ph: clamp(104px, 40vh, 200px); pointer-events: auto; touch-action: none; position: relative; flex: none; width: calc(var(--pw) * var(--pad-scale, 1)); height: calc(var(--ph) * var(--pad-scale, 1)); min-width: 88px; min-height: 88px; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; outline: none; -webkit-user-select: none; user-select: none; }
-.pad .face { position: absolute; inset: 22% 12px 12px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border: 3px solid var(--ink); border-radius: 26px; background: rgba(255,255,255,.55); color: var(--ink); box-shadow: 0 5px 0 rgba(42,34,48,.7); transition: transform .06s, background .06s, box-shadow .06s; }
-.pad .face .ico { width: 34px; height: 34px; }
-.pad .face b { font-size: clamp(18px, 3.4vh + 6px, 26px); letter-spacing: .08em; line-height: 1; text-shadow: 0 1px 0 rgba(255,255,255,.6); }
-.pad .face small { font-size: 11px; font-weight: 800; opacity: .7; letter-spacing: .1em; text-transform: uppercase; }
-.pad.on .face { background: var(--accent); color: #fff; transform: translateY(4px) scale(.97); box-shadow: 0 1px 0 rgba(42,34,48,.7); }
+.pad { --pw: clamp(110px, 24vw, 250px); --ph: clamp(96px, 30vh, 170px); pointer-events: auto; touch-action: none; position: relative; flex: none; width: calc(var(--pw) * var(--pad-scale, 1)); height: calc(var(--ph) * var(--pad-scale, 1)); min-width: 88px; min-height: 88px; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; outline: none; -webkit-user-select: none; user-select: none; }
+.pad .face { position: absolute; inset: 30% 16px 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border: 3px solid rgba(42,34,48,.85); border-radius: 22px; background: rgba(255,255,255,.22); color: var(--ink); transition: transform .06s, background .06s; }
+.pad .face .ico { width: 28px; height: 28px; filter: drop-shadow(0 0 2px #fff); }
+.pad .face b { font-size: clamp(15px, 2.6vh + 6px, 22px); letter-spacing: .08em; line-height: 1; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+.pad .face small { display: none; }
+.pad.on .face { background: var(--accent); border-color: var(--ink); color: #fff; transform: scale(.96); }
 .pad-brake.on .face { background: var(--orange); }
-.pad.on .face b { text-shadow: 0 2px 0 rgba(0,0,0,.25); }
-.touch.faint .face { opacity: .38; }
+.pad.on .face b, .pad.on .face .ico { text-shadow: 0 2px 0 rgba(0,0,0,.25); filter: none; }
+.touch.faint .face { opacity: .45; }
 .touch.faint .pad.on .face { opacity: 1; }
+@media (max-height: 400px) { .pad { --ph: clamp(92px, 27vh, 120px); } .pad .face { inset: 26% 14px 10px 14px; } .pad .face .ico { width: 22px; height: 22px; } }
+
+/* tehlike oku */
+.danger { top: 50%; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 3px solid var(--ink); border-radius: 999px; background: var(--orange); color: var(--ink); font-size: 16px; animation: pulse .7s infinite; transform-origin: center; }
+.danger.left { left: var(--pad-x); }
+.danger.right { right: var(--pad-xr); }
+.danger.near { background: var(--red); color: #fff; }
 
 /* ---------- dikey ekran uyarısı ---------- */
 .rotate-warn { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--ink); color: #fff; text-align: center; padding: 24px; pointer-events: auto; z-index: 99; touch-action: none; }

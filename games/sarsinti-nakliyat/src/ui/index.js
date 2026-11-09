@@ -47,7 +47,7 @@ export function createUI({ root, input, save, flow, levels }) {
     const s = save.data.settings;
     touch.setScale(s.btnScale ?? 1);
     root.dataset.haptics = s.haptics === false ? '0' : '1';
-    try { flow.applySettings?.(s); } catch (e) { console.error(e); }
+    try { flow.applySettings?.({ ...s, sfx: s.sfx * (s.master ?? 1), music: s.music * (s.master ?? 1) }); } catch (e) { console.error(e); }
     try { window.dispatchEvent(new CustomEvent('sarsinti:settings', { detail: s })); } catch { /* yoksay */ }
   }
   const ctx = {

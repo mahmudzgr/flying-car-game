@@ -15,6 +15,7 @@ export function createPause(ctx) {
         <div class="menu-col">
           <button class="btn btn-primary btn-lg" data-act="resume" data-autofocus data-key="resume"><span>Devam</span>${arrowRight()}</button>
           <button class="btn btn-sun" data-act="retry" data-key="retry">Yeniden dene</button>
+          ${ctx.flow.hasCheckpoint?.() ? '<button class="btn btn-sun" data-act="cp" data-key="cp">Kontrol noktasından</button>' : ''}
           <div class="row2"><button class="btn btn-ghost" data-act="levels" data-key="levels">Bölümler</button><button class="btn btn-ghost" data-act="settings" data-key="settings">Ayarlar</button></div>
         </div>
       </div>`);
@@ -24,6 +25,7 @@ export function createPause(ctx) {
     const a = b.dataset.act;
     if (a === 'resume') ctx.flow.resume();
     else if (a === 'retry') ctx.flow.retry();
+    else if (a === 'cp') ctx.flow.retryFromCheckpoint();
     else if (a === 'levels') ctx.goMenu('levels');
     else if (a === 'settings') ctx.nav.push('settings', { from: 'pause' });
   });
@@ -104,6 +106,7 @@ export function createResult(ctx) {
           ${r.cargoTotal ? `<p class="fail-meta">Kargo: ${r.cargoDelivered}/${r.cargoTotal} teslim${lostCoins ? ` · yoldan ${coin()} +${fmtNum(lostCoins)}` : ''}</p>` : ''}
           <footer class="res-actions">
             <button class="btn btn-primary btn-xl" data-act="retry" data-key="retry" data-autofocus><span>Tekrar dene</span>${arrowRight()}</button>
+            ${ctx.flow.hasCheckpoint?.() ? '<button class="btn btn-sun" data-act="cp" data-key="cp">Kontrol noktasından</button>' : ''}
             <button class="btn btn-ghost" data-act="levels" data-key="levels">Bölümler</button>
             <button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button>
           </footer>
@@ -121,6 +124,7 @@ export function createResult(ctx) {
     if (guard && e.detail > 0) return; // şans eseri çift dokunuşa karşı
     switch (b.dataset.act) {
       case 'retry': ctx.flow.retry(); break;
+      case 'cp': ctx.flow.retryFromCheckpoint(); break;
       case 'next': ctx.flow.nextLevel(); break;
       case 'garage': ctx.goMenu('garage'); break;
       case 'levels': ctx.goMenu('levels', params?.level?.region); break;

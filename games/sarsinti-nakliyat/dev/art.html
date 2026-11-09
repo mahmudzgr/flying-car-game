@@ -79,20 +79,26 @@ function fit() {
 }
 window.addEventListener('resize', fit);
 
-// sahte araç: sim olmadan poz ver
+// sahte araç: sim olmadan poz ver (süspansiyon/dönüş canlandırılır)
 function pose(id, x, y, t, anim) {
   const { v, vs } = A.fakeVehicle(id, VEHICLES[id]);
   v.x = x; v.y = y; v.a = anim ? Math.sin(t * 1.3) * 0.05 : 0;
   v.brake = anim && Math.sin(t * 0.7) > 0.5 ? 1 : 0; v.vx = anim ? 10 : 0; v.speed = anim ? 10 : 0; v.throttle = 0.7;
-  const R = { tosun: 0.38, zipir: 0.42, pasa: 0.62, koca: 0.55 };
   const ca = Math.cos(v.a), sa = Math.sin(v.a);
+  let n = 0;
   v.wheels.forEach((w, i) => {
-    const def = vs.wheels[i];
-    const comp = anim ? Math.sin(t * 2.2 + i * 1.7) * 0.12 : 0;           // süspansiyon yukarı-aşağı
+    if (w.trailer) return;
+    const def = vs.wheels.find((q) => q.id === w.id);
+    const comp = anim ? Math.sin(t * 2.2 + i * 1.7) * 0.1 : 0;
     const lx = def.x, ly = def.y + comp;
-    w.x = x + lx * ca - ly * sa; w.y = y + lx * sa + ly * ca; w.a = anim ? -t * 9 : 0; w.spin = anim ? 9 : 0; w.r = vs.wheels[i].id === 'rear' && id === 'pasa' ? 0.62 : id === 'pasa' ? 0.38 : (R[id]);
+    w.x = x + lx * ca - ly * sa; w.y = y + lx * sa + ly * ca; w.a = anim ? -t * 9 / (w.r * 2.2) : 0; w.spin = anim ? 9 / w.r : 0; n++;
   });
-  if (id === 'pasa') { v.trailer = { x: x - 3.4, y: y - 0.1, a: 0, w: 3.0, h: 0.8 }; v.trailerWheels = [{ x: x - 3.7, y: y - 0.35, a: anim ? -t * 9 : 0, r: 0.4, spin: 9 }]; }
+  if (v.trailer) {
+    const h = vs.trailer.hitch, tr = v.trailer, ta = v.a * 0.5;
+    tr.x = x + h.x * ca - h.y * sa; tr.y = y + h.x * sa + h.y * ca; tr.a = ta;
+    const tc = Math.cos(ta), ts = Math.sin(ta);
+    v.wheels.forEach((w, i) => { if (!w.trailer) return; const def = vs.trailer.wheels.find((q) => q.id === w.id); const comp = anim ? Math.sin(t * 2.2 + 1) * 0.08 : 0; const lx = def.x, ly = def.y + comp; w.x = tr.x + lx * tc - ly * ts; w.y = tr.y + lx * ts + ly * tc; w.a = anim ? -t * 9 / (w.r * 2.2) : 0; w.spin = anim ? 9 / w.r : 0; });
+  }
   return { v, vs };
 }
 function driverAt(x, y, a, rag, t) {
@@ -122,25 +128,27 @@ function makeStatic(biome, surfs, len = 8) {
 function pageVehicles(t, anim) {
   const b = $('bio').value; bg(b);
   const ids = ['tosun', 'zipir', 'pasa', 'koca'];
-  const s = Math.min(view.w / 2 / 6.2, view.h / 2 / 3.2);
+  const s = Math.min(view.w / 2 / 8.4, view.h / 2 / 3.6);
+  const off = { tosun: 0, zipir: 0, pasa: 1.9, koca: 0 }, yo = { tosun: 0.75, zipir: 0.5, pasa: 0.65, koca: 0.95 };
   ids.forEach((id, i) => {
     const col = i % 2, row = Math.floor(i / 2);
-    const cx = view.w * (0.25 + col * 0.5), cy = view.h * (0.34 + row * 0.44);
-    world(cx, cy + 1.0 * s, s);
-    const { v, vs } = pose(id, 0, id === 'pasa' ? 0.65 : id === 'koca' ? 0.75 : id === 'zipir' ? 0.5 : 0.75, t, anim);
+    const cx = view.w * (0.25 + col * 0.5), cy = view.h * (0.42 + row * 0.5);
+    world(cx, cy, s);
+    const { v, vs } = pose(id, off[id], yo[id], t, anim);
     const px = 1 / s;
-    ctx2.fillStyle = '#7a5e44'; ctx2.fillRect(-6, -2, 12, 2); ctx2.fillStyle = '#4a4f57'; ctx2.fillRect(-6, -0.1, 12, 0.1);
+    ctx2.fillStyle = '#7a5e44'; ctx2.fillRect(-6, -2, 12, 2); ctx2.fillStyle = '#4a4f57'; ctx2.fillRect(-6, -0.05, 12, 0.1);
     A.drawVehicleBack(ctx2, v, vs, px, t);
-    const g = VEHICLES[id];
-    const seat = (vs.seat ?? g.seat);
-    const rs = id === 'tosun' ? { x: 1.0, y: 0.95 } : id === 'zipir' ? { x: 0.3, y: 0.85 } : seat;
-    A.drawDriver(ctx2, driverAt(v.x + rs.x, v.y + rs.y, v.a, false, t), px, t);
+    const rs = vs.seat ?? VEHICLES[id].seat;
+    const ca = Math.cos(v.a), sa = Math.sin(v.a);
+    A.drawDriver(ctx2, driverAt(v.x + rs.x * ca - rs.y * sa, v.y + rs.x * sa + rs.y * ca, v.a, false, t), px, t);
     A.drawVehicleFront(ctx2, v, vs, px, t);
-    if (id === 'tosun') { A.drawCargo(ctx2, cs('crate', -1.2, 1.15), px); A.drawCargo(ctx2, cs('eggs', -0.5, 0.75 + 0.1, 0, 4), px); A.drawCargo(ctx2, cs('milk', -1.3, 0.8 + 0.0), px); }
-    if (id === 'zipir') { A.drawCargo(ctx2, cs('watermelon', -0.95, 0.9), px); }
-    if (id === 'pasa') { A.drawCargo(ctx2, cs('bale', -3.2, 1.45), px); A.drawCargo(ctx2, cs('crate', -4.0, 1.4), px); }
-    if (id === 'koca') { A.drawCargo(ctx2, cs('piano', -1.1, 1.8), px); A.drawCargo(ctx2, cs('crate', -2.4, 1.3), px); }
-    label(VEHICLES[id].name + ' — ' + VEHICLES[id].kind, cx, cy + 1.5 * s + 18, s);
+    const loc = (x, y) => { const bx = VEHICLES[id].bay; return { x: v.x + x * ca - y * sa, y: v.y + x * sa + y * ca }; };
+    const put = (type, lx, ly, hp) => { const p = loc(lx, ly); A.drawCargo(ctx2, cs(type, p.x, p.y, v.a, hp), px); };
+    if (id === 'tosun') { put('crate', -1.2, 0.8); put('eggs', -0.55, 0.62, 4); put('milk', -0.1, 0.8); put('crate', -1.2, 1.5); }
+    if (id === 'zipir') { put('watermelon', -0.8, 0.7); put('watermelon', -0.45, 0.7); }
+    if (id === 'pasa') { const tr = v.trailer, tc = Math.cos(tr.a), ts = Math.sin(tr.a); const lp = (x, y) => ({ x: tr.x + x * tc - y * ts, y: tr.y + x * ts + y * tc }); for (const [type, lx, ly] of [['bale', -1.2, 0.6], ['bale', -2.3, 0.6], ['crate', -3.2, 0.5]]) { const p = lp(lx, ly); A.drawCargo(ctx2, cs(type, p.x, p.y, tr.a), px); } }
+    if (id === 'koca') { put('piano', -1.5, 1.4); put('crate', 0.1, 1.0); put('milk', -2.6, 1.0); put('eggs', -0.6, 0.95, 6); }
+    label(VEHICLES[id].name + ' — ' + VEHICLES[id].kind, cx, cy + 36, s);
   });
 }
 function pageActors(t, anim) {
@@ -173,7 +181,9 @@ function pageObjects(t, anim) {
   A.drawObject(ctx2, mk('rock', -6, 1.0, { r: 1.0, active: false }), px); A.drawObject(ctx2, mk('rock', -3.6, 0.7, { r: 0.7, a: t, active: true }), px);
   for (let i = 0; i < 6; i++) A.drawObject(ctx2, mk('plank', -1.5 + i * 1.0, 0.1 - Math.sin(i / 5 * Math.PI) * 0.35 * 0, { w: 1.0, h: 0.2, a: Math.sin(t + i) * 0.04 }), px);
   { const pl = []; for (let i = 0; i < 6; i++) pl.push(mk('plank', -1.5 + i * 1.0, 0.1 + (anim ? Math.sin(t * 2 + i) * 0.05 : 0), { w: 1, h: 0.2 })); A.drawBridgeRopes(ctx2, pl, px); }
+  A.drawProps(ctx2, { terrain: { xs: [-30, 30], ys: [0, 0], surf: ['dirt'] }, props: [{ type: 'seesaw', x: 3, len: 6, pivot: { x: 6, y: 0.9 } }] }, { x0: -20, x1: 20 }, px);
   A.drawObject(ctx2, mk('seesaw', 6, 0.9, { w: 6, h: 0.3, a: anim ? Math.sin(t) * 0.25 : 0.2 }), px);
+  A.drawWater(ctx2, [{ x0: 8.5, x1: 12, y: 0.0 }], { x0: -20, x1: 20, y0: -3 }, px, t, false); A.drawCheckpoint(ctx2, { x: 8.3, y: 0 }, anim && Math.sin(t) > 0, px, t);
   A.drawObject(ctx2, mk('snowball', -9.5, 1.3, { r: 1.3, a: -t }), px);
   A.drawObject(ctx2, mk('log', 1.5, 1.8, { w: 2.5, h: 0.5 }), px);
   A.drawObject(ctx2, mk('mystery', 3.3, 1.8, { w: 0.8, h: 0.8 }), px);

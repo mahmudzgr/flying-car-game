@@ -6,23 +6,24 @@ import { ART, TAU, rr, fs, circle, line, coil, clamp, hash } from './util.js';
 
 const DARK = '#1c1722', TIRE = '#3a3340', CHROME = '#dfe6ec', CREAM = '#fff1d0', GLASS = '#bfe6f5';
 
-/** Sim bu araçları (henüz) göndermese de çizebilmek için yedek geometri (config.js ile uyumlu tahmin). */
+/** Sim bu araçları göndermese de çizebilmek için yedek geometri (config.js ile aynı). */
 export const FALLBACK = {
   pasa: {
-    parts: [{ part: 'chassis', x: 0, y: 0, w: 3.0, h: 0.8 }, { part: 'cab', x: -0.5, y: 0.8, w: 1.0, h: 0.8 }, { part: 'roof', x: -0.5, y: 1.25, w: 1.1, h: 0.1 }],
-    wheels: [{ id: 'rear', x: -0.8, y: -0.1, driven: true }, { id: 'front', x: 1.2, y: -0.25, driven: false }],
-    wheelR: 0.62, seat: { x: -0.5, y: 1.0 }, bay: { x0: -1.4, x1: 0.2, floorY: 0.4, rail: 0.3 },
+    parts: [{ part: 'chassis', x: 0, y: 0, w: 2.8, h: 1.0 }, { part: 'cab', x: 0.1, y: 1.0, w: 1.2, h: 0.9 }, { part: 'roof', x: 0.1, y: 1.5, w: 1.1, h: 0.1 }, { part: 'chassis', x: 1.1, y: 0.45, w: 0.6, h: 0.5 }],
+    wheels: [{ id: 'rear', x: -0.95, y: -0.06, r: 0.62 }, { id: 'front', x: 1.2, y: -0.3, r: 0.38 }],
+    wheelR: 0.38, seat: { x: 0.1, y: 0.95 },
+    trailer: { hitch: { x: -1.5, y: 0.08 }, parts: [{ part: 'trailer', x: -2.0, y: 0.0, w: 3.6, h: 0.25 }, { part: 'trailer', x: -3.75, y: 0.35, w: 0.1, h: 0.7 }, { part: 'trailer', x: -0.3, y: 0.35, w: 0.1, h: 0.7 }, { part: 'trailer', x: -0.7, y: -0.1, w: 1.4, h: 0.1 }], wheels: [{ id: 'trailer', x: -2.9, y: -0.3, r: 0.45 }] },
   },
   koca: {
-    parts: [{ part: 'chassis', x: 0, y: 0, w: 5.2, h: 0.9 }, { part: 'cab', x: 1.7, y: 0.8, w: 1.4, h: 0.8 }, { part: 'roof', x: 1.7, y: 1.25, w: 1.4, h: 0.1 }],
-    wheels: [{ id: 'rear', x: -1.7, y: -0.3, driven: true }, { id: 'front', x: 1.9, y: -0.3, driven: false }],
-    wheelR: 0.55, seat: { x: 1.7, y: 1.1 }, bay: { x0: -2.5, x1: 0.8, floorY: 0.45, rail: 0.5 },
+    parts: [{ part: 'chassis', x: 0, y: 0, w: 6.0, h: 1.3 }, { part: 'cab', x: 2.15, y: 1.15, w: 1.5, h: 1.0 }, { part: 'roof', x: 2.15, y: 1.7, w: 1.4, h: 0.1 }, { part: 'chassis', x: -2.95, y: 1.0, w: 0.1, h: 0.7 }],
+    wheels: [{ id: 'front', x: 2.3, y: -0.5 }, { id: 'rear', x: -1.7, y: -0.5 }, { id: 'rear2', x: -2.8, y: -0.5 }],
+    wheelR: 0.55, seat: { x: 2.1, y: 1.15 },
   },
 };
 /** Egzoz çıkış noktası (şasi yerel) — partikül için. */
-export const EXHAUST = { tosun: { x: -1.9, y: -0.36 }, zipir: { x: -1.38, y: 0.5 }, pasa: { x: 0.35, y: 1.55 }, koca: { x: 2.1, y: 1.95 } };
+export const EXHAUST = { tosun: { x: -1.95, y: -0.36 }, zipir: { x: -1.46, y: 0.52 }, pasa: { x: 0.97, y: 1.52 }, koca: { x: 1.25, y: 2.1 } };
 /** Ön far konumu (şasi yerel). */
-export const HEADLIGHT = { tosun: { x: 1.82, y: 0.28 }, zipir: { x: 1.3, y: 0.18 }, pasa: { x: 1.58, y: 0.5 }, koca: { x: 2.65, y: 0.2 } };
+export const HEADLIGHT = { tosun: { x: 1.8, y: 0.28 }, zipir: { x: 1.3, y: 0.18 }, pasa: { x: 1.4, y: 0.2 }, koca: { x: 2.98, y: 0.3 } };
 
 function geo(vs, id) {
   if (vs && vs.parts && vs.parts.length) return vs;
@@ -129,9 +130,9 @@ function lights(ctx, v, px, hl, tl, big = 1) {
   // fren / geri vites lambası
   const on = v.brake > 0.25 || v.reversing;
   ctx.save(); ctx.translate(tl.x, tl.y);
-  rr(ctx, -0.05 * big, -0.07 * big, 0.1 * big, 0.14 * big, 0.03); ctx.beginPath(); rr(ctx, -0.05 * big, -0.07 * big, 0.1 * big, 0.14 * big, 0.03);
+  ctx.beginPath(); rr(ctx, -0.05 * big, -0.07 * big, 0.1 * big, 0.14 * big, 0.03);
   fs(ctx, px, v.reversing ? '#ffffff' : on ? '#ff3b30' : '#a8302a', 1.4);
-  if (on) { ctx.globalAlpha = 0.35; circle(ctx, -0.06, 0, 0.22 * big); ctx.fillStyle = v.reversing ? '#ffffff' : '#ff3b30'; ctx.fill(); ctx.globalAlpha = 1; }
+  if (on) { ctx.globalAlpha = 0.28; circle(ctx, -0.08, 0, 0.14 * big); ctx.fillStyle = v.reversing ? '#ffffff' : '#ff3b30'; ctx.fill(); ctx.globalAlpha = 1; }
   ctx.restore();
   // far
   ctx.save(); ctx.translate(hl.x, hl.y);
@@ -174,7 +175,6 @@ function tosunBody(ctx, v, vs, px, g, hubs) {
   ctx.save(); ctx.clip(body);
   for (const h of hubs) { circle(ctx, h.ax, h.ay, g.wheelR + 0.1); ctx.fillStyle = DARK; ctx.fill(); }
   ctx.restore();
-  for (const h of hubs) { ctx.beginPath(); ctx.arc(h.ax, h.ay, g.wheelR + 0.1, Math.PI * 1.02, Math.PI * 1.98 + 0.0001, true); ctx.arc(h.ax, h.ay, g.wheelR + 0.1, 0, 0); }
   // tampon
   ctx.beginPath(); rr(ctx, -1.9, -0.4, 0.12, 0.16, 0.04); fs(ctx, px, '#8d95a0', 1.8);
   ctx.beginPath(); rr(ctx, 1.74, -0.38, 0.13, 0.18, 0.05); fs(ctx, px, CHROME, 1.8);
@@ -194,6 +194,9 @@ function tosunBody(ctx, v, vs, px, g, hubs) {
   ctx.lineWidth = 0.075; ctx.strokeStyle = Cl; ctx.stroke();
   // egzoz borusu
   ctx.beginPath(); rr(ctx, -1.97, -0.4, 0.14, 0.09, 0.04); fs(ctx, px, '#59616b', 1.4);
+  // ön cam (sürücünün arkasında kalır; yarı saydam)
+  ctx.beginPath(); ctx.moveTo(1.3, 0.75); ctx.lineTo(1.22, 1.04); ctx.lineTo(1.45, 1.04); ctx.lineTo(1.4, 0.74); ctx.closePath();
+  ctx.fillStyle = rgba(GLASS, 0.45); ctx.fill(); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = INK; ctx.stroke();
 }
 function tosunFront(ctx, v, vs, px) {
   const C = VEHICLE_COLORS.tosun, Cd = shade(C, -0.22), Cl = shade(C, 0.4);
@@ -201,9 +204,6 @@ function tosunFront(ctx, v, vs, px) {
   ctx.beginPath(); rr(ctx, 0.6, 0.45, 0.72, 0.3, 0.06); fs(ctx, px, C, 2.2);
   ctx.beginPath(); rr(ctx, 0.66, 0.68, 0.6, 0.06, 0.03); ctx.fillStyle = Cl; ctx.fill();
   ctx.beginPath(); rr(ctx, 0.9, 0.52, 0.22, 0.07, 0.03); fs(ctx, px, CHROME, 1.3);   // kapı kolu
-  // ön cam (yarı saydam)
-  ctx.beginPath(); ctx.moveTo(1.3, 0.75); ctx.lineTo(1.2, 1.04); ctx.lineTo(1.44, 1.04); ctx.lineTo(1.4, 0.74); ctx.closePath();
-  ctx.fillStyle = rgba(GLASS, 0.5); ctx.fill(); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = INK; ctx.stroke();
   // ayna
   ctx.beginPath(); rr(ctx, 1.26, 0.78, 0.06, 0.12, 0.03); fs(ctx, px, Cd, 1.4);
   // kaput çizgisi + ızgara
@@ -232,8 +232,7 @@ function zipirBody(ctx, v, vs, px, g, hubs, t) {
   ctx.fillStyle = Cl; ctx.globalAlpha = 0.6; ctx.fillRect(-1.4, 0.27, 2.8, 0.07); ctx.globalAlpha = 1;
   // numara yuvarlağı
   circle(ctx, -0.05, 0.02, 0.2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = INK; ctx.stroke();
-  ctx.fillStyle = C; ctx.beginPath(); ctx.moveTo(-0.1, 0.12); ctx.lineTo(0.06, 0.12); ctx.lineTo(-0.0, -0.1); ctx.lineTo(-0.1, -0.1); ctx.closePath();
-  ctx.fillStyle = INK; ctx.fillRect(-0.1, -0.08, 0.1, 0.2); ctx.fillRect(-0.1, 0.08, 0.2, 0.05);
+  ctx.beginPath(); ctx.moveTo(-0.11, 0.1); ctx.lineTo(0.09, 0.1); ctx.lineTo(-0.1, -0.1); ctx.lineTo(0.1, -0.1); ctx.lineWidth = 0.055; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
   ctx.restore();
   // tekerlek kemer çizgileri: kısa çamurluk
   for (const h of hubs) {

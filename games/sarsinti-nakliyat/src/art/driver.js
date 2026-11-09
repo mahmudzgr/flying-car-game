@@ -43,7 +43,7 @@ function head(ctx, h, px, scared, look) {
   // kask şeridi
   ctx.beginPath(); ctx.arc(0, 0, R * 0.9, Math.PI * 0.62, Math.PI * 0.95); ctx.lineWidth = 0.035; ctx.strokeStyle = '#e8453c'; ctx.stroke();
   // göz
-  const ex = R * 0.46, ey = R * 0.04, er = R * (scared ? 0.3 : 0.25);
+  const ex = R * 0.44, ey = R * 0.02, er = R * (scared ? 0.36 : 0.31);
   circle(ctx, ex, ey, er); fs(ctx, px, '#ffffff', 1.5);
   circle(ctx, ex + er * 0.35 * look[0], ey + er * 0.3 * look[1], er * (scared ? 0.32 : 0.52)); ctx.fillStyle = INK; ctx.fill();
   if (!scared) { circle(ctx, ex + er * 0.45, ey + er * 0.32, er * 0.14); ctx.fillStyle = '#fff'; ctx.fill(); }

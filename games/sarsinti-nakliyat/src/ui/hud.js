@@ -19,18 +19,19 @@ export function createHud(ctx) {
       <button class="pausebtn" id="h-pause" aria-label="Duraklat" title="Duraklat (Esc)">${pauseIcon()}</button></div>
     <div class="hud-bc">
       <div class="combo" id="h-combo" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring-bg" cx="20" cy="20" r="17"/><circle class="ring" id="h-ring" cx="20" cy="20" r="17" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="0" transform="rotate(-90 20 20)"/></svg><b id="h-mult">×1</b><small id="h-count"></small></div>
-      <div class="speed"><b id="h-speed">0</b><small>km/s</small></div>
+      <div class="speed"><b id="h-speed">0</b><small>km/sa</small></div>
     </div>
     <div class="toast" id="h-toast" hidden role="status"></div>
     <div class="pops" id="h-pops" aria-live="polite"></div>
+    <div class="danger left" id="h-dl" hidden aria-hidden="true"><span>&#9664;</span><b></b></div><div class="danger right" id="h-dr" hidden aria-hidden="true"><b></b><span>&#9654;</span></div>
     <div class="flash" id="h-flash" aria-hidden="true"></div>`;
   const $ = (id) => el.querySelector('#' + id);
   const n = { cargo: $('h-cargo'), time: $('h-time'), pfill: $('h-pfill'), pcar: $('h-pcar'), prog: $('h-prog'), dist: $('h-dist'), ticks: $('h-ticks'),
     coins: $('h-coins'), coinchip: $('h-coinchip'), combo: $('h-combo'), ring: $('h-ring'), mult: $('h-mult'), count: $('h-count'),
-    speed: $('h-speed'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
+    speed: $('h-speed'), dl: $('h-dl'), dr: $('h-dr'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
   $('h-pause').onclick = () => ctx.flow.pause();
 
-  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null };
+  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' };
   const hp = new Map(); // kargo id → son hp (hasar farkı için)
   let lastProgress = 0, toastTimer = 0;
 
@@ -55,7 +56,7 @@ export function createHud(ctx) {
   return {
     el,
     reset() {
-      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null });
+      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' }); n.dl.hidden = n.dr.hidden = true;
       hp.clear(); n.pops.innerHTML = ''; n.toast.hidden = true; n.ticks.innerHTML = ''; n.cargo.innerHTML = ''; n.combo.hidden = true; lastProgress = 0;
     },
     update(s) {
@@ -85,6 +86,17 @@ export function createHud(ctx) {
       // hız
       const sp = Math.round(s.vehicle.speed * 3.6);
       if (sp !== cache.speed) { cache.speed = sp; n.speed.textContent = sp; }
+      // tehlike oku (kar topu / kaya ekran dışında yaklaşırken)
+      let nl = null, nr = null;
+      for (const o of s.objects ?? []) {
+        if ((o.type !== 'snowball' && o.type !== 'rock') || !o.active) continue;
+        const dx = o.x - s.vehicle.x;
+        if (dx < -10 && dx > -80 && (nl === null || dx > nl)) nl = dx;
+        else if (dx > 18 && dx < 80 && (nr === null || dx < nr)) nr = dx;
+      }
+      const dlv = nl === null ? '' : String(Math.round(-nl)), drv = nr === null ? '' : String(Math.round(nr));
+      if (dlv !== cache.dl) { cache.dl = dlv; n.dl.hidden = !dlv; n.dl.querySelector('b').textContent = dlv && `${dlv} m`; n.dl.classList.toggle('near', nl !== null && nl > -25); }
+      if (drv !== cache.dr) { cache.dr = drv; n.dr.hidden = !drv; n.dr.querySelector('b').textContent = drv && `${drv} m`; n.dr.classList.toggle('near', nr !== null && nr < 30); }
       // kombo
       const cb = s.combo;
       const show = cb.count > 0;

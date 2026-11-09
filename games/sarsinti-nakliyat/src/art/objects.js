@@ -55,15 +55,16 @@ function plank(ctx, o, px) {
   ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, 0.03); fs(ctx, px, '#b98a52', 2.2);
   ctx.strokeStyle = rgba(INK, 0.5); ctx.lineWidth = 1.2 * px; ctx.beginPath(); ctx.moveTo(-w * 0.3, -h * 0.2); ctx.lineTo(w * 0.1, -h * 0.2); ctx.moveTo(-w * 0.1, h * 0.22); ctx.lineTo(w * 0.35, h * 0.22); ctx.stroke();
   for (const sx of [-1, 1]) circle(ctx, sx * (w / 2 - 0.08), 0, 0.025), ctx.fillStyle = '#59616b', ctx.fill();
-  ctx.fillStyle = '#7a5a30'; ctx.beginPath(); ctx.rect(-w / 2 + 0.01, h * 0.28, w - 0.02, h * 0.22); ctx.fill();
+  if (o.weak) { // zayıf tahta: kırmızı çatlak + işaret
+    ctx.beginPath(); ctx.moveTo(-w * 0.12, h / 2); ctx.lineTo(-w * 0.02, 0.0); ctx.lineTo(-w * 0.14, -h * 0.2); ctx.lineTo(w * 0.04, -h / 2);
+    ctx.lineWidth = 0.035; ctx.strokeStyle = '#e8453c'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.fillStyle = 'rgba(232,69,60,.35)'; ctx.fillRect(-w / 2, -h / 2, w, h);
+    circle(ctx, w * 0.3, 0, 0.045); ctx.fillStyle = '#ff9f1c'; ctx.fill(); ctx.lineWidth = 1.2 * px; ctx.strokeStyle = INK; ctx.stroke();
+  }
 }
 
 function seesaw(ctx, o, px) {
   const w = o.w || 8, h = o.h || 0.3;
-  // dayanak (üçgen) — dönmez; board'la birlikte çizilince ctx dönmüş: ters döndürerek dik çiz
-  ctx.save(); ctx.rotate(-o.a);
-  ctx.beginPath(); ctx.moveTo(-0.55, -0.95); ctx.lineTo(0.55, -0.95); ctx.lineTo(0, -h / 2 + 0.02); ctx.closePath(); fs(ctx, px, '#7a5a30', 2.4);
-  ctx.restore();
   ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, 0.07); fs(ctx, px, '#c9965a', 2.4);
   ctx.save(); ctx.clip();
   ctx.fillStyle = shade('#c9965a', -0.18); ctx.fillRect(-w / 2, -h / 2, w, h * 0.3);
@@ -241,3 +242,87 @@ export function drawHintSign(ctx, x, y, kind, px, t = ART.t) {
   ctx.restore();
 }
 void mix; void BIOMES; void text; void clamp;
+
+// ---------------------------------------------------------------- statik dekor: köprü direkleri, tahterevalli dayanağı, su, kontrol noktası
+/** static.props: köprü direkleri ve tahterevalli dayanağı (dinamik parçalar objects'te). */
+export function drawProps(ctx, st, range, px) {
+  const props = st.props;
+  if (!props) return;
+  for (const p of props) {
+    if (p.type === 'bridge') {
+      if (p.x + p.len < range.x0 - 2 || p.x > range.x1 + 2) continue;
+      for (const bx of [p.x - 0.28, p.x + p.len + 0.28]) {
+        const gy = heightAtLocal(st, bx), top = p.y + 1.2;
+        ctx.beginPath(); rr(ctx, bx - 0.12, gy - 0.3, 0.24, top - gy + 0.3, 0.05); fs(ctx, px, '#9a6a3c', 2.3);
+        ctx.beginPath(); rr(ctx, bx - 0.17, top - 0.04, 0.34, 0.12, 0.04); fs(ctx, px, '#7a5a30', 2);
+        ctx.strokeStyle = rgba(INK, 0.4); ctx.lineWidth = 1.2 * px; ctx.beginPath(); ctx.moveTo(bx - 0.04, gy + 0.1); ctx.lineTo(bx - 0.04, top - 0.1); ctx.stroke();
+      }
+    } else if (p.type === 'seesaw') {
+      if (p.x + p.len < range.x0 - 2 || p.x > range.x1 + 2) continue;
+      const gy = heightAtLocal(st, p.pivot.x);
+      ctx.beginPath(); ctx.moveTo(p.pivot.x - 0.7, gy); ctx.lineTo(p.pivot.x + 0.7, gy); ctx.lineTo(p.pivot.x, p.pivot.y - 0.12); ctx.closePath(); fs(ctx, px, '#7a5a30', 2.4);
+      ctx.beginPath(); ctx.moveTo(p.pivot.x - 0.32, gy + 0.05); ctx.lineTo(p.pivot.x, p.pivot.y - 0.2); ctx.lineTo(p.pivot.x + 0.32, gy + 0.05); ctx.lineWidth = 1.4 * px; ctx.strokeStyle = rgba(INK, 0.45); ctx.stroke();
+    }
+  }
+}
+function heightAtLocal(st, x) {
+  const { xs, ys } = st.terrain;
+  let lo = 0, hi = xs.length - 2;
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[xs.length - 1]) return ys[ys.length - 1];
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (xs[m] <= x) lo = m; else hi = m - 1; }
+  const dx = xs[lo + 1] - xs[lo];
+  return dx < 1e-6 ? Math.max(ys[lo], ys[lo + 1]) : ys[lo] + ((ys[lo + 1] - ys[lo]) * (x - xs[lo])) / dx;
+}
+
+/** Su bölgeleri: front=false → araçtan önce (opak ağırlıklı), front=true → araçtan sonra (hafif örtü + köpük). */
+export function drawWater(ctx, waters, range, px, t, front) {
+  if (!waters) return;
+  for (const w of waters) {
+    if (w.x1 < range.x0 || w.x0 > range.x1) continue;
+    const x0 = Math.max(w.x0, range.x0 - 1), x1 = Math.min(w.x1, range.x1 + 1), yb = (range.y0 ?? w.y - 20) - 2;
+    ctx.beginPath(); ctx.moveTo(x0, yb);
+    for (let x = x0; x <= x1 + 0.01; x += 0.25) ctx.lineTo(x, w.y + Math.sin(t * 2.4 + x * 2.1) * 0.05 + Math.sin(t * 1.3 + x * 0.7) * 0.04);
+    ctx.lineTo(x1, yb); ctx.closePath();
+    ctx.fillStyle = front ? 'rgba(74,163,216,.30)' : 'rgba(47,127,180,.78)'; ctx.fill();
+    if (!front) {
+      ctx.fillStyle = 'rgba(143,208,240,.35)'; ctx.fillRect(x0, w.y - 0.7, x1 - x0, 0.7);
+    } else {
+      ctx.beginPath(); for (let x = x0; x <= x1 + 0.01; x += 0.25) { const y = w.y + Math.sin(t * 2.4 + x * 2.1) * 0.05 + Math.sin(t * 1.3 + x * 0.7) * 0.04; if (x === x0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.lineWidth = 0.07; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.lineWidth = 2.2 * px; ctx.strokeStyle = INK; ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/** Köprü halatları (başlangıç/bitiş direklerinden tahtalara). planks x'e göre sıralı. */
+export function drawBridge(ctx, prop, planks, st, px) {
+  if (!planks.length) return;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pw = prop.len / prop.planks, lift = 0.95;
+  const ax0 = prop.x - 0.28, ax1 = prop.x + prop.len + 0.28, ay = prop.y + 1.15;
+  const rope = (liftN, w, col, anchor) => {
+    ctx.beginPath(); ctx.moveTo(ax0, anchor);
+    let prev = null;
+    for (const p of planks) {
+      const x = p.x - Math.sin(p.a) * liftN, y = p.y + Math.cos(p.a) * liftN;
+      if (prev && Math.hypot(x - prev.x, y - prev.y) > pw * 1.8) { ctx.moveTo(x, y); } else ctx.lineTo(x, y);
+      prev = { x, y };
+    }
+    ctx.lineTo(ax1, anchor);
+    ctx.lineWidth = w + 3 * px; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = w; ctx.strokeStyle = col; ctx.stroke();
+  };
+  rope(lift, 0.045, '#d9bd82', ay);
+  ctx.lineWidth = 0.025; ctx.strokeStyle = '#c9a56a'; ctx.beginPath();
+  for (let i = 0; i < planks.length; i += 2) { const p = planks[i]; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - Math.sin(p.a) * lift, p.y + Math.cos(p.a) * lift); }
+  ctx.stroke();
+}
+
+/** Kontrol noktası bayrağı. reached → yeşil, değilse beyaz. */
+export function drawCheckpoint(ctx, cp, reached, px, t = ART.t) {
+  line(ctx, cp.x, cp.y - 0.05, cp.x, cp.y + 2.0); ctx.lineWidth = 0.08 + 3 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
+  line(ctx, cp.x, cp.y - 0.05, cp.x, cp.y + 2.0); ctx.lineWidth = 0.08; ctx.strokeStyle = '#d7dde3'; ctx.stroke();
+  flag(ctx, cp.x, cp.y + 2.0, 0.9, 0.55, reached ? '#3fbf5a' : '#ffffff', px, t, cp.x);
+  circle(ctx, cp.x, cp.y + 0.02, 0.2); ctx.fillStyle = '#8d95a0'; ctx.fill(); ctx.lineWidth = 2 * px; ctx.strokeStyle = INK; ctx.stroke();
+  if (!reached) { ctx.beginPath(); ctx.arc(cp.x + 0.45, cp.y + 1.73, 0.1, 0, TAU); }
+}
