@@ -1,0 +1,37 @@
+// Geliştirme test pisti: her yüzey, tümsek, rampa ve çukur. Kampanyada YOKTUR (yalnızca dev/ ve bot).
+export default {
+  id: 'dev-track',
+  name: 'Test Pisti',
+  region: 0, order: 0,
+  biome: 'elma', music: null, difficulty: 1,
+  terrain: {
+    surface: 'asphalt',
+    pieces: [
+      { type: 'flat', len: 20 },
+      { type: 'flat', len: 25, surface: 'dirt' },
+      { type: 'flat', len: 25, surface: 'grass' },
+      { type: 'flat', len: 25, surface: 'gravel' },
+      { type: 'flat', len: 25, surface: 'sand' },
+      { type: 'flat', len: 20, surface: 'mud' },
+      { type: 'flat', len: 20, surface: 'snow' },
+      { type: 'flat', len: 25, surface: 'ice' },
+      { type: 'flat', len: 15, surface: 'asphalt' },
+      { type: 'bumps', len: 30, h: 0.4, n: 6 },
+      { type: 'flat', len: 10 },
+      { type: 'ramp', len: 12, dy: 2.5 },
+      { type: 'gap', len: 5, depth: 6 },
+      { type: 'slope', len: 12, dy: -2.5 },
+      { type: 'flat', len: 20 },
+    ],
+  },
+  spawn: { x: 3 }, finish: { x: 'end' },
+  cargo: [{ type: 'crate', count: 2 }, { type: 'watermelon', count: 2 }, { type: 'eggs', count: 1 }],
+  minDelivered: 0, parTime: 60,
+  objects: [
+    { type: 'barrels', x: 120, cols: 3, rows: 3 },
+    { type: 'rock', x: 200, r: 1.0, trigger: { x: 180 } },
+    { type: 'coins', x: 40, n: 6, spacing: 1.5, h: 1.2 },
+  ],
+  stars: { 2: [], 3: [] }, reward: { base: 60 },
+  bot: { speed: 14 },
+};

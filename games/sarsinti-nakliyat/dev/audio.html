@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sarsıntı — Ses laboratuvarı</title>
+<style>
+:root{color-scheme:dark;--bg:#1b1712;--pn:#2a241c;--ink:#f3e9d6;--mut:#a89a82;--acc:#f0a030}
+*{box-sizing:border-box}body{margin:0;padding:12px 14px 60px;font:14px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+h1{font-size:19px;margin:4px 0 10px}h2{font-size:14px;margin:0 0 8px;color:var(--acc);letter-spacing:.04em;text-transform:uppercase}
+section{background:var(--pn);border-radius:10px;padding:12px;margin:0 0 12px}
+button,select{font:inherit;color:var(--ink);background:#3b3226;border:1px solid #5a4a36;border-radius:7px;padding:7px 10px;margin:2px;cursor:pointer;min-height:36px}
+button:hover{background:#4b3f2f}button.on{background:var(--acc);color:#241a0c;border-color:var(--acc)}
+label{display:flex;align-items:center;gap:8px;margin:5px 0}label span{min-width:82px;color:var(--mut)}input[type=range]{flex:1;min-width:120px}output{min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+#meter{height:12px;background:#12100c;border-radius:6px;overflow:hidden;margin:6px 0}#bar{height:100%;width:0;background:linear-gradient(90deg,#6c6,#fc4,#f55);transition:width .05s}
+.mut{color:var(--mut)}.ev{display:flex;flex-wrap:wrap}.grp{margin:6px 0 2px;color:var(--mut);font-size:12px;width:100%}
+#cnt{font:12px ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;max-height:120px;overflow:auto}
+</style></head>
+<body><h1>Sarsıntı Nakliyat — Ses laboratuvarı</h1>
+<section><button id="unlock" class="on">Sesi aç (unlock)</button> <button id="susp">suspend</button> <button id="resu">resume</button>
+<div id="meter"><div id="bar"></div></div><div class="mut" id="stat"></div></section>
+
+<div class="grid">
+<section><h2>Motor</h2>
+<label><span>Araç</span><select id="veh"><option value="tosun">Tosun (pikap)</option><option value="zipir">Zıpır (bagi)</option><option value="pasa">Paşa (traktör)</option><option value="koca">Koca (kamyon)</option></select></label>
+<label><span>rpm</span><input id="rpm" type="range" min="0" max="1" step="0.01" value="0.12"><output></output></label>
+<label><span>gaz</span><input id="thr" type="range" min="0" max="1" step="0.01" value="0"><output></output></label>
+<label><span>yük</span><input id="load" type="range" min="0" max="1" step="0.01" value="0.2"><output></output></label>
+<label><span>hız m/s</span><input id="spd" type="range" min="-6" max="28" step="0.5" value="0"><output></output></label>
+<label><span>yüzey</span><select id="surf"></select></label>
+<label><span>patinaj</span><input id="slip" type="range" min="0" max="10" step="0.5" value="0"><output></output></label>
+<div><label style="display:inline-flex"><input id="gnd" type="checkbox" checked> yerde</label>
+<label style="display:inline-flex;margin-left:10px"><input id="rev" type="checkbox"> geri vites</label>
+<label style="display:inline-flex;margin-left:10px"><input id="eng" type="checkbox" checked> motor açık</label></div>
+<div><button id="auto">Otomatik gaz (demo)</button> <button id="airdemo">Havada gaz + iniş</button></div>
+</section>
+
+<section><h2>Müzik ve seviyeler</h2>
+<div id="trk"></div>
+<label><span>ana</span><input id="vm" type="range" min="0" max="1" step="0.01" value="1"><output></output></label>
+<label><span>müzik</span><input id="vmu" type="range" min="0" max="1" step="0.01" value="0.7"><output></output></label>
+<label><span>efekt</span><input id="vs" type="range" min="0" max="1" step="0.01" value="1"><output></output></label>
+<h2 style="margin-top:12px">Olay parametreleri</h2>
+<label><span>şiddet m/s</span><input id="p_s" type="range" min="0.5" max="16" step="0.5" value="7"><output></output></label>
+<label><span>kargo</span><select id="p_type"><option>crate</option><option>watermelon</option><option>eggs</option><option>milk</option><option>piano</option><option>bale</option></select></label>
+<label><span>neden</span><select id="p_reason"><option>fell</option><option>water</option><option>broke</option><option>left</option><option>headHit</option><option>flipped</option><option>cargoShort</option><option>badLanding</option></select></label>
+<label><span>sayı/çarpan</span><input id="p_n" type="range" min="1" max="8" step="1" value="3"><output></output></label>
+<label><span>sonuç</span><select id="p_res"><option>win</option><option>fail</option></select></label>
+<label><input id="p_clean" type="checkbox" checked> temiz iniş</label>
+</section></div>
+
+<section><h2>Olaylar (events.js'in tamamı)</h2><div class="ev" id="ev"></div>
+<h2 style="margin-top:12px">Sayaçlar</h2><div id="cnt"></div></section>
+
+<script type="module">
+import { createAudio } from '../src/audio/index.js';
+import { EVENT_NAMES } from '../src/events.js';
+const a = createAudio(); window.audio = a; const $ = (i) => document.getElementById(i);
+const SURF = ['asphalt', 'dirt', 'grass', 'gravel', 'sand', 'mud', 'wet', 'snow', 'ice', 'water'];
+$('surf').innerHTML = SURF.map((s) => `<option>${s}</option>`).join('');
+for (const el of document.querySelectorAll('input[type=range]')) { const o = el.parentElement.querySelector('output'); const f = () => { o.textContent = (+el.value).toFixed(2); }; el.addEventListener('input', f); f(); }
+
+$('unlock').onclick = () => a.unlock(); $('susp').onclick = () => a.suspend(); $('resu').onclick = () => a.resume();
+let track = null;
+for (const t of [null, 'menu', 'elma', 'kanyon', 'bataklik', 'zirve']) {
+  const b = document.createElement('button'); b.textContent = t || '(müzik yok)';
+  b.onclick = () => { a.unlock(); track = t; a.music(t); for (const x of $('trk').children) x.classList.toggle('on', x === b); };
+  $('trk').append(b);
+}
+const vols = () => a.setVolumes({ master: +$('vm').value, music: +$('vmu').value, sfx: +$('vs').value });
+for (const i of ['vm', 'vmu', 'vs']) $(i).oninput = vols; vols();
+
+let tAuto = null, air = null;
+const eng = () => ({ vehicleId: $('veh').value, rpm01: +$('rpm').value, throttle: +$('thr').value, load: +$('load').value, onGround: $('gnd').checked, reversing: $('rev').checked, speed: +$('spd').value });
+let lastSurf = null;
+function push() {
+  if (!$('eng').checked) return;
+  const p = eng(); a.setEngine(p);
+  a.onEvent({ name: 'engine', vehicleId: p.vehicleId, rpm: p.rpm01, load: p.load, speed: p.speed });
+  const s = $('surf').value;
+  if (s !== lastSurf) { for (const w of ['front', 'rear']) a.onEvent({ name: 'wheelContact', wheel: w, surface: s, started: p.onGround }); lastSurf = s; }
+  if (+$('slip').value > 0 && p.onGround) a.onEvent({ name: 'wheelspin', wheel: 'rear', surface: s, slip: +$('slip').value });
+}
+setInterval(push, 16); setInterval(() => { if (+$('slip').value > 0) a.onEvent({ name: 'wheelspin', wheel: 'rear', surface: $('surf').value, slip: +$('slip').value }); }, 100);
+$('gnd').onchange = () => { a.onEvent({ name: $('gnd').checked ? 'wheelContact' : 'airborne', wheel: 'rear', surface: $('surf').value, started: true, startT: 0 }); };
+const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event('input')); };
+$('auto').onclick = () => {
+  if (tAuto) { clearInterval(tAuto); tAuto = null; $('auto').classList.remove('on'); return; }
+  a.unlock(); $('auto').classList.add('on'); const t0 = performance.now();
+  tAuto = setInterval(() => { const t = (performance.now() - t0) / 1000, ph = (t % 8) / 8, up = ph < 0.55; const r = up ? 0.12 + 0.8 * (ph / 0.55) : 0.92 - 0.8 * ((ph - 0.55) / 0.45);
+    set('rpm', r.toFixed(2)); set('thr', up ? 1 : 0); set('load', up ? 0.8 : 0.1); set('spd', (r * 22 + 1).toFixed(1)); }, 50);
+};
+$('airdemo').onclick = () => {
+  a.unlock(); if (air) return; air = true; set('gnd', 0); $('gnd').checked = false; $('gnd').onchange(); set('thr', 1); set('rpm', 0.95); set('load', 0.1);
+  setTimeout(() => { $('gnd').checked = true; $('gnd').onchange(); a.onEvent({ name: 'land', impactSpeed: 8, tilt: 0, wheels: 2, clean: true, airTime: 1 }); set('rpm', 0.5); set('load', 0.9); setTimeout(() => { set('thr', 0); set('rpm', 0.2); set('load', 0.2); air = null; }, 900); }, 1400);
+};
+
+const payload = (n) => {
+  const s = +$('p_s').value, c = +$('p_n').value, type = $('p_type').value;
+  return { name: n, t: 0, surface: $('surf').value, type, id: 'x', speed: s, impactSpeed: s, headSpeed: s, wheel: 'rear', slip: s, count: c, multiplier: c, on: true, index: Math.min(3, c), tilt: 0, wheels: 2,
+    clean: $('p_clean').checked, airTime: 1, reason: $('p_reason').value, result: $('p_res').value, stress: s / 16, hpLeft: s > 12 ? 0 : 0.5, damage: s / 10, bottomOut: true, compression: 1, duration: 2, scale: 0.35,
+    from: 'dirt', to: $('surf').value, direction: 'back', part: ['roof', 'cab', 'chassis'][c % 3], value: 5, points: 800, lostPoints: 400, distance: 0.4, pos: { x: 0, y: 0 }, text: 'ipucu', icon: 'info', started: true, vehicleId: $('veh').value, normal: { x: 0, y: 1 }, startT: 0, rpm: +$('rpm').value, load: +$('load').value, timeLeft: 2 };
+};
+const groups = [['Arayüz', ['ui:click', 'ui:back', 'ui:star', 'ui:hover', 'toast', 'purchase', 'upgrade']], ['Akış', ['levelStart', 'levelEnd', 'starEarned', 'checkpoint', 'pause', 'resume']],
+  ['Sürüş', ['throttle', 'brake', 'engine', 'wheelContact', 'surfaceChange', 'wheelspin', 'suspension', 'airborne', 'land', 'flip', 'wheelie']],
+  ['Çarpma/kargo', ['bodyHit', 'cargoHit', 'cargoDamage', 'cargoLost', 'cargoDelivered', 'driverEject', 'crash']], ['Puan', ['comboChange', 'comboBank', 'comboBurn', 'coin']],
+  ['Dünya', ['bridgeStress', 'bridgeBreak', 'hazardTrigger', 'nearMiss', 'slowmo', 'seesaw']]];
+const known = new Set(EVENT_NAMES);
+for (const [title, names] of groups) {
+  const h = document.createElement('div'); h.className = 'grp'; h.textContent = title; $('ev').append(h);
+  for (const n of names) {
+    const b = document.createElement('button'); b.textContent = n + (known.has(n) ? '' : ' *');
+    b.onclick = () => { a.unlock(); const p = payload(n); if (n === 'hazardTrigger') p.type = ['rock', 'snowball', 'barrels'][p.count % 3]; if (n === 'cargoLost' && !['fell', 'water', 'broke', 'left'].includes(p.reason)) p.reason = 'fell'; a.onEvent(p); };
+    $('ev').append(b);
+  }
+}
+const h = document.createElement('div'); h.className = 'grp'; h.textContent = 'Yığın testleri (voice limiting / aşırı yük)'; $('ev').append(h);
+const stress = document.createElement('button'); stress.textContent = '60 olay / 0,5 sn'; stress.onclick = () => { a.unlock(); const ns = ['coin', 'cargoHit', 'bodyHit', 'land', 'flip', 'cargoDamage', 'suspension', 'comboChange']; for (let i = 0; i < 60; i++) setTimeout(() => a.onEvent(payload(ns[i % ns.length])), i * 8); }; $('ev').append(stress);
+const note = document.createElement('div'); note.className = 'mut'; note.style.width = '100%'; note.textContent = '* events.js dışı (ek) olay adı.'; $('ev').append(note);
+
+// ölçer
+let an = null, buf = null, peakHold = 0;
+setInterval(() => {
+  const d = a.debug; if (!d.ctx) { $('stat').textContent = 'AudioContext yok (önce “Sesi aç”)'; return; }
+  if (!an && d.g) { an = d.ctx.createAnalyser(); an.fftSize = 1024; d.g.master.connect(an); buf = new Float32Array(an.fftSize); }
+  let pk = 0; if (an) { an.getFloatTimeDomainData(buf); for (const v of buf) pk = Math.max(pk, Math.abs(v)); }
+  peakHold = Math.max(pk, peakHold * 0.92); $('bar').style.width = Math.min(100, peakHold * 100) + '%';
+  $('stat').textContent = `durum: ${d.ctx.state} · ${d.ctx.sampleRate} Hz · tepe ${peakHold.toFixed(2)} · efekt sesi ${d.voices} · müzik: ${d.parts?.music.id ?? '-'} · motor: ${d.parts?.engine.running ? 'çalışıyor' : 'kapalı'}`;
+  $('cnt').textContent = Object.entries(d.counts).map(([k, v]) => `${k}:${v}`).join('  ');
+}, 100);
+</script></body></html>

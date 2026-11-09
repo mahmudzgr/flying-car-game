@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Sarsıntı — Arayüz laboratuvarı</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  html, body { background: linear-gradient(180deg, #8fd3ff 0%, #e3f6ff 62%, #5aa05a 62%, #8b6a4a 100%); }
+  #dock { position: fixed; right: 6px; bottom: 6px; z-index: 200; max-width: 46vw; background: rgba(255,255,255,.92); border: 2px solid #2a2230; border-radius: 10px; padding: 4px 6px; font: 12px system-ui; pointer-events: auto; touch-action: manipulation; }
+  #dock summary { cursor: pointer; font-weight: 800; }
+  #dock div { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+  #dock button { font: 700 12px system-ui; padding: 3px 6px; cursor: pointer; }
+  #log { display: none; position: fixed; left: 6px; bottom: 6px; z-index: 200; max-width: 40vw; font: 11px monospace; color: #2a2230; background: rgba(255,255,255,.8); padding: 2px 6px; border-radius: 6px; pointer-events: none; white-space: pre-wrap; }
+  body.showlog #log { display: block; }
+</style></head>
+<body>
+<div id="ui"></div>
+<details id="dock" open><summary>Arayüz laboratuvarı</summary><div id="btns"></div></details>
+<pre id="log"></pre>
+<script type="module">
+// Arayüz ekibi: ui/ ekranlarını sahte snapshot / sahte kayıt ile dene. Gerçek localStorage'a dokunmaz.
+import { createUI } from '../src/ui/index.js';
+import { createInput } from '../src/input.js';
+import { createSave } from '../src/save.js';
+import { CAMPAIGN } from '../src/data/levels/index.js';
+
+const q = new URLSearchParams(location.search);
+if (q.has('log')) document.body.classList.add('showlog');
+const mem = {}; const storage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = v; }, removeItem: (k) => { delete mem[k]; } };
+const save = createSave(storage);
+
+// Kampanyada olmayan bölümleri sahte bölümlerle tamamla (bölge kilidini görmek için).
+const mk = (id, name, region, order, cargo, s2, s3, extra = {}) => ({ id, name, region, order, biome: region === 1 ? 'elma' : 'kanyon', difficulty: 1 + region, cargo, stars: { 2: [{ label: s2 }], 3: [{ label: s3 }] }, reward: { base: 100 }, ...extra });
+const levels = [...CAMPAIGN];
+const mocks = [
+  mk('1-1', 'İlk Sipariş', 1, 1, [{ type: 'crate', count: 3 }], '3 kasadan 3\'ü teslim', '40 sn içinde bitir'),
+  mk('1-2', 'Karpuz Mevsimi', 1, 2, [{ type: 'watermelon', count: 6 }], '5+ karpuz teslim', '6/6 karpuz + 55 sn altı'),
+  mk('1-3', 'Yumurta Seferi', 1, 3, [{ type: 'eggs', count: 1 }, { type: 'crate', count: 2 }], '3+ yumurta kalsın', '6/6 yumurta'),
+  mk('1-4', 'Samanlık Sıçrayışı', 1, 4, [{ type: 'bale', count: 4 }, { type: 'crate', count: 2 }], 'Bir iniş + 1 takla', '2 taklalı kombo ≥ ×3'),
+  mk('2-1', 'Kum Geçidi', 2, 1, [{ type: 'milk', count: 5 }], 'Tümü teslim', '70 sn altı + geri vites yok'),
+  mk('2-2', 'Sallanan Köprü', 2, 2, [{ type: 'crate', count: 3 }, { type: 'watermelon', count: 2 }], 'Köprüde kargo kaybı yok', 'Köprü sağlam kalsın'),
+  mk('2-3', 'Kaya Yağmuru', 2, 3, [{ type: 'crate', count: 4 }], 'Kayaya çarpmadan', '55 sn altı'),
+  mk('2-4', 'Kanyon Atlayışı', 2, 4, [{ type: 'crate', count: 5 }, { type: 'eggs', count: 1 }], 'İki boşluk, 4+ kargo', '1 takla + sağlam iniş + 5+ kargo', { timeLimit: 90 }),
+];
+for (const m of mocks) if (!levels.some((l) => l.id === m.id)) levels.push(m);
+levels.sort((a, b) => (a.region - b.region) || (a.order - b.order));
+
+const log = (t) => { document.getElementById('log').textContent = t; console.log(t); };
+let ui; const input = createInput(window);
+const flow = {
+  startLevel: (id, v) => { log(`flow.startLevel(${id}, ${v})`); ui.show('hud'); ui.onEvent({ name: 'levelStart', levelId: id }); startSim(); },
+  retry: () => { log('flow.retry()'); flow.startLevel(lastLevel); },
+  pause: () => { log('flow.pause()'); stopSim(); ui.show('pause'); },
+  resume: () => { log('flow.resume()'); ui.show('hud'); startSim(); },
+  toMenu: () => { log('flow.toMenu()'); stopSim(); ui.show('menu'); },
+  nextLevel: () => { const i = levels.findIndex((l) => l.id === lastLevel); flow.startLevel(levels[i + 1]?.id ?? levels[0].id); },
+  emit: (n, d) => { if (n !== 'ui:click') log(`emit ${n} ${JSON.stringify(d)}`); },
+  applySettings: (s) => { log('settings ' + JSON.stringify(s)); },
+};
+ui = createUI({ root: document.getElementById('ui'), input, save, flow, levels });
+let lastLevel = '1-1';
+
+// ---- sahte snapshot ----
+function snap(t) {
+  const prog = Math.min(1, (t % 40) / 40);
+  const eggs = Math.max(2, 6 - Math.floor((t % 20) / 4));
+  return {
+    run: { distance: prog * 420, progress: prog, status: 'running', time: t, timeLeft: q.has('limit') ? Math.max(0, 62 - t) : null },
+    cargoSummary: { total: 4, onboard: 3, delivered: 0, lost: 1 }, pickups: Math.floor(t * 1.5), vehicle: { speed: 6 + 6 * Math.abs(Math.sin(t)) },
+    combo: { count: Math.floor(t % 7), multiplier: 1 + Math.floor((t % 7) / 2), timeLeft01: 1 - (t % 1) },
+    cargo: [{ id: 'a', type: 'crate', hp: 1, hpMax: 1, state: 'onboard' }, { id: 'b', type: 'eggs', hp: eggs, hpMax: 6, state: 'onboard' }, { id: 'c', type: 'watermelon', hp: 1, hpMax: 1, state: 'lost' }, { id: 'd', type: 'milk', hp: 1, hpMax: 1, state: 'onboard' }],
+  };
+}
+let raf = 0, t0 = 0;
+function startSim() { stopSim(); t0 = performance.now(); const f = (n) => { ui.hudUpdate(snap((n - t0) / 1000)); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
+function stopSim() { cancelAnimationFrame(raf); }
+
+const fakeRes = { result: 'win', stars: 2, score: 1234, time: 33.3, cargoDelivered: 3, cargoTotal: 3, reason: 'finish', flips: 2, maxMultiplier: 3, intact: true, pickups: 15, distance: 320 };
+const reward = { total: 186, completion: 70, starBonus: 40, scoreCoins: 61, pickups: 15 };
+const setSave = (fn) => { save.update(fn); save.flush(); ui.refresh(); };
+const rich = (d) => { d.coins = 1500; for (const l of levels.slice(0, 5)) d.levels[l.id] = { stars: 2, best: 1500, bestTime: 38.2, tries: 3 }; d.levels['1-1'].stars = 3; };
+const buttons = [
+  ['menü', () => { stopSim(); ui.show('menu'); }],
+  ['bölümler', () => { stopSim(); ui.show('menu'); document.querySelector('[data-act=play]')?.click(); }],
+  ['garaj', () => { stopSim(); ui.show('menu'); document.querySelector('[data-act=garage]')?.click(); }],
+  ['ayarlar', () => { stopSim(); ui.show('menu'); document.querySelector('[data-act=settings]')?.click(); }],
+  ['HUD', () => { ui.show('hud'); ui.onEvent({ name: 'levelStart', levelId: '1-1' }); startSim(); }],
+  ['toast', () => ui.onEvent({ name: 'toast', text: 'Gaza basılı tut: sağ düğme ya da →', icon: 'throttle' })],
+  ['takla', () => ui.onEvent({ name: 'flip', count: 2 })],
+  ['hasar', () => ui.onEvent({ name: 'cargoDamage', id: 'b', type: 'eggs', hpLeft: 2 })],
+  ['kayıp', () => ui.onEvent({ name: 'cargoLost', id: 'c', type: 'watermelon' })],
+  ['hava', () => { ui.onEvent({ name: 'land', airTime: 1.4 }); ui.onEvent({ name: 'comboBank', points: 340, multiplier: 3 }); }],
+  ['süre sınırı', () => { history.replaceState(null, '', '?limit'); }],
+  ['duraklat', () => { ui.show('hud'); stopSim(); ui.show('pause'); }],
+  ['sonuç ✓', () => ui.show('result', { result: fakeRes, reward, level: levels[0] })],
+  ['sonuç ★3', () => ui.show('result', { result: { ...fakeRes, stars: 3 }, reward, level: levels[1] })],
+  ['✗ kafa', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'headHit' }, reward: { total: 15 }, level: levels[0] })],
+  ['✗ devrildi', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'flipped' }, reward: { total: 0 }, level: levels[0] })],
+  ['✗ düştü', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'fell' }, reward: { total: 0 }, level: levels[0] })],
+  ['✗ süre', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'timeout' }, reward: { total: 0 }, level: levels[0] })],
+  ['✗ kargo', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'cargoShort', cargoDelivered: 1 }, reward: { total: 5 }, level: levels[0] })],
+  ['kayıt: zengin', () => setSave(rich)],
+  ['kayıt: boş', () => { save.reset(); ui.refresh(); }],
+];
+const box = document.getElementById('btns');
+for (const [n, f] of buttons) { const b = document.createElement('button'); b.textContent = n; b.onclick = (e) => { f(); e.currentTarget.blur(); }; box.append(b); }
+window.__dev = { ui, save, flow, levels, setSave, rich };
+if (q.has('rich')) setSave(rich);
+const start = q.get('s'); if (start) buttons.find(([n]) => n === start)?.[1]();
+</script></body></html>
