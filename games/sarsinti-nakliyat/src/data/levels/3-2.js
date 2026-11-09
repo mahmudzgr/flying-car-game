@@ -45,11 +45,11 @@ export default {
   parTime: 60, timeLimit: null,
   checkpoints: [],
   objects: [
-    { type: 'seesaw', x: 88, len: 12 },
-    { type: 'seesaw', x: 188, len: 12 },
-    { type: 'seesaw', x: 206, len: 12 },
-    { type: 'seesaw', x: 310, len: 12 },
-    { type: 'seesaw', x: 321, len: 12 },
+    { type: 'seesaw', x: 88, len: 6 },
+    { type: 'seesaw', x: 188, len: 6 },
+    { type: 'seesaw', x: 206, len: 6 },
+    { type: 'seesaw', x: 310, len: 6 },
+    { type: 'seesaw', x: 321, len: 6 },
     { type: 'coins', x: 24, n: 5, spacing: 1.7, h: 1.1 },
     { type: 'coins', x: 94, n: 5, spacing: 1.6, h: 1.4 },      // tahterevalli üstü: yavaş gidersen topla
     { type: 'coins', x: 152, n: 5, spacing: 1.8, h: 1.1 },
