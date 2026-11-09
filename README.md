@@ -1,125 +1,99 @@
-# Uçan Roadster 🚗🔥
+# Oyun Salonu 🎮
 
-Mobilde (ve masaüstünde) tarayıcıdan oynanan, **2.5D** bir fizik oyunu: görüntü 3D (Three.js), kontroller ve fizik 2D.
-Elektrikli roadster ile **dönen rampaya** doğru hızlan, havada **takla** at, ardından **soğuk gaz iticilerini**
-kontrol ederek iniş platformuna **güvenli bir şekilde kon**.
+Mobilde ve masaüstünde tarayıcıdan oynanan oyunlar. Ana ekranda bir oyun seçip hemen oynarsın; kurulum,
+hesap ya da derleme adımı yok. Site GitHub Pages ile yayınlanacak şekilde düzenlendi.
 
-## Nasıl oynanır
+## Oyunlar
 
-| Kontrol | Yerde | Havada |
+| Oyun | Ne? | Klasör |
 |---|---|---|
-| ◀ (sol alt) | Fren / geri | Geri takla (burun yukarı) |
-| ▶ (sol alt) | Gaz | Ön takla (burun aşağı) |
-| 🔥 İTİCİ (sağ alt) | Zıplama | Ana itici – aracı **kendi tavanı yönünde** iter |
+| **Uçan Roadster** | 2.5D fizik: dönen rampadan fırla, havada takla at, iticilerle platforma kon. 16 bölüm, sonsuz mod. | [`games/ucan-roadster/`](games/ucan-roadster/) |
+| **Paldır Küldür** | Fizik yıkım: sapanla gülle fırlat, kuleleri yık, jöleleri patlat. 40 bölüm, Sonsuz Kuşatma, Oyun Alanı. | [`games/paldir-kuldur/`](games/paldir-kuldur/) |
 
-Bir tuşun anlamı **basıldığı anda** belirlenir: rampaya gazla çıkarken ▶'ye basılı tutarsan havada da gaz
-olarak kalır (istemeden takla atmazsın). Takla için tuşu bırakıp yeniden bas.
+Her oyunun ayrıntıları kendi klasöründeki `README.md` dosyasında.
 
-Klavye: `←/→` veya `A/D`, itici `Boşluk/↑/W`, ayrıca `Q/E` her zaman takla iticisi. `R` yeniden başlat, `M` müzik, `Esc` duraklat.
+## GitHub Pages ile yayınlama
 
-**Saf Fizik (iticisiz iniş):** Düz bir platforma itici kullanmadan inmek fiziksel olarak mümkün değil (düşüş
-hızı 7 m/s sınırını aşar). Kayak Atlayışı bölümündeki yamaç ise uçuş yoluna paralel tasarlandı: önemli olan yüzeye
-*dik* çarpma hızı olduğu için burnu yamaca paralel tutarak 120 km/sa hızla bile ~3 m/s ile konabilirsin.
+1. GitHub'da depo sayfası → **Settings → Pages**.
+2. **Build and deployment → Source:** `Deploy from a branch`.
+3. **Branch:** yayınlamak istediğin dalı ve `/ (root)` klasörünü seç → **Save**.
+4. Birkaç dakika sonra site `https://<kullanıcı-adı>.github.io/<depo-adı>/` adresinde açılır
+   (bu depo için: `https://mahmudzgr.github.io/flying-car-game/`).
 
-**Güvenli iniş kuralları**
-- İki teker platforma değmeli, dokunma hızı **7 m/s altında** olmalı (sol paneldeki dikey hız yeşil/sarı iken güvendesin).
-- Tavan/cam yere değerse ya da gövde 7,5 m/s üzerinde çarparsa kaza.
-- Platformu aşarsan veya kısa kalırsan ıskalamış olursun.
+Derleme adımı yoktur; dosyalar olduğu gibi sunulur. Kökteki boş `.nojekyll` dosyası GitHub Pages'in
+Jekyll işlemesini kapatır. Seçtiğin dala her push'ta site kendiliğinden güncellenir.
 
-**Puan:** takla (tek atlayıştaki taklalar kombo çarpanıyla katlanır), havada kalma süresi, iniş yumuşaklığı,
-hedef merkezine yakınlık, kalan yakıt ve toplanan yıldızlar.
+## Yerelde çalıştırma
 
-## Özellikler
-
-- **Gerçekçi 2D katı cisim fiziği** (sabit 240 Hz adım): kütle, eylemsizlik momenti, yay-sönümleyicili
-  ışın-izlemeli süspansiyon, lastik sürtünmesi (μ·N sınırı), güç sınırlı elektrik motoru, aerodinamik sürükleme
-  (½ρC<sub>d</sub>Av²), rüzgâr, gövde çarpışmaları.
-- **Dönen rampa:** kavisli, menteşeli rampa sürekli açı değiştirir. Rampa yükselirken üzerindeysen yüzey hızı
-  aracı ekstra fırlatır ("mancınık etkisi"). Doğru anı yakalamak oyunun parçası.
-- **İticiler:** ana itici + burun/kuyruk yön iticileri, sınırlı yakıt, yakıt kutuları.
-- **16 bölüm, 14 farklı ortam:** çayır, kanyon, gökdelen çatısı, rüzgârlı vadi, mancınık rampa,
-  Ay (g = 1,62 m/s², atmosfer yok), Mars (g = 3,71 m/s², çok ince atmosfer), dalgalarda sallanan/kayan deniz
-  platformu, lav kanyonlu final, **kayak atlama yamacı**, **buzlu göl** (sürtünme ~0,1), **Titan**
-  (g = 1,35 m/s², Dünya'dan ~4 kat yoğun atmosfer, metan gölü), **sallanan vinç platformu**, **neon şehirde
-  asansör platformu** ve iki yönlü sert rüzgarlı **fırtına** (yağmur, şimşek).
-- **Sonsuz mod:** her başarılı inişte yeni, biraz daha zor, rastgele üretilmiş parkur (üretici, hedef hıza
-  pistte ulaşılabildiğini ve platforma ulaşan bir hız bandı olduğunu kontrol eder). Tek hata seriyi bitirir.
-- **Müzik:** dosyasız, WebAudio ile anlık üretilen müzik. Her ortamın kendi tonu/temposu var; menüde sakin,
-  sürüşte bas ve hi-hat, uçuşta tam davul ve melodi devreye girer. Kazada müzik kısılır, inişte zafer cümlesi çalar.
-- **Garaj:** yıldız topladıkça açılan 9 boya rengi.
-- **Görevler:** her bölümde 3 yıldızlık görev (yumuşak iniş, belirli takla türü/sayısı, isabet, yakıt tasarrufu,
-  yıldız toplama, havada kalma, puan…). Bir sonraki bölüm, öncekinden en az 1 yıldızla açılır.
-- **31 başarım** (Kuş Tüyü, On İkiden, Saf Fizik, Mancınık Ustası, Kasırga, Uçan Kayakçı, Maratoncu…), istatistikler, yerel kayıt.
-- **Oynanışı geliştiren ekler:** yörünge asistanı (tahmini iniş noktası yeşil/kırmızı), hedef hız bandı,
-  iniş uyarıları ("İTİCİYİ ATEŞLE!", "BURNU DÜZELT!"), en iyi koşunun **hayalet** tekrarı, kusursuz inişte ağır çekim,
-  kamera sarsıntısı, titreşim (destekleyen telefonlarda), tamamen kodla üretilmiş sesler.
-- Otomatik grafik kalitesi (FPS düşerse kendini düşürür), PWA manifesti (ana ekrana eklenebilir), dış bağımlılık yok
-  (Three.js `vendor/` içinde).
-
-## İlerleme ve kayıt
-
-- İlerleme (yıldızlar, rekorlar, başarımlar, ayarlar) tarayıcının yerel deposunda (`localStorage`) tutulur.
-  Güncellemeler aynı kayıt anahtarını kullanır ve eski kayıtları silmez; yeni alanlar (müzik, garaj, sonsuz mod)
-  eksikse varsayılanlarla eklenir. Bu, önceki sürümle oynanıp kaydedilmiş gerçek bir kayıtla test edildi.
-- Kayıt bozulursa (ör. yarım yazılmış veri) oyun sıfırdan başlamaz: aynı tarayıcıdaki güvenlik kopyasından
-  geri yükler, okunamayan veriyi de silmeden ayrı bir anahtarda saklar. Depolama dolarsa önce güvenlik kopyası,
-  gerekirse hayalet kayıtları feda edilir; yıldız ve başarımlar korunur.
-- **Ayarlar → İlerleme Yedeği:** ilerlemeni kısa bir yedek koduna (`UR1-…`) dönüştürür. Kodu başka bir
-  tarayıcıda/cihazda geri yükleyebilirsin; geri yükleme mevcut ilerlemeyi silmez, ikisinin en iyisini birleştirir.
-
-## Ses (iPhone notu)
-
-iPhone/iPad'deki tüm tarayıcılar (Chrome dahil) WebKit kullanır. WebKit'te Web Audio sesi, telefonun yandaki
-sessiz anahtarı açıkken kısılır ve ses motoru yalnızca bir dokunuşla başlatılabilir. Oyun bu yüzden ilk dokunuşta
-ses motorunu başlatır, iOS'ta sesi "medya oynatma" moduna alır (sessiz modda da duyulur) ve her dokunuşta askıda
-kalmış motoru yeniden uyandırır. **Ayarlar → Ses durumu / Ses testi** ile kontrol edilebilir.
-
-## Çalıştırma
-
-ES modülleri kullandığı için bir HTTP sunucusu gerekir (dosyayı doğrudan açmak çalışmaz):
+Ana ekran ve Uçan Roadster ES modülleri kullandığı için dosyayı çift tıklayarak açmak yerine bir HTTP sunucusu gerekir:
 
 ```bash
-python3 -m http.server 8080
+npm start                 # = python3 -m http.server 8080
 # tarayıcıda: http://localhost:8080
 ```
 
 Telefonda denemek için bilgisayarla aynı Wi-Fi'de `http://<bilgisayarın-ip-adresi>:8080` adresini aç.
 
-### GitHub Pages ile yayınlama
-
-Depo ayarlarında **Settings → Pages → Build and deployment → Source: Deploy from a branch**, dal olarak bu dalı
-(veya birleştirildikten sonra `main`) ve `/ (root)` klasörünü seç. Birkaç dakika sonra oyun
-`https://<kullanıcı-adı>.github.io/flying-car-game/` adresinde açılır. Derleme adımı yoktur.
-
-## Otomatik pilot testi
-
-Fizik ve kurallar render katmanından bağımsızdır; `tools/bot.mjs` her bölümü gerçek fizikle yüzlerce kez
-(farklı hız, rampa zamanlaması ve takla sayısıyla) oynayıp bölümlerin çözülebilir olduğunu doğrular:
-
-```bash
-node tools/bot.mjs           # tüm bölümler (bot hedef hıza ulaşınca rampaya gazsız girer)
-node tools/bot.mjs 11        # sadece 11. bölüm (kayak: bot ana iticiyi hiç kullanmaz)
-node tools/endless-test.mjs  # sonsuz mod üreticisinin bölümlerini dener
-```
-
 ## Proje yapısı
 
 ```
-index.html, style.css     Arayüz (menüler, HUD, dokunmatik kontroller)
-src/physics.js            2D katı cisim + süspansiyon + itici fiziği (saf JS)
-src/levels.js             Bölüm tanımları, geometri üretimi, hedef hız bandı
-src/run.js                Oyun kuralları: takla sayımı, iniş değerlendirme, puan
-src/scene.js              Three.js 2.5D diorama, kamera, efektler
-src/carModel.js           Prosedürel araç modeli
-src/effects.js            Parçacık sistemi
-src/audio.js              WebAudio ile sentezlenen ses efektleri
-src/music.js              Prosedürel müzik (adım sıralayıcı, temaya göre parçalar)
-src/progress.js           Kayıt, yıldızlar, başarımlar
-src/main.js               Durum makinesi, giriş, HUD
-tools/bot.mjs             Otomatik pilot / denge testi
-tools/endless-test.mjs    Sonsuz mod üreticisi testi
-vendor/three.module.min.js  Three.js r170 (MIT)
+index.html                Oyun seçim ekranı (sitenin ana sayfası)
+games.js                  Oyun listesi: ana ekrandaki kartlar buradan oluşturulur
+manifest.webmanifest      Ana ekrana eklenebilir uygulama bilgisi (Oyun Salonu)
+hub/                      Seçim ekranının stili, betiği ve simgeleri
+hub/back.js               Oyunlardan seçim ekranına dönüş yardımcısı (tüm oyunlar kullanır)
+games/<id>/               Her oyun kendi klasöründe, kendi başına çalışır
+  index.html              Oyunun giriş sayfası
+  cover.webp              Seçim ekranındaki kapak görseli (16:9)
+tools/check-games.mjs     Oyun listesi ve klasör denetimi (npm run check)
+tools/capture-cover.mjs   Oyunun ekran görüntüsünden kapak üretme yardımcısı
 ```
 
-> Not: Oyundaki araç gerçek bir ürünün resmi modeli değildir; prosedürel olarak üretilmiş genel bir elektrikli
-> roadster'dır. Fizik değerleri oyun için seçilmiş makul değerlerdir, gerçek araç verisi iddiası taşımaz.
+## Yeni oyun ekleme
+
+1. **Klasör:** `games/<id>/` oluştur. `id` küçük harf, rakam ve tireden oluşsun (ör. `uzay-macerasi`); adres
+   `…/games/uzay-macerasi/` olur. Oyunun bütün dosyaları bu klasörde dursun. Her şeyi içine gömülü tek bir
+   HTML dosyası da olur (Paldır Küldür böyle).
+2. **Giriş dosyası:** `games/<id>/index.html`.
+3. **Göreli yollar:** dosyalara `src/main.js`, `./img/a.png` gibi göreli yollarla eriş. `/` ile başlayan yollar
+   GitHub Pages'in alt dizininde (`/flying-car-game/…`) bozulur.
+4. **Geri dönüş:** oyunun ana menüsüne seçim ekranına dönen bir bağlantı koy:
+   ```html
+   <a href="../../" data-hub-back>Oyunlar</a>
+   <script src="../../hub/back.js" defer></script>
+   ```
+5. **Kayıt anahtarı:** Bütün oyunlar aynı alan adında (`mahmudzgr.github.io`) çalıştığı için `localStorage`
+   ortaktır. Her oyun kendine özgü bir önek kullansın (ör. `uzay-macerasi.save.v1`). Kullanımdaki anahtarlar:
+   `roadster-flip-save-v1…` (Uçan Roadster), `paldirkuldur.v1` (Paldır Küldür).
+6. **Kapak:** `games/<id>/cover.webp`, 16:9 (önerilen 1280×720). Elle koyabilir ya da oyunun ekran
+   görüntüsünden üretebilirsin:
+   ```bash
+   node tools/capture-cover.mjs uzay-macerasi --wait 4000 --hide "#menu"   # 3D oyunlarda: --webgl
+   ```
+7. **Listeye ekle:** `games.js` içindeki `GAMES` dizisine bir kayıt ekle (alanlar dosyanın başında açıklanıyor).
+8. **Denetle:** `npm run check` hata vermiyorsa commit'le ve push'la.
+
+İsteğe bağlı: oyunun kendi ana ekran simgesi için klasöre `manifest.webmanifest` koy
+(`"start_url": "./"`, `"scope": "../../"`; örnekler mevcut oyunlarda).
+
+## İlerleme ve kayıtlar
+
+- Her oyunun ilerlemesi tarayıcının yerel deposunda (`localStorage`) tutulur ve alan adına bağlıdır; oyunun
+  klasörü değişse bile aynı sitede kaldıkça kayıt korunur. Uçan Roadster'ın kök dizinden
+  `games/ucan-roadster/` klasörüne taşınması bu yüzden kayıtları etkilemez.
+- Tarayıcı verilerini silmek ya da başka bir tarayıcı/cihaz kullanmak ilerlemeyi göstermez. Uçan Roadster'da
+  **Ayarlar → İlerleme Yedeği** ile yedek kodu alınabilir.
+
+## Testler
+
+```bash
+npm run check     # oyun listesi ve klasör denetimi
+npm test          # denetim + Uçan Roadster otomatik pilot testleri (~40 sn)
+```
+
+## Üçüncü taraf bileşenler
+
+- **Uçan Roadster:** three.js r170, MIT lisansı (`games/ucan-roadster/vendor/`, lisans metni yanında).
+- **Paldır Küldür:** planck.js v1.5.1 fizik motoru (MIT; lisans metni dosyanın içinde) ile DynaPuff ve Nunito
+  yazı tipleri (SIL Open Font License; telif ve lisans bilgisi yazı tiplerinin kendi meta verisinde) oyun
+  dosyasının içine gömülüdür.

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Uçan elektrikli roadster ile dönen rampadan fırla, takla at, iticilerle güvenli iniş yap. Mobil uyumlu 2.5D fizik oyunu." />
+  <title>Uçan Roadster</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+  <script src="../../hub/back.js" defer></script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-left">
+        <div id="hud-level" class="hud-chip"></div>
+        <div id="hud-score" class="hud-chip score">0</div>
+      </div>
+      <div class="hud-fuel">
+        <div class="fuel-label">YAKIT</div>
+        <div class="fuel-bar"><div id="fuel-fill"></div></div>
+        <div id="fuel-pct">100%</div>
+      </div>
+      <div class="hud-right">
+        <button id="btn-restart" class="icon-btn" aria-label="Yeniden başla">↻</button>
+        <button id="btn-pause" class="icon-btn" aria-label="Duraklat">❚❚</button>
+      </div>
+    </div>
+
+    <div class="instruments">
+      <div class="inst">
+        <div class="inst-label">HIZ</div>
+        <div class="inst-value"><span id="spd">0</span><small> km/sa</small></div>
+        <div class="speedbar"><div id="speed-band"></div><div id="speed-needle"></div></div>
+      </div>
+      <div class="inst">
+        <div class="inst-label">İRTİFA</div>
+        <div class="inst-value"><span id="alt">0</span><small> m</small></div>
+      </div>
+      <div class="inst">
+        <div class="inst-label">DİKEY HIZ</div>
+        <div class="inst-value" id="vs-wrap"><span id="vs">0.0</span><small> m/s</small></div>
+      </div>
+      <div class="inst attitude">
+        <div id="att-ring"><div id="att-car"></div></div>
+        <div id="att-deg">0°</div>
+      </div>
+    </div>
+
+    <div id="pad-arrow" class="hidden"><span>▶</span><b id="pad-dist">0 m</b></div>
+    <div id="warning" class="hidden"></div>
+    <div id="hint" class="hidden"></div>
+    <div id="popups"></div>
+    <div id="countdown" class="hidden"></div>
+    <div id="flip-meter" class="hidden"></div>
+
+    <div id="controls">
+      <div class="ctl-left">
+        <button class="ctl" id="c-left" data-k="left"><span class="ico">◀</span><span class="lbl">FREN</span></button>
+        <button class="ctl" id="c-right" data-k="right"><span class="ico">▶</span><span class="lbl">GAZ</span></button>
+      </div>
+      <div class="ctl-right">
+        <button class="ctl thrust" id="c-thrust" data-k="thrust"><span class="ico">🔥</span><span class="lbl">İTİCİ</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <section id="menu" class="screen">
+    <a class="hub-back" href="../../" data-hub-back title="Tüm oyunlar"><span aria-hidden="true">‹</span> OYUNLAR</a>
+    <div class="menu-card">
+      <div class="logo">
+        <div class="logo-sub">ELEKTRİKLİ · İTİCİLİ · DURDURULAMAZ</div>
+        <h1>UÇAN<br /><span>ROADSTER</span></h1>
+      </div>
+      <button class="big-btn primary" id="m-play">OYNA</button>
+      <div class="menu-row">
+        <button class="big-btn" id="m-levels">BÖLÜMLER</button>
+        <button class="big-btn endless" id="m-endless">♾️ SONSUZ MOD</button>
+      </div>
+      <div class="menu-row">
+        <button class="big-btn" id="m-ach">BAŞARIMLAR</button>
+        <button class="big-btn" id="m-garage">🎨 GARAJ</button>
+      </div>
+      <div class="menu-row">
+        <button class="big-btn" id="m-help">NASIL OYNANIR</button>
+        <button class="big-btn" id="m-settings">AYARLAR</button>
+      </div>
+      <div class="menu-stats" id="menu-stats"></div>
+    </div>
+  </section>
+
+  <section id="levels" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Bölümler</h2><div id="levels-stars" class="head-stat"></div></div>
+      <div id="level-grid"></div>
+    </div>
+  </section>
+
+  <section id="achievements" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Başarımlar</h2><div id="ach-count" class="head-stat"></div></div>
+      <div id="ach-list"></div>
+    </div>
+  </section>
+
+  <section id="garage" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Garaj</h2><div id="garage-stars" class="head-stat"></div></div>
+      <p class="garage-note">Yıldız topladıkça yeni boyalar açılır. Seçtiğin renk arkadaki araca hemen uygulanır.</p>
+      <div id="paint-grid"></div>
+    </div>
+  </section>
+
+  <section id="settings" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Ayarlar</h2></div>
+      <div class="setting"><span>Müzik</span><button class="toggle" data-set="music"></button></div>
+      <div class="setting"><span>Ses efektleri</span><button class="toggle" data-set="sound"></button></div>
+      <div class="setting"><span>Titreşim</span><button class="toggle" data-set="vibration"></button></div>
+      <div class="setting"><span>Yörünge asistanı</span><button class="toggle" data-set="assist"></button></div>
+      <div class="setting"><span>Hayalet (en iyi koşun)</span><button class="toggle" data-set="ghost"></button></div>
+      <div class="setting"><span>Grafik</span>
+        <div class="seg" id="quality-seg">
+          <button data-q="auto">Oto</button><button data-q="high">Yüksek</button><button data-q="medium">Orta</button><button data-q="low">Düşük</button>
+        </div>
+      </div>
+      <div class="setting"><span>Ses durumu</span><span id="audio-status" class="audio-status"></span></div>
+      <button class="big-btn" id="audio-test">🔊 SES TESTİ</button>
+      <button class="big-btn" id="open-backup">💾 İLERLEME YEDEĞİ</button>
+      <button class="big-btn danger" id="reset-progress">İlerlemeyi sıfırla</button>
+    </div>
+  </section>
+
+  <section id="backup" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><button class="back" id="backup-back">‹</button><h2>İlerleme Yedeği</h2></div>
+      <p class="backup-note">İlerlemen bu tarayıcının yerel deposunda duruyor. Tarayıcı verilerini silersen ya da başka bir tarayıcı, cihaz veya adres kullanırsan orada görünmez. Yedek kodunu bir yere kaydet; geri yüklemek mevcut ilerlemeni silmez, ikisinin en iyisini birleştirir.</p>
+      <div id="backup-summary" class="backup-summary"></div>
+      <button class="big-btn primary" id="backup-make">YEDEK KODU OLUŞTUR</button>
+      <div id="backup-out" class="hidden">
+        <textarea id="backup-code" readonly rows="4" aria-label="Yedek kodu"></textarea>
+        <button class="big-btn" id="backup-copy">KOPYALA</button>
+      </div>
+      <div class="backup-sep">Yedekten geri yükle</div>
+      <textarea id="backup-in" rows="3" placeholder="UR1- ile başlayan yedek kodunu buraya yapıştır" aria-label="Geri yüklenecek yedek kodu"></textarea>
+      <button class="big-btn" id="backup-load">GERİ YÜKLE</button>
+      <div id="backup-msg" class="backup-msg"></div>
+    </div>
+  </section>
+
+  <section id="help" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head"><button class="back" data-back>‹</button><h2>Nasıl Oynanır</h2></div>
+      <div class="help-grid">
+        <div class="help-item"><div class="hk">▶</div><div><b>Yerde: GAZ.</b> Rampaya doğru hızlan. Hız göstergesindeki <span class="g">yeşil bölge</span> hedefe ulaştıran hızdır.</div></div>
+        <div class="help-item"><div class="hk">◀</div><div><b>Yerde: FREN / GERİ.</b> Fazla hızlandıysan yavaşla.</div></div>
+        <div class="help-item"><div class="hk">◀ ▶</div><div><b>Havada: TAKLA.</b> ◀ burnu kaldırır (geri takla), ▶ burnu indirir (ön takla). Yön iticileri yakıt harcar.</div></div>
+        <div class="help-item"><div class="hk">🔥</div><div><b>ANA İTİCİ:</b> Aracın altındaki iticiler aracı <i>kendi tavanı yönünde</i> iter. Düz tutarsan düşüşü yavaşlatır, geriye yatırırsan yatay hızı keser.</div></div>
+        <div class="help-item"><div class="hk">🎯</div><div><b>İNİŞ:</b> Platforma 7 m/s'den yavaş ve iki tekerle in. Dikey hız göstergesi yeşilse güvendesin. Tavan yere değerse kaza!</div></div>
+        <div class="help-item"><div class="hk">⭐</div><div><b>PUAN:</b> Takla (tek atlayışta kombo katlanır), havada kalma, yumuşak iniş, merkeze yakınlık, kalan yakıt ve yıldızlar puan kazandırır.</div></div>
+        <div class="help-item"><div class="hk">🌀</div><div><b>DÖNEN RAMPA:</b> Rampa sürekli açı değiştirir. Dik açıda yüksek, yatık açıda uzun uçarsın. Rampa yükselirken üzerindeysen ekstra fırlatır!</div></div>
+        <div class="help-item"><div class="hk">⛷️</div><div><b>KAYAK YAMACI:</b> Eğimli pistte önemli olan yüzeye <i>dik</i> çarpma hızıdır. Burnu yamaca paralel tutarsan 120 km/sa hızla bile iticisiz konarsın.</div></div>
+        <div class="help-item"><div class="hk">🧊</div><div><b>BUZ:</b> Sürtünme çok düşük, frenler zayıftır. Yatay hızını havada, burnu geriye yatırıp iticiyle kes.</div></div>
+        <div class="help-item"><div class="hk">♾️</div><div><b>SONSUZ MOD:</b> Her başarılı inişte yeni, biraz daha zor rastgele bir parkur. Tek hata seriyi bitirir.</div></div>
+        <div class="help-item"><div class="hk">⌨️</div><div><b>Klavye:</b> ←/→ veya A/D (yer: fren/gaz, hava: takla) · Boşluk/↑/W: itici · R: yeniden · M: müzik · Esc: duraklat</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="briefing" class="screen hidden transparent">
+    <div class="panel brief">
+      <div class="brief-cols">
+        <div class="bc-left">
+          <div class="brief-num" id="b-num"></div>
+          <h2 id="b-name"></h2>
+          <p id="b-desc"></p>
+          <div class="brief-facts" id="b-facts"></div>
+          <p class="tip" id="b-tip"></p>
+        </div>
+        <div class="bc-right">
+          <div class="obj-head" id="b-obj-head">GÖREVLER</div>
+          <ul class="objectives" id="b-obj"></ul>
+          <div class="menu-row">
+            <button class="big-btn" id="b-back">GERİ</button>
+            <button class="big-btn primary" id="b-start">BAŞLA</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pause" class="screen hidden">
+    <div class="panel narrow">
+      <h2>Duraklatıldı</h2>
+      <button class="big-btn primary" id="p-resume">DEVAM</button>
+      <button class="big-btn" id="p-restart">YENİDEN BAŞLA</button>
+      <button class="big-btn" id="p-levels">BÖLÜMLER</button>
+      <div class="setting compact"><span>Yörünge asistanı</span><button class="toggle" data-set="assist"></button></div>
+      <div class="setting compact"><span>Müzik</span><button class="toggle" data-set="music"></button></div>
+      <div class="setting compact"><span>Ses efektleri</span><button class="toggle" data-set="sound"></button></div>
+    </div>
+  </section>
+
+  <section id="result" class="screen hidden transparent">
+    <div class="panel result">
+      <h2 id="r-title"></h2>
+      <div id="r-reason"></div>
+      <div class="r-stars" id="r-stars"><span>★</span><span>★</span><span>★</span></div>
+      <div class="r-cols">
+        <ul class="objectives" id="r-obj"></ul>
+        <div class="r-score">
+          <ul id="r-break"></ul>
+          <div class="r-total"><span>TOPLAM</span><b id="r-total">0</b></div>
+          <div id="r-best"></div>
+        </div>
+      </div>
+      <div id="r-ach"></div>
+      <div class="menu-row">
+        <button class="big-btn" id="r-levels">BÖLÜMLER</button>
+        <button class="big-btn" id="r-retry">TEKRAR</button>
+        <button class="big-btn primary" id="r-next">SONRAKİ ›</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast-wrap"></div>
+  <div id="rotate-hint" class="hidden">📱↻ Daha iyi bir deneyim için telefonu <b>yatay</b> çevir <button id="rotate-ok">Tamam</button></div>
+  <div id="loading">Yükleniyor…</div>
+  <noscript><div class="noscript">Bu oyun için JavaScript gerekir.</div></noscript>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
