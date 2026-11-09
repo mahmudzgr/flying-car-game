@@ -55,5 +55,5 @@ export default {
     3: [{ kind: 'bridgeIntact', label: 'Köprüyü sağlam bırak' }, { kind: 'intact', label: 'Kargo kaybı ve hasarı yok' }],
   },
   reward: { base: 120 },
-  bot: { speed: 9, zones: [{ x0: 0, x1: 14, speed: 4 }, { x0: 178, x1: 226, speed: 6 }] },   // yumuşak kalkış + köprüde yavaş
+  bot: { speed: 9, zones: [{ x0: 0, x1: 14, speed: 4 }, { x0: 178, x1: 226, speed: 8 }] },   // yumuşak kalkış + köprüde yavaş
 };
