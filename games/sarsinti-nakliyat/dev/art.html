@@ -1,24 +1,238 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sarsıntı — Sanat laboratuvarı</title>
-<style>html,body{margin:0;height:100%;background:#222;font:14px system-ui}canvas{width:100%;height:100%;display:block}#bar{position:fixed;top:8px;left:8px;color:#fff;background:#0008;padding:6px 10px;border-radius:8px}</style></head>
+<style>
+html,body{margin:0;height:100%;background:#222;font:13px system-ui,sans-serif;overflow:hidden}
+canvas{width:100%;height:100%;display:block}
+#bar{position:fixed;top:6px;left:6px;right:6px;color:#fff;background:#000a;padding:5px 8px;border-radius:8px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+#bar button{background:#3a3340;color:#fff;border:1px solid #6a6075;border-radius:6px;padding:3px 8px;cursor:pointer}
+#bar button.on{background:#19b5a5;border-color:#19b5a5;color:#10201e}
+#bar label{white-space:nowrap}
+#bar select{max-width:110px}
+.sep{opacity:.4}
+</style></head>
 <body><canvas id="c"></canvas>
-<div id="bar">Sanat laboratuvarı · bölüm: <select id="lv"></select> araç: <select id="veh"><option>tosun</option><option>zipir</option></select>
- <label><input type="checkbox" id="dbg"> fizik çizgileri</label> · gaz: → / fren: ←</div>
+<div id="bar">
+ <b>Sanat laboratuvarı</b>
+ <span id="tabs"></span>
+ <span class="sep">|</span>
+ <span id="galctl">biyom: <select id="bio"></select> yüzey/ayrıntı: <label><input type="checkbox" id="anim" checked> hareket</label></span>
+ <span id="drvctl" hidden>
+  bölüm: <select id="lv"></select> araç: <select id="veh"><option>tosun</option><option>zipir</option><option>pasa</option><option>koca</option></select>
+  <label><input type="checkbox" id="dbg"> fizik çizgileri</label>
+  sarsıntı: <select id="shk"><option value="0">kapalı</option><option value="1">az</option><option value="2" selected>tam</option></select>
+  kalite: <select id="qlt"><option>high</option><option>low</option></select>
+  · gaz → / fren ← · R yeniden
+ </span>
+</div>
 <script type="module">
-// Grafik ekibi: renderer ve art/ fonksiyonlarını gerçek sim ile (klavyeyle sürerek) deneyin.
 import { createSim } from '../src/sim/sim.js';
 import { createRenderer } from '../src/render/index.js';
 import { createInput } from '../src/input.js';
 import { LEVELS } from '../src/data/levels/index.js';
-import { SIM } from '../src/config.js';
-const c = document.getElementById('c'), lv = document.getElementById('lv'), veh = document.getElementById('veh'), dbg = document.getElementById('dbg');
-for (const id of Object.keys(LEVELS)) lv.add(new Option(id));
-const input = createInput(window), r = createRenderer(c, {});
-let sim, snap, acc = 0, last = performance.now();
-function load() { sim?.destroy(); sim = createSim({ level: LEVELS[lv.value], vehicleId: veh.value }); sim.on('*', (e) => r.onEvent(e)); r.setLevel(sim.static); snap = sim.snapshot(); }
-lv.onchange = veh.onchange = load; dbg.onchange = () => r.setOptions({ debug: dbg.checked });
-window.addEventListener('resize', () => r.resize()); load();
-(function f(now) { const dt = Math.min((now - last) / 1000, SIM.maxFrameDt); last = now; acc += dt * snap.timeScale;
-  while (acc >= SIM.step) { sim.step(input.read()); acc -= SIM.step; } snap = sim.snapshot(); r.render(snap, acc / SIM.step, dt); requestAnimationFrame(f); })(last);
+import { SIM, VEHICLES, CARGO, CAMERA } from '../src/config.js';
+import * as A from '../src/art/draw.js';
+import { BIOMES, SURFACE_TOP } from '../src/art/palette.js';
+
+const c = document.getElementById('c');
+const $ = (id) => document.getElementById(id);
+const PAGES = ['Araçlar', 'Sürücü + Kargo', 'Nesneler', 'Zemin', 'Biyomlar', 'Sür'];
+let page = new URLSearchParams(location.search).get('p') ?? 'Araçlar';
+const tabs = $('tabs');
+for (const p of PAGES) { const b = document.createElement('button'); b.textContent = p; b.onclick = () => setPage(p); b.dataset.p = p; tabs.appendChild(b); }
+for (const id of Object.keys(BIOMES)) $('bio').add(new Option(id));
+$('bio').value = new URLSearchParams(location.search).get('b') ?? 'elma';
+for (const id of Object.keys(LEVELS)) $('lv').add(new Option(id));
+const driving = () => page === 'Sür';
+function setPage(p) {
+  page = p; $('galctl').hidden = driving(); $('drvctl').hidden = !driving();
+  for (const b of tabs.children) b.classList.toggle('on', b.dataset.p === p);
+  if (driving()) loadSim();
+}
+
+// ------------------------------------------------------------------ sürüş modu
+const input = createInput(window);
+let r = null, sim = null, snap = null, acc = 0;
+function loadSim() {
+  if (!r) { r = createRenderer(c, { shake: +$('shk').value, quality: $('qlt').value }); window.addEventListener('resize', () => r.resize()); }
+  sim?.destroy();
+  sim = createSim({ level: LEVELS[$('lv').value], vehicleId: $('veh').value in VEHICLES && VEHICLES[$('veh').value].implemented ? $('veh').value : 'tosun' });
+  sim.on('*', (e) => r.onEvent(e)); r.setLevel(sim.static); snap = sim.snapshot();
+}
+$('lv').onchange = $('veh').onchange = loadSim;
+$('dbg').onchange = () => r.setOptions({ debug: $('dbg').checked });
+$('shk').onchange = () => r.setOptions({ shake: +$('shk').value });
+$('qlt').onchange = () => r.setOptions({ quality: $('qlt').value });
+window.addEventListener('keydown', (e) => { if (e.key === 'r' && driving()) loadSim(); });
+window.__art = { A, get r() { return r; }, get sim() { return sim; }, setPage, input };
+
+// ------------------------------------------------------------------ galeri
+const ctx2 = c.getContext('2d');   // (renderer da aynı bağlamı kullanır)
+let T = 0;
+const view = { w: 1, h: 1, dpr: 1 };
+function fit() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  view.w = c.clientWidth; view.h = c.clientHeight; view.dpr = dpr;
+  const bw = Math.round(view.w * dpr), bh = Math.round(view.h * dpr);
+  if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
+  A.ART.dpr = dpr;
+}
+window.addEventListener('resize', fit);
+
+// sahte araç: sim olmadan poz ver
+function pose(id, x, y, t, anim) {
+  const { v, vs } = A.fakeVehicle(id, VEHICLES[id]);
+  v.x = x; v.y = y; v.a = anim ? Math.sin(t * 1.3) * 0.05 : 0;
+  v.brake = anim && Math.sin(t * 0.7) > 0.5 ? 1 : 0; v.vx = anim ? 10 : 0; v.speed = anim ? 10 : 0; v.throttle = 0.7;
+  const R = { tosun: 0.38, zipir: 0.42, pasa: 0.62, koca: 0.55 };
+  const ca = Math.cos(v.a), sa = Math.sin(v.a);
+  v.wheels.forEach((w, i) => {
+    const def = vs.wheels[i];
+    const comp = anim ? Math.sin(t * 2.2 + i * 1.7) * 0.12 : 0;           // süspansiyon yukarı-aşağı
+    const lx = def.x, ly = def.y + comp;
+    w.x = x + lx * ca - ly * sa; w.y = y + lx * sa + ly * ca; w.a = anim ? -t * 9 : 0; w.spin = anim ? 9 : 0; w.r = vs.wheels[i].id === 'rear' && id === 'pasa' ? 0.62 : id === 'pasa' ? 0.38 : (R[id]);
+  });
+  if (id === 'pasa') { v.trailer = { x: x - 3.4, y: y - 0.1, a: 0, w: 3.0, h: 0.8 }; v.trailerWheels = [{ x: x - 3.7, y: y - 0.35, a: anim ? -t * 9 : 0, r: 0.4, spin: 9 }]; }
+  return { v, vs };
+}
+function driverAt(x, y, a, rag, t) {
+  const T_ = { x, y, a, w: 0.35, h: 0.55 }, H = { x: x - Math.sin(a) * 0.45, y: y + Math.cos(a) * 0.45, a, r: 0.17 };
+  return { state: rag ? 'ragdoll' : 'seated', torso: T_, head: H };
+}
+const cs = (type, x, y, a = 0, hp, extra = {}) => {
+  const d = CARGO[type];
+  return { id: type + x, type, x, y, a, w: d.w ?? d.r * 2, h: d.h ?? d.r * 2, r: d.r ?? 0, hp: hp ?? d.hp, hpMax: d.hp, state: 'onboard', reason: null, ...extra };
+};
+
+function world(ox, oy, s) { ctx2.setTransform(view.dpr * s, 0, 0, -view.dpr * s, view.dpr * ox, view.dpr * oy); }
+function label(txt, x, y, s) { ctx2.save(); ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#fff'; ctx2.font = '600 12px system-ui'; ctx2.textAlign = 'center'; ctx2.fillText(txt, x, y); ctx2.restore(); }
+function bg(b) { ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); A.drawSky(ctx2, b, view); }
+function floor(y, col = '#00000033') { ctx2.fillStyle = col; ctx2.fillRect(-50, y - 50, 200, 50); }
+
+let flatStatic = null;
+function makeStatic(biome, surfs, len = 8) {
+  const xs = [], ys = [], surf = [];
+  let x = 0;
+  for (let i = 0; i <= surfs.length * len; i++) { xs.push(x); ys.push(Math.sin(i * 0.35) * 0.25); x += 1; }
+  surfs.forEach((s) => { for (let i = 0; i < len; i++) surf.push(s); });
+  surf.length = xs.length - 1;
+  return { biome, terrain: { xs, ys, surf }, bounds: { minX: 0, maxX: x, minY: -10, maxY: 10 }, startX: 2, startY: 0, finishX: x - 4, finishY: ys[ys.length - 5], hints: [], vehicle: null };
+}
+
+function pageVehicles(t, anim) {
+  const b = $('bio').value; bg(b);
+  const ids = ['tosun', 'zipir', 'pasa', 'koca'];
+  const s = Math.min(view.w / 2 / 6.2, view.h / 2 / 3.2);
+  ids.forEach((id, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const cx = view.w * (0.25 + col * 0.5), cy = view.h * (0.34 + row * 0.44);
+    world(cx, cy + 1.0 * s, s);
+    const { v, vs } = pose(id, 0, id === 'pasa' ? 0.65 : id === 'koca' ? 0.75 : id === 'zipir' ? 0.5 : 0.75, t, anim);
+    const px = 1 / s;
+    ctx2.fillStyle = '#7a5e44'; ctx2.fillRect(-6, -2, 12, 2); ctx2.fillStyle = '#4a4f57'; ctx2.fillRect(-6, -0.1, 12, 0.1);
+    A.drawVehicleBack(ctx2, v, vs, px, t);
+    const g = VEHICLES[id];
+    const seat = (vs.seat ?? g.seat);
+    const rs = id === 'tosun' ? { x: 1.0, y: 0.95 } : id === 'zipir' ? { x: 0.3, y: 0.85 } : seat;
+    A.drawDriver(ctx2, driverAt(v.x + rs.x, v.y + rs.y, v.a, false, t), px, t);
+    A.drawVehicleFront(ctx2, v, vs, px, t);
+    if (id === 'tosun') { A.drawCargo(ctx2, cs('crate', -1.2, 1.15), px); A.drawCargo(ctx2, cs('eggs', -0.5, 0.75 + 0.1, 0, 4), px); A.drawCargo(ctx2, cs('milk', -1.3, 0.8 + 0.0), px); }
+    if (id === 'zipir') { A.drawCargo(ctx2, cs('watermelon', -0.95, 0.9), px); }
+    if (id === 'pasa') { A.drawCargo(ctx2, cs('bale', -3.2, 1.45), px); A.drawCargo(ctx2, cs('crate', -4.0, 1.4), px); }
+    if (id === 'koca') { A.drawCargo(ctx2, cs('piano', -1.1, 1.8), px); A.drawCargo(ctx2, cs('crate', -2.4, 1.3), px); }
+    label(VEHICLES[id].name + ' — ' + VEHICLES[id].kind, cx, cy + 1.5 * s + 18, s);
+  });
+}
+function pageActors(t, anim) {
+  const b = $('bio').value; bg(b);
+  const s = Math.min(view.w / 15, view.h / 7.5);
+  world(view.w * 0.5, view.h * 0.5 + 1.2 * s, s); const px = 1 / s;
+  ctx2.fillStyle = '#7a5e44'; ctx2.fillRect(-12, -3, 24, 3.0);
+  const items = [
+    cs('crate', -6, 0.5), cs('watermelon', -4.7, 0.4), cs('watermelon', -3.9, 0.4, 0.5, 0, { hp: 0, state: 'lost', reason: 'broke' }), cs('eggs', -2.6, 0.3, 0, 6), cs('eggs', -1.6, 0.3, 0, 4), cs('eggs', -0.6, 0.3, 0, 1),
+    cs('milk', 0.5, 0.45), cs('piano', 2.3, 0.6, 0, 2), cs('piano', 4.3, 0.6, 0, 1), cs('bale', 6.1, 0.5, t * 0.6),
+  ];
+  for (const it of items) A.drawCargo(ctx2, it, px);
+  // sürücüler
+  const d1 = driverAt(-4, 3, anim ? Math.sin(t * 1.4) * 0.15 : 0, false, t), d2 = driverAt(-1.5, 3, anim ? t * 2.4 : 2.4, true, t);
+  A.drawDriver(ctx2, d1, px, t); A.drawDriver(ctx2, d2, px, t);
+  // büyütülmüş baş + gövde
+  ctx2.save(); ctx2.translate(2, 3); ctx2.scale(2.2, 2.2); A.drawDriver(ctx2, driverAt(0, 0, 0, false, t), px / 2.2, t); ctx2.restore();
+  ctx2.save(); ctx2.translate(5.5, 3); ctx2.scale(2.2, 2.2); A.drawDriver(ctx2, driverAt(0, 0, 0.3, true, t), px / 2.2, t); ctx2.restore();
+  const names = ['kasa', 'karpuz', 'patlak', 'yumurta 6', 'yumurta 4', 'yumurta 1', 'süt bidonu', 'piyano', 'piyano kırık', 'balya'];
+  ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#fff'; ctx2.font = '600 11px system-ui'; ctx2.textAlign = 'center';
+  [-6, -4.7, -3.9, -2.6, -1.6, -0.6, 0.5, 2.3, 4.3, 6.1].forEach((x, i) => ctx2.fillText(names[i], view.w * 0.5 + x * s, view.h * 0.5 + 1.2 * s + 22));
+}
+function pageObjects(t, anim) {
+  const b = $('bio').value; bg(b);
+  const s = Math.min(view.w / 20, view.h / 8);
+  world(view.w * 0.5, view.h * 0.62, s); const px = 1 / s;
+  ctx2.fillStyle = '#7a5e44'; ctx2.fillRect(-12, -3, 24, 3);
+  const mk = (type, x, y, extra = {}) => ({ id: type + x, type, x, y, a: 0, w: 0, h: 0, r: 0, active: true, ...extra });
+  A.drawObject(ctx2, mk('barrel', -8.5, 0.45, { w: 0.6, h: 0.9 }), px); A.drawObject(ctx2, mk('barrel', -7.8, 0.45, { w: 0.6, h: 0.9, a: 0.2 }), px);
+  A.drawObject(ctx2, mk('rock', -6, 1.0, { r: 1.0, active: false }), px); A.drawObject(ctx2, mk('rock', -3.6, 0.7, { r: 0.7, a: t, active: true }), px);
+  for (let i = 0; i < 6; i++) A.drawObject(ctx2, mk('plank', -1.5 + i * 1.0, 0.1 - Math.sin(i / 5 * Math.PI) * 0.35 * 0, { w: 1.0, h: 0.2, a: Math.sin(t + i) * 0.04 }), px);
+  { const pl = []; for (let i = 0; i < 6; i++) pl.push(mk('plank', -1.5 + i * 1.0, 0.1 + (anim ? Math.sin(t * 2 + i) * 0.05 : 0), { w: 1, h: 0.2 })); A.drawBridgeRopes(ctx2, pl, px); }
+  A.drawObject(ctx2, mk('seesaw', 6, 0.9, { w: 6, h: 0.3, a: anim ? Math.sin(t) * 0.25 : 0.2 }), px);
+  A.drawObject(ctx2, mk('snowball', -9.5, 1.3, { r: 1.3, a: -t }), px);
+  A.drawObject(ctx2, mk('log', 1.5, 1.8, { w: 2.5, h: 0.5 }), px);
+  A.drawObject(ctx2, mk('mystery', 3.3, 1.8, { w: 0.8, h: 0.8 }), px);
+  for (let i = 0; i < 4; i++) A.drawCoin(ctx2, { x: -9 + i * 0.7, y: 2.9 }, px, t);
+  A.drawFinish(ctx2, -4, 0, px, 'start'); A.drawFinish(ctx2, 3.5, 0, px, 'finish');
+  ['throttle', 'brake', 'jump', 'cargo', 'warn', 'info'].forEach((ic, i) => A.drawHintSign(ctx2, 8.8 + (i - 2.5) * 0.0 + i * 0.9 - 2, 0, ic, px, t));
+}
+function pageSurfaces(t) {
+  const b = $('bio').value;
+  const surfs = ['asphalt', 'dirt', 'grass', 'gravel', 'sand', 'mud', 'wet', 'snow', 'ice', 'water'];
+  const st = flatStatic && flatStatic.biome === b ? flatStatic : (flatStatic = makeStatic(b, surfs, 6));
+  bg(b);
+  A.drawParallax(ctx2, b, 3, 0, view, 20, 0); A.drawParallax(ctx2, b, 0, 0, view, 20, 0); A.drawParallax(ctx2, b, 1, 0, view, 20, 0);
+  const s = view.w / 62, ox = 10, oy = view.h * 0.62;
+  world(-ox * s + 0, oy, s);
+  const range = { x0: ox - 1, x1: ox + 63, y0: -8, y1: 8 };
+  ctx2.save(); A.drawTerrain(ctx2, st, range, 1 / s); A.drawForeground(ctx2, st, range, 1 / s, t);
+  ctx2.restore();
+  ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#fff'; ctx2.font = '600 11px system-ui'; ctx2.textAlign = 'center';
+  surfs.forEach((n, i) => ctx2.fillText(n, (i * 6 + 3 - ox) * s + ox * s - ox * s + 0, oy + 70 + (i % 2) * 14));
+  // yakın plan
+  const s2 = view.w / 14; world(-2 * s2 * 0 - 6 * s2, view.h * 0.9, s2);
+  const r2 = { x0: 6, x1: 20, y0: -3, y1: 3 }; A.drawTerrain(ctx2, st, r2, 1 / s2);
+}
+function pageBiomes(t) {
+  const ids = Object.keys(BIOMES);
+  ids.forEach((id, i) => {
+    const w = view.w / 2, h = view.h / 2, x0 = (i % 2) * w, y0 = Math.floor(i / 2) * h;
+    ctx2.save(); ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.beginPath(); ctx2.rect(x0, y0, w, h); ctx2.clip(); ctx2.translate(x0, y0);
+    const v2 = { w, h }; A.ART.biome = id;
+    A.drawSky(ctx2, id, v2);
+    const cam = t * 3;
+    A.drawParallax(ctx2, id, 3, cam, v2, w / 24, 0);
+    for (let l = 0; l < 3; l++) A.drawParallax(ctx2, id, l, cam, v2, w / 24, 0);
+    const st = makeStatic(id, ['grass', 'dirt', 'snow', 'sand'].slice(0, 4), 8);
+    st.terrain.surf = st.terrain.surf.map(() => id === 'zirve' ? 'snow' : id === 'kanyon' ? 'sand' : id === 'bataklik' ? 'mud' : 'grass');
+    const s = w / 24; ctx2.setTransform(view.dpr * s, 0, 0, -view.dpr * s, view.dpr * (x0 - 0 * s + 0), view.dpr * (y0 + h * 0.8));
+    A.drawTerrain(ctx2, st, { x0: 0, x1: 24, y0: -6, y1: 6 }, 1 / s);
+    const { v, vs } = pose('tosun', 8, 0.75, t, true);
+    A.drawVehicleBack(ctx2, v, vs, 1 / s, t); A.drawDriver(ctx2, driverAt(v.x + 1, v.y + 0.95, 0, false, t), 1 / s, t); A.drawVehicleFront(ctx2, v, vs, 1 / s, t);
+    ctx2.restore();
+    ctx2.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx2.fillStyle = '#000a'; ctx2.fillRect(x0 + 6, y0 + 48, 70, 18); ctx2.fillStyle = '#fff'; ctx2.font = '700 12px system-ui'; ctx2.fillText(id, x0 + 12, y0 + 61);
+  });
+  A.ART.biome = 'elma';
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, SIM.maxFrameDt); last = now;
+  if (driving() && sim) {
+    acc += dt * snap.timeScale;
+    while (acc >= SIM.step) { sim.step(input.read()); acc -= SIM.step; }
+    snap = sim.snapshot(); r.render(snap, acc / SIM.step, dt);
+  } else if (!driving()) {
+    fit(); const anim = $('anim').checked; if (anim) T += dt; A.ART.t = T;
+    ctx2.setTransform(1, 0, 0, 1, 0, 0); ctx2.fillStyle = '#222'; ctx2.fillRect(0, 0, c.width, c.height);
+    ({ 'Araçlar': pageVehicles, 'Sürücü + Kargo': pageActors, 'Nesneler': pageObjects, 'Zemin': pageSurfaces, 'Biyomlar': pageBiomes })[page](T, anim);
+  }
+  requestAnimationFrame(frame);
+}
+setPage(page); requestAnimationFrame(frame);
 </script></body></html>

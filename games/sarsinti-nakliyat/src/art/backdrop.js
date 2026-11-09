@@ -81,8 +81,9 @@ function blob(g, x, y, r, fill) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillS
 function cloudShape(g, x, y, s, col, shadeCol) {
   const parts = [[0, 0, 26], [28, -10, 32], [62, -2, 28], [88, 6, 20], [-26, 8, 18]];
   g.fillStyle = shadeCol; for (const [dx, dy, r] of parts) { g.beginPath(); g.arc(x + dx * s, y + dy * s + 6 * s, r * s, 0, TAU); g.fill(); }
+  g.beginPath(); g.ellipse(x + 40 * s, y + 20 * s, 70 * s, 10 * s, 0, 0, TAU); g.fill();
   g.fillStyle = col; for (const [dx, dy, r] of parts) { g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, TAU); g.fill(); }
-  g.fillRect(x - 26 * s, y + 8 * s, 140 * s, 14 * s);
+  g.beginPath(); g.ellipse(x + 40 * s, y + 14 * s, 70 * s, 10 * s, 0, 0, TAU); g.fill();
 }
 
 // ---------------------------------------------------------------- biyom ressamları: [uzak, orta, yakın, bulut]
