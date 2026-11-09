@@ -54,7 +54,7 @@ export function clearBackdropCache() { strips.clear(); skyKey = ''; }
 
 /** Parallax katmanı (ekran pikselleri). layer: 0 uzak, 1 orta, 2 yakın, 3 bulut. camX/camY metre. */
 export function drawParallax(ctx, biome, layer, camX, view, scale, camY = 0) {
-  const dpr = ctx.getTransform ? ctx.getTransform().a : 1;
+  const dpr = ART.dpr || 1;
   const s = getStrip(biome, layer, view, dpr);
   const f = FACT[layer];
   let off = camX * scale * f + (layer === 3 ? ART.t * 7 : 0);

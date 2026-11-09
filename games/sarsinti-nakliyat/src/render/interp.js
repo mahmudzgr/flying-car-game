@@ -16,7 +16,8 @@ function poseList(srcArr, alpha, dstArr) {
   return dstArr;
 }
 /** @returns snapshot ile aynı şekilli, pozları ara değerlenmiş nesne (art/ fonksiyonlarına doğrudan verilir). */
-export function interpolateSnapshot(snap, alpha, out = {}) {
+export function interpolateSnapshot(snap, alpha, out) {
+  if (!out) out = {};
   out.t = snap.t; out.run = snap.run; out.combo = snap.combo; out.timeScale = snap.timeScale; out.score = snap.score;
   out.coins = snap.coins; out.cargoSummary = snap.cargoSummary;
   const v = snap.vehicle;

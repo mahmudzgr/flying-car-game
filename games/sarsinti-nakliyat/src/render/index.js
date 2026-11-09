@@ -147,7 +147,7 @@ export function createRenderer(canvas, opts = {}) {
   // ------------------------------------------------------------ ana çizim
   function render(snap, alpha, dt) {
     if (!st) return;
-    T += dt; ART.t = T; ART.biome = st.biome;
+    T += dt; ART.t = T; ART.biome = st.biome; ART.dpr = view.dpr;
     const s = out = interpolateSnapshot(snap, alpha, out); cur = s;
     const ts = clamp(snap.timeScale ?? 1, 0.1, 1), dtP = dt * ts;
     const cam = camera.update(s.vehicle, dt, view.w / view.h, snap.timeScale);
