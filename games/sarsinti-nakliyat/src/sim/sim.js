@@ -5,6 +5,7 @@ import { SIM, CAT, CARGO, CARGO_LOSS, DRIVER, OBJECTS, RULES, SCORING, SURFACES,
 import { createBus } from './bus.js';
 import { buildTerrain, heightAt, topNear } from './terrain.js';
 import { effectiveVehicle } from './upgrades.js';
+import { createProps } from './props.js';
 import { buildVehicle, driveVehicle, wrapAngle } from './vehicle.js';
 
 const V = pl.Vec2;
@@ -19,7 +20,7 @@ export function createSim(opts) {
   const vehicleId = opts.vehicleId ?? 'tosun';
   if (!VEHICLES[vehicleId]?.implemented) throw new Error(`Araç henüz uygulanmadı: ${vehicleId}`);
   const cfg = effectiveVehicle(vehicleId, opts.upgrades);
-  const assist = opts.settings?.assistLanding ?? true;
+  let assist = opts.settings?.assistLanding ?? true;
   const bus = createBus();
   const warnings = [];
 
@@ -31,7 +32,9 @@ export function createSim(opts) {
     friction: 1, restitution: 0, filterCategoryBits: CAT.ground, filterMaskBits: 0xffff, userData: { k: 'ground' },
   });
   const killY = level.killY ?? terr.minY - SIM.killDepth;
-  const spawnX = level.spawn?.x ?? terr.startX + 3;
+  const cpOpt = opts.checkpoint ?? null;   // {x, time}: kontrol noktasından yeniden doğma
+  const rear = Math.min(...cfg.parts.map((p) => p.x - p.w / 2), ...(cfg.trailer ? cfg.trailer.parts.map((p) => cfg.trailer.hitch.x + p.x - p.w / 2) : [0]));
+  const spawnX = cpOpt ? cpOpt.x : Math.max(level.spawn?.x ?? terr.startX + 3, terr.startX - rear + 0.6);   // römork/uzun araç başlangıç duvarına girmesin
   const finishX = level.finish?.x === undefined || level.finish.x === 'end' ? terr.endX : level.finish.x;
 
   // ---- takip edilen gövdeler (ara değerleme için önceki poz) ----
@@ -39,40 +42,54 @@ export function createSim(opts) {
   const track = (body, extra) => { const pose = { x: 0, y: 0, a: 0, px: 0, py: 0, pa: 0, ...extra }; tracked.push({ body, pose }); return pose; };
 
   // ---- araç ----
-  const spawnY = heightAt(terr, spawnX) + cfg.wheelR + 0.35 + 0.03;
+  const spawnY = heightAt(terr, spawnX) + Math.max(...cfg.wheels.map((w) => (w.r ?? cfg.wheelR) - w.y)) + 0.03;
   const veh = buildVehicle(world, cfg, spawnX, spawnY);
   const chassisPose = track(veh.chassis);
-  for (const w of veh.wheels) w.pose = track(w.body, { r: cfg.wheelR });
+  for (const w of veh.wheels) w.pose = track(w.body, { r: w.r });
+  const trailerPose = veh.trailer ? track(veh.trailer.body) : null;
   const torsoPose = track(veh.driver.torso, { w: DRIVER.torso.w, h: DRIVER.torso.h });
   const headPose = track(veh.driver.head, { r: DRIVER.head.r });
 
   // ---- kargo ----
   const cargo = [];
   {
-    const bay = cfg.bay;
+    const bay = cfg.trailer?.bay ?? cfg.bay;
     // "Skyline" yerleştirme: her parça, bölmenin en alçak uygun yerine konur (önce zemin dolar, yuvarlaklar üste çıkmaz).
     const RES = 0.05, cols = Math.max(1, Math.floor((bay.x1 - bay.x0) / RES));
     const sky = new Array(cols).fill(bay.floorY);
     let n = 0;
+    // yerleşim sırası: yuvarlaklar (karpuz/balya) önce → arka kapağa dayanır; kutular önlerine. Kimlik (c0..) bölüm sırasına göredir.
+    const items = [];
     for (const grp of level.cargo ?? []) {
-      const def = CARGO[grp.type];
-      if (!def) throw new Error(`Bilinmeyen kargo: ${grp.type}`);
-      for (let i = 0; i < (grp.count ?? 1); i++) {
-        if (n >= cfg.capacity) { warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`); break; }
+      if (!CARGO[grp.type]) throw new Error(`Bilinmeyen kargo: ${grp.type}`);
+      for (let i = 0; i < (grp.count ?? 1); i++) items.push({ type: grp.type, idx: items.length });
+    }
+    const order = [...items.slice(0, cfg.capacity)].sort((a, b) => (CARGO[a.type].shape === 'circle' ? 0 : 1) - (CARGO[b.type].shape === 'circle' ? 0 : 1) || a.idx - b.idx);
+    if (items.length > cfg.capacity) warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`);
+    for (const it of order) {
+      {
+        const def = CARGO[it.type], grp = { type: it.type };
+        {
         const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
         const span = Math.min(cols, Math.ceil((w + 0.02) / RES));
+        // profil: dairede alt/üst eğrisi (yuvarlaklar birbirinin arasına oturur), kutuda düz
+        const prof = (k) => {
+          if (def.shape === 'box') return [0, h];
+          const dx = (k + 0.5 - span / 2) * RES, q = Math.sqrt(Math.max(0, def.r * def.r - dx * dx));
+          return [def.r - q, def.r + q];
+        };
         let bestX = 0, bestY = Infinity;
         for (let x0 = 0; x0 + span <= cols; x0++) {
-          let top = -Infinity;
-          for (let k = x0; k < x0 + span; k++) if (sky[k] > top) top = sky[k];
-          if (top < bestY - 1e-9) { bestY = top; bestX = x0; }
+          let yb = bay.floorY;
+          for (let k = 0; k < span; k++) yb = Math.max(yb, sky[x0 + k] - prof(k)[0]);
+          if (yb < bestY - 1e-9) { bestY = yb; bestX = x0; }
         }
-        for (let k = bestX; k < Math.min(cols, bestX + span); k++) sky[k] = bestY + h + 0.01;
+        for (let k = 0; k < span; k++) sky[bestX + k] = bestY + prof(k)[1] + 0.01;
         const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
-        const body = world.createBody({ type: 'dynamic', position: veh.chassis.getWorldPoint(local), angle: veh.chassis.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
+        const body = world.createBody({ type: 'dynamic', position: veh.bayBody.getWorldPoint(local), angle: veh.bayBody.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
         const shape = def.shape === 'box' ? pl.Box(w / 2, h / 2) : pl.Circle(V(0, 0), def.r);
         const area = def.shape === 'box' ? w * h : Math.PI * def.r * def.r;
-        const c = { id: `c${n}`, type: grp.type, def, body, hp: def.hp, hpMax: def.hp, state: 'onboard', restT: 0, w, h };
+        const c = { id: `c${it.idx}`, type: grp.type, def, body, hp: def.hp, hpMax: def.hp, state: 'onboard', restT: 0, w, h };
         body.createFixture(shape, {
           density: def.mass / area, friction: def.friction, restitution: def.restitution,
           filterCategoryBits: CAT.cargo, filterMaskBits: CAT.ground | CAT.chassis | CAT.cargo | CAT.object,
@@ -80,15 +97,19 @@ export function createSim(opts) {
         });
         c.pose = track(body, { w, h, r: def.r ?? 0 });
         cargo.push(c); n++;
+        }
       }
     }
+    cargo.sort((a, b) => parseInt(a.id.slice(1)) - parseInt(b.id.slice(1)));
   }
 
   // ---- nesneler ----
   const objects = [];   // dinamik/tetikli nesneler
   const coins = [];
-  const hints = (level.hints ?? []).map((h) => ({ ...h, shown: false }));
-  for (const o of level.objects ?? []) {
+  const hints = (level.hints ?? []).filter((h) => !cpOpt || h.x > spawnX).map((h) => ({ ...h, shown: false }));
+  const props = createProps({ world, ground, terr, track, objects, warnings, spawnX, emit: (n, d) => emit(n, d), loseCargo: (c, r) => lose(c, r) });
+  const objList = [...(level.objects ?? [])].filter((o) => !cpOpt || (o.x ?? 0) >= spawnX - 3 || o.type === 'water').sort((a, b) => (a.type === 'water' ? -1 : 0) - (b.type === 'water' ? -1 : 0));
+  for (const o of objList) {
     const gy = heightAt(terr, o.x);
     switch (o.type) {
       case 'coins': {
@@ -117,13 +138,14 @@ export function createSim(opts) {
         break;
       }
       default:
-        warnings.push(`Nesne türü henüz uygulanmadı (atlandı): ${o.type}`);
+        if (props.handles(o.type)) props.build(o);
+        else warnings.push(`Bilinmeyen nesne türü (atlandı): ${o.type}`);
     }
   }
 
   // ---- durum ----
   const S = {
-    t: 0, steps: 0, live: false, status: 'running', reason: null, started: false,
+    t: cpOpt?.time ?? 0, steps: 0, live: false, status: 'running', reason: null, started: false,
     score: 0, distScore: 0, coinsPicked: 0, pickups: 0,
     combo: { count: 0, mult: 1, pending: 0, timer: 0 },
     stats: { flips: 0, maxMult: 1, reversed: false, hits: 0, wheelieT: 0, airTime: 0, cargoDelivered: 0, cargoLost: 0, eggsLeft: 0 },
@@ -155,6 +177,13 @@ export function createSim(opts) {
     w.surface = sid;
     c.setFriction(Math.max(0.02, cfg.grip * SURFACES[sid].mu));
   });
+  world.on('post-solve', (c, imp) => {   // zayıf köprü tahtası: temas kuvveti tepesini kaydet
+    const A = c.getFixtureA().getUserData(), B = c.getFixtureB().getUserData();
+    const pk = A?.prop?.weak ? A.prop : B?.prop?.weak ? B.prop : null;
+    if (!pk) return;
+    let n = 0; for (const v of imp.normalImpulses) n += v;
+    pk.peak = Math.max(pk.peak ?? 0, n / DT);
+  });
   world.on('begin-contact', (c) => {
     const fa = c.getFixtureA(), fb = c.getFixtureB();
     const A = fa.getUserData(), B = fb.getUserData();
@@ -165,7 +194,11 @@ export function createSim(opts) {
         const w = wheelById[X.id]; w.contacts++;
         w.surface = terr.surf[groundChild(c, fa.getUserData()?.k === 'ground' ? fa : fb)] ?? w.surface;
         emit('wheelContact', { wheel: w.id, surface: w.surface, started: true });
-      } else if (X.k === 'chassis' && (Y.k === 'ground' || Y.k === 'obj')) {
+      } else if ((X.k === 'chassis' || X.k === 'wheel') && Y.prop?.type === 'barrel' && !Y.prop.hit) {
+        Y.prop.hit = true;
+        if (!S.barrelsHit) { S.barrelsHit = true; emit('hazardTrigger', { id: Y.prop.id, type: 'barrels', pos: { x: Y.prop.body.getPosition().x, y: Y.prop.body.getPosition().y } }); }
+      }
+      if (X.k === 'chassis' && (Y.k === 'ground' || Y.k === 'obj')) {
         if (spd > 2) {
           emit('bodyHit', { speed: spd, part: X.part === 'cab' ? 'cab' : X.part === 'roof' ? 'roof' : 'chassis', normal: { x: c.getWorldManifold(null)?.normal.x ?? 0, y: c.getWorldManifold(null)?.normal.y ?? 1 } });
           if (spd > RULES.badLandingSpeed) { S.stats.hits++; burn('bodyHit'); }
@@ -260,7 +293,7 @@ export function createSim(opts) {
     S.result = {
       result, reason, score, stars, time: S.t, distance: dist,
       cargoDelivered: delivered.length, cargoLost: S.stats.cargoLost, cargoTotal: cargo.length,
-      coins: S.pickups, pickups: S.pickups, maxMultiplier: S.stats.maxMult, flips: S.stats.flips, intact,
+      coins: S.pickups, pickups: S.pickups, usedCheckpoint: !!cpOpt, maxMultiplier: S.stats.maxMult, flips: S.stats.flips, intact,
     };
     emit('levelEnd', S.result);
     for (let i = 1; i <= stars; i++) emit('starEarned', { index: i });
@@ -279,11 +312,13 @@ export function createSim(opts) {
         case 'noReverse': return !st.reversed;
         case 'intact': return delivered.every((c) => c.hp === c.hpMax) && st.cargoLost === 0;
         case 'noHit': return st.hits === 0;
+        case 'bridgeIntact': return !props.bridgeBroken;
+        case 'noCheckpoint': return !cpOpt;
         default: warnings.push(`Bilinmeyen yıldız ölçütü: ${k.kind}`); return false;
       }
     };
     let stars = 1;
-    for (const tier of [2, 3]) {
+    for (const tier of cpOpt ? [2] : [2, 3]) {
       const list = level.stars?.[tier] ?? [];
       if (list.every(ok)) stars = tier; else break;
     }
@@ -297,11 +332,13 @@ export function createSim(opts) {
     const inp = ended ? { throttle: 0, brake: 0 } : input;
     for (const { body, pose } of tracked) { const p = body.getPosition(); pose.px = p.x; pose.py = p.y; pose.pa = body.getAngle(); }
     const thr = +inp.throttle || 0, brk = +inp.brake || 0;
+    S.inputHeld = thr > 0.5 || brk > 0.5;
     if ((thr > 0.5) !== S.throttleOn) { S.throttleOn = thr > 0.5; emit('throttle', { on: S.throttleOn }); }
     if ((brk > 0.5) !== S.brakeOn) { S.brakeOn = brk > 0.5; emit('brake', { on: S.brakeOn }); }
     const cp = veh.chassis.getPosition();
     const onGround = driveVehicle(veh, { throttle: thr, brake: brk }, { dt: DT, assistLanding: assist, groundDist: cp.y - heightAt(terr, cp.x) });
     if (veh.reversing) S.stats.reversed = true;
+    props.forces();
     world.step(DT, SIM.velocityIterations, SIM.positionIterations);
     if (S.live) { S.t += DT; S.steps++; }
     if (!ended) post(onGround);
@@ -316,7 +353,7 @@ export function createSim(opts) {
   function post() {
     const p = veh.chassis.getPosition(), vel = veh.chassis.getLinearVelocity(), ang = veh.chassis.getAngle();
     const speed = vel.length();
-    const nOn = veh.wheels.filter((w) => w.contacts > 0).length;
+    const nOn = veh.wheels.filter((w) => !w.trailerWheel && w.contacts > 0).length;
 
     // yüzey değişimi, patinaj, süspansiyon
     for (const w of veh.wheels) {
@@ -325,7 +362,9 @@ export function createSim(opts) {
       if (on) w.prevSurface = w.surface;
       const wv = w.body.getLinearVelocity();
       const fwd = wv.x * Math.cos(ang) + wv.y * Math.sin(ang);
-      const surfSpeed = -w.body.getAngularVelocity() * cfg.wheelR;
+      const surfSpeed = -w.body.getAngularVelocity() * w.r;
+      const wp = w.body.getPosition(), inWater = props.waterAt(wp.x, wp.y);
+      if (inWater !== !!w.inWater) { emit('surfaceChange', { wheel: w.id, from: inWater ? (w.surface ?? 'asphalt') : 'water', to: inWater ? 'water' : (w.surface ?? 'asphalt') }); w.inWater = inWater; }
       w.slip = on ? Math.abs(surfSpeed - fwd) : 0;
       w.spinning = on && w.slip > WHEELSPIN_SLIP;
       if (w.spinning && S.t - w.lastSpinEmit > 0.1) { w.lastSpinEmit = S.t; emit('wheelspin', { wheel: w.id, surface: w.surface, slip: w.slip }); }
@@ -391,6 +430,10 @@ export function createSim(opts) {
       }
     }
 
+    // köprü / kar topu / su / kontrol noktası
+    const pr = props.update(S, DT, veh.chassis, cargo);
+    if (pr?.fail) { emit('crash', { reason: pr.fail, pos: pr.pos }); endLevel('fail', pr.fail); return; }
+
     // sürücü fırlaması
     if (S.pendingEject) {
       const ev = S.pendingEject; S.pendingEject = null;
@@ -401,6 +444,10 @@ export function createSim(opts) {
     }
     if (S.pendingFail && S.t >= S.pendingFail.at) { endLevel('fail', S.pendingFail.reason); return; }
     if (S.pendingFail) return;
+
+    // takılma: gaz/fren basılıyken 5 sn kıpırdamama (çukura/kayaya sıkışma) → yeniden denemeye izin ver
+    S.stuckT = S.inputHeld && speed < 0.3 ? (S.stuckT ?? 0) + DT : 0;
+    if (S.stuckT > RULES.stuckTime) { emit('crash', { reason: 'stuck', pos: { x: p.x, y: p.y } }); endLevel('fail', 'stuck'); return; }
 
     // başarısızlık: ters kalma, uçurum, süre
     const tilt = Math.abs(wrapAngle(ang));
@@ -443,6 +490,7 @@ export function createSim(opts) {
   // ---- yerleşme: saat durmuşken aracı oturt ----
   for (let i = 0; i < Math.round(SIM.settleTime / DT); i++) {
     driveVehicle(veh, { throttle: 0, brake: 0 }, { dt: DT, assistLanding: false, groundDist: 1 });
+    props.forces();
     world.step(DT, SIM.velocityIterations, SIM.positionIterations);
   }
   for (const w of veh.wheels) { w.t0 = w.trans; w.comp = 0.5; w.prevSurface = w.surface; w.lastSpinEmit = -1; w.wasBottom = false; }
@@ -455,8 +503,9 @@ export function createSim(opts) {
     terrain: { xs: terr.xs, ys: terr.ys, surf: terr.surf },
     startX: terr.startX, startY: heightAt(terr, terr.startX), finishX, finishY: heightAt(terr, finishX), killY, spawn: { x: spawnX, y: spawnY },
     bounds: { minX: terr.xs[0], maxX: terr.xs[terr.xs.length - 1], minY: terr.minY, maxY: Math.max(...terr.ys) },
-    vehicle: { id: vehicleId, parts: cfg.parts, wheels: cfg.wheels.map((w) => ({ id: w.id, x: w.x, y: w.y, driven: !!w.driven })), wheelR: cfg.wheelR, travel: cfg.travel, seat: cfg.seat, bay: cfg.bay },
-    checkpoints: level.checkpoints ?? [],
+    vehicle: { id: vehicleId, parts: cfg.parts, wheels: cfg.wheels.map((w) => ({ id: w.id, x: w.x, y: w.y, r: w.r ?? cfg.wheelR, driven: !!w.driven })), wheelR: cfg.wheelR, travel: cfg.travel, seat: cfg.seat, bay: cfg.bay,
+      trailer: cfg.trailer ? { parts: cfg.trailer.parts, hitch: cfg.trailer.hitch, wheels: cfg.trailer.wheels.map((w) => ({ id: w.id, x: w.x, y: w.y, r: w.r ?? cfg.wheelR })), bay: cfg.trailer.bay } : null },
+    props: props.staticProps, water: props.waters, checkpoints: props.checkpoints.map((c) => ({ id: c.id, x: c.x, y: c.y })),
     hints: level.hints ?? [],
   };
 
@@ -486,13 +535,14 @@ export function createSim(opts) {
       throttle: veh.throttle, brake: veh.brake, rpm: veh.rpm, load: veh.load, airborne: S.air.on, reversing: veh.reversing,
       wheelie: S.wheelie.t,
       wheels: veh.wheels.map((w) => ({
-        id: w.id, ...w.pose, r: cfg.wheelR, compression: w.comp, onGround: w.contacts > 0, surface: w.contacts > 0 ? w.surface : null,
+        id: w.id, ...w.pose, r: w.r, trailer: !!w.trailerWheel, compression: w.comp, onGround: w.contacts > 0, surface: w.contacts > 0 ? w.surface : null,
         spinning: w.spinning, slip: w.slip, spin: w.body.getAngularVelocity(), bottomOut: !!w.bottomOut,
       })),
     };
+    snap.vehicle.trailer = trailerPose ? { ...trailerPose } : null;
     snap.driver = { state: veh.driver.ejected ? 'ragdoll' : 'seated', torso: torsoPose, head: headPose };
     snap.cargo = cargo.map((c) => ({ id: c.id, type: c.type, ...c.pose, hp: c.hp, hpMax: c.hpMax, state: c.state, reason: c.reason ?? null }));
-    snap.objects = objects.map((o) => ({ id: o.id, type: o.type, ...o.pose, active: o.type !== 'rock' || o.triggered }));
+    snap.objects = objects.map((o) => ({ id: o.id, type: o.type, ...o.pose, active: o.type === 'rock' || o.type === 'snowball' ? !!o.triggered : true }));
     for (let i = 0; i < coins.length; i++) snap.coins[i].taken = coins[i].taken;
     snap.combo.count = S.combo.count; snap.combo.multiplier = S.combo.mult; snap.combo.pending = Math.round(S.combo.pending);
     snap.combo.timeLeft01 = S.combo.count ? Math.max(0, S.combo.timer / SCORING.comboWindow) : 0;
@@ -513,9 +563,11 @@ export function createSim(opts) {
     get result() { return S.result; },
     get time() { return S.t; },
     warnings,
+    /** Çalışırken değişebilen ayarlar (ör. yardımcı iniş). */
+    setSettings(p) { if (p && 'assistLanding' in p) assist = !!p.assistLanding; },
     /** Dünya ve dinleyicileri bırakır. Sıfırlama = destroy() + yeni createSim(). */
     destroy() { bus.clear(); world.clearForces?.(); for (let b = world.getBodyList(); b;) { const n = b.getNext(); world.destroyBody(b); b = n; } },
     /** Yalnızca test/hata ayıklama: ham planck nesneleri. */
-    _debug: { world, veh, cargo, objects, terr },
+    _debug: { world, veh, cargo, objects, terr, props },
   };
 }

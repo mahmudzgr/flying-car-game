@@ -1,81 +1,146 @@
-// Arayüz (STUB): ana menü (Başla), HUD, duraklat, sonuç. Sahip: Arayüz. API sabittir (MIMARI §9).
+// Arayüz: menü, bölüm seçimi, garaj, ayarlar, HUD, duraklat, sonuç. Sahip: Arayüz. API sabittir (MIMARI §9).
 // UI, oyun akışını yalnızca `flow` geri çağrılarıyla yönetir; sim'e doğrudan dokunmaz.
+//   flow = { startLevel(id, vehicleId?), retry(), pause(), resume(), toMenu(), nextLevel(), emit?(name,data), applySettings?(settings) }
+// flow.emit ve flow.applySettings İSTEĞE BAĞLIDIR (docs/ISTEKLER.md); yoksa UI sessizce atlar.
 import { createTouchControls } from './touch.js';
+import { createNav } from './nav.js';
+import { createHome } from './home.js';
+import { createLevels, createBrief } from './levels.js';
+import { createGarage } from './garage.js';
+import { createSettings } from './settings.js';
+import { createPause, createResult, createConfirm } from './overlays.js';
+import { createHud } from './hud.js';
 
 /**
  * @param {{root:HTMLElement, input:object, save:object, flow:object, levels:object[]}} deps
- *   flow = {startLevel(levelId, vehicleId?), retry(), pause(), resume(), toMenu(), nextLevel()}
  */
 export function createUI({ root, input, save, flow, levels }) {
-  root.innerHTML = `
-    <section class="screen" id="scr-menu">
-      <a class="back" href="../../" data-hub-back>Oyunlar</a>
-      <h1>Sarsıntı Nakliyat</h1>
-      <p class="tag">Kargonu devirme, kafanı da vurma!</p>
-      <button class="btn big" id="btn-start">Başla</button>
-      <p class="muted" id="menu-coins"></p>
-    </section>
-    <section class="hud" id="hud" hidden>
-      <button class="icon-btn" id="btn-pause" aria-label="Duraklat">II</button>
-      <div class="hud-top"><span id="hud-dist">0 m</span><span id="hud-cargo"></span><span id="hud-coins">0</span></div>
-      <div class="hud-bottom"><span id="hud-speed">0 km/s</span><span id="hud-combo"></span></div>
-      <div class="toast" id="toast" hidden></div>
-    </section>
-    <section class="screen overlay" id="scr-pause" hidden>
-      <h2>Duraklatıldı</h2>
-      <button class="btn" id="btn-resume">Devam</button><button class="btn" id="btn-retry-p">Yeniden Dene</button><button class="btn" id="btn-menu-p">Menü</button>
-    </section>
-    <section class="screen overlay" id="scr-result" hidden>
-      <h2 id="res-title"></h2><p id="res-body"></p>
-      <button class="btn big" id="btn-retry">TEKRAR DENE</button><button class="btn" id="btn-menu">Menü</button>
-    </section>`;
-  const $ = (id) => root.querySelector('#' + id);
-  const screens = { menu: $('scr-menu'), pause: $('scr-pause'), result: $('scr-result') };
-  const hud = $('hud');
+  root.innerHTML = '';
+  const hud = createHud({ flow });
+  root.appendChild(hud.el);
   const touch = createTouchControls(root, input);
-  touch.show(false);
+  const layer = document.createElement('div');
+  layer.className = 'layer';
+  root.appendChild(layer);
+  const rotate = document.createElement('div');
+  rotate.className = 'rotate-warn';
+  rotate.setAttribute('role', 'alert');
+  rotate.innerHTML = '<div class="phone" aria-hidden="true"><i></i></div><b>Telefonu yan çevir</b><small>Sarsıntı Nakliyat yatay ekranda oynanır</small>';
+  root.appendChild(rotate);
 
-  $('btn-start').onclick = () => flow.startLevel(levels[0].id);
-  $('btn-pause').onclick = () => flow.pause();
-  $('btn-resume').onclick = () => flow.resume();
-  $('btn-retry-p').onclick = () => flow.retry();
-  $('btn-menu-p').onclick = () => flow.toMenu();
-  $('btn-retry').onclick = () => flow.retry();
-  $('btn-menu').onclick = () => flow.toMenu();
+  const nav = createNav(layer);
+  let mode = 'none';            // none | menu | hud | pause | result
+  let levelId = null, pending = null;
 
-  let toastTimer = 0;
+  const emit = (name, data = {}) => { try { flow.emit?.(name, data); } catch (e) { console.error(e); } };
+  const isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  function toggleFullscreen() {
+    const de = document.documentElement;
+    try {
+      if (!isFullscreen()) {
+        const p = (de.requestFullscreen || de.webkitRequestFullscreen)?.call(de);
+        Promise.resolve(p).then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+      } else (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    } catch { /* tam ekran desteklenmiyor */ }
+  }
+  function applySettings() {
+    const s = save.data.settings;
+    touch.setScale(s.btnScale ?? 1);
+    root.dataset.haptics = s.haptics === false ? '0' : '1';
+    try { flow.applySettings?.(s); } catch (e) { console.error(e); }
+    try { window.dispatchEvent(new CustomEvent('sarsinti:settings', { detail: s })); } catch { /* yoksay */ }
+  }
+  const ctx = {
+    save, flow, input, levels, nav, emit, applySettings, isFullscreen, toggleFullscreen,
+    currentLevel: () => levels.find((l) => l.id === levelId) ?? null,
+    confirm: (opts) => nav.push('confirm', opts),
+    refreshAll: () => { for (const n of ['home', 'levels', 'garage']) screens[n].refresh?.(); },
+    /** Oyundan (duraklat/sonuç) menü ekranlarına dön: önce flow.toMenu(), sonra istenen alt ekran. */
+    goMenu(screen, region) {
+      pending = { screen, region: region ?? ctx.currentLevel()?.region };
+      flow.toMenu();
+      if (pending) api.show('menu');   // flow.toMenu show('menu') çağırmadıysa
+    },
+  };
+
+  const screens = {
+    home: createHome(ctx), levels: createLevels(ctx), brief: createBrief(ctx), garage: createGarage(ctx),
+    settings: createSettings(ctx), pause: createPause(ctx), result: createResult(ctx), confirm: createConfirm(ctx),
+  };
+  for (const [name, s] of Object.entries(screens)) nav.register(name, s);
+
+  // ---- klavye: menülerde ↑↓←→ Enter Esc; oyun girişine karışmaz ----
+  const SWALLOW = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter', 'Escape']);
+  const DIR = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  function onKey(e) {
+    if (!nav.active || !SWALLOW.has(e.code) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const top = nav.topName();
+    if (e.code === 'Escape') {
+      if (nav.stack.length > 1) { e.stopImmediatePropagation(); e.preventDefault(); emit('ui:back'); nav.back(); }
+      else if (top === 'home' || top === 'result') { e.stopImmediatePropagation(); }
+      return; // pause: main Esc ile devam ettirir
+    }
+    e.stopImmediatePropagation();
+    if (e.code === 'Space') return;                       // odaktaki düğme tıklanır (varsayılan eylem)
+    if (e.code === 'Enter') {
+      const a = document.activeElement;
+      if (!a || a === document.body || !nav.top()?.el.contains(a)) { e.preventDefault(); nav.top()?.el.querySelector('[data-autofocus]')?.click(); }
+      return;
+    }
+    const a = document.activeElement;
+    if (a?.type === 'range' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) return;   // kaydırıcı kendi okunu işler
+    e.preventDefault();
+    nav.move(DIR[e.code]);
+  }
+  window.addEventListener('keydown', onKey, true);
+  window.addEventListener('keyup', (e) => { if (nav.active && SWALLOW.has(e.code)) e.stopImmediatePropagation(); }, true);
+  root.addEventListener('click', (e) => { if (e.target.closest('button, a')) emit('ui:click', {}); });
+
+  // ---- dikey ekran uyarısı: oyun sürerken duraklat ----
+  const mqPortrait = matchMedia('(orientation: portrait) and (max-width: 900px)');
+  const onPortrait = () => { if (mqPortrait.matches && mode === 'hud') flow.pause(); touch.releaseAll(); };
+  mqPortrait.addEventListener?.('change', onPortrait);
+  const onFs = () => { nav.top()?.refresh?.(); };
+  document.addEventListener('fullscreenchange', onFs);
+  document.addEventListener('webkitfullscreenchange', onFs);
+
+  applySettings();
+
   const api = {
     /** @param {'menu'|'hud'|'pause'|'result'|'none'} name — hud: oyun içi (dokunmatik düğmeler açık); pause/result HUD üstüne biner. */
     show(name, params = {}) {
-      for (const [k, el] of Object.entries(screens)) el.hidden = k !== name;
+      mode = name === 'hud' ? 'hud' : name;
       const playing = name === 'hud' || name === 'pause' || name === 'result';
-      hud.hidden = !playing; touch.show(name === 'hud');
-      if (name === 'menu') $('menu-coins').textContent = `Kuruş: ${save.data.coins}`;
-      if (name === 'result') {
-        const r = params.result;
-        $('res-title').textContent = r.result === 'win' ? `Teslim edildi! ${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}` : 'Olmadı!';
-        $('res-body').textContent = r.result === 'win'
-          ? `Skor ${r.score} · ${r.time.toFixed(1)} sn · kargo ${r.cargoDelivered}/${r.cargoTotal} · +${params.reward?.total ?? 0} kuruş`
-          : `Sebep: ${REASONS[r.reason] ?? r.reason}`;
-      }
+      hud.el.hidden = !playing;
+      touch.show(name === 'hud');
+      screens.result.leave?.();
+      if (name === 'hud') { input.reset?.(); nav.set([]); }
+      else if (name === 'menu') {
+        const p = pending; pending = null;
+        const stack = ['home'];
+        if (p?.screen) stack.push(p.screen);
+        nav.set(stack, p?.screen === 'levels' ? { region: p.region } : {});
+      } else if (name === 'pause') nav.set(['pause']);
+      else if (name === 'result') nav.set(['result'], params);
+      else nav.set([]);
+      if (name === 'hud' && mqPortrait.matches) flow.pause();
     },
     /** Her karede çağrılır. snapshot = sim.snapshot(). */
-    hudUpdate(s) {
-      $('hud-dist').textContent = `${Math.round(s.run.distance)} m · %${Math.round(s.run.progress * 100)}`;
-      $('hud-cargo').textContent = `Kargo ${s.cargoSummary.onboard}/${s.cargoSummary.total}`;
-      $('hud-coins').textContent = `${s.pickups} kuruş`;
-      $('hud-speed').textContent = `${Math.round(s.vehicle.speed * 3.6)} km/s`;
-      $('hud-combo').textContent = s.combo.count ? `×${s.combo.multiplier} (${s.combo.count})` : '';
-    },
+    hudUpdate(s) { hud.update(s); },
     /** Sim olayları (MIMARI §6) + 'toast'. */
     onEvent(e) {
-      if (e.name === 'toast') {
-        const t = $('toast'); t.textContent = e.text; t.hidden = false;
-        clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 1500);
-      }
+      if (e.name === 'levelStart') { levelId = e.levelId; hud.reset(); }
+      hud.onEvent(e);
     },
-    destroy() { touch.destroy(); root.innerHTML = ''; },
+    destroy() {
+      window.removeEventListener('keydown', onKey, true);
+      mqPortrait.removeEventListener?.('change', onPortrait);
+      document.removeEventListener('fullscreenchange', onFs);
+      document.removeEventListener('webkitfullscreenchange', onFs);
+      touch.destroy(); root.innerHTML = '';
+    },
+    /** Dev/test için: kayıt değişince açık ekranları yeniden çiz. */
+    refresh() { nav.top()?.refresh?.(); },
   };
   return api;
 }
-const REASONS = { headHit: 'Kafa vuruşu', flipped: 'Devrildin!', fell: 'Uçuruma düştün', timeout: 'Süre doldu', cargoShort: 'Kargo yetmedi' };

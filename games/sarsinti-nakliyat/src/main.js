@@ -1,7 +1,7 @@
 // Sarsıntı Nakliyat — giriş noktası: modülleri bağlar, oyun durum makinesini ve ana döngüyü yürütür.
 // Sahip: Çekirdek. Durumlar: boot → menu → loading → playing ⇄ paused → result → (loading | menu).
 // Ayrıntı: docs/MIMARI.md §8.
-import { SIM } from './config.js';
+import { SIM, VEHICLES } from './config.js';
 import { createSim } from './sim/sim.js';
 import { levelReward } from './sim/economy.js';
 import { CAMPAIGN, getLevel } from './data/levels/index.js';
@@ -20,6 +20,8 @@ const renderer = createRenderer(canvas, { debug: params.has('debug'), shake: sav
 
 let state = 'boot';
 let sim = null, level = null, snap = null;
+let runVehicle = null;          // bu bölümde kullanılan araç (retry aynı aracı kullanır)
+let lastCheckpoint = null;      // {x, time} — sim 'checkpoint' olayından
 let acc = 0, last = performance.now(), resultTimer = 0, pendingEnd = null;
 
 function emitLocal(name, data = {}) {      // sim dışı olaylar: pause/resume/purchase/upgrade/ui:*
@@ -28,12 +30,16 @@ function emitLocal(name, data = {}) {      // sim dışı olaylar: pause/resume/
 }
 
 /** Bölümü (ya da menü arka planı için boş bir sim'i) kurar. Eski sim yok edilir. */
-function loadLevel(levelId, { idle = false } = {}) {
+function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null } = {}) {
   sim?.destroy();
   level = getLevel(levelId);
-  const rec = save.data.vehicles[save.data.vehicle];
+  const owned = (id) => id && save.data.vehicles[id]?.owned && VEHICLES[id]?.implemented;
+  runVehicle = owned(vehicleId) ? vehicleId : owned(runVehicle) && !idle && !vehicleId ? runVehicle : owned(save.data.vehicle) ? save.data.vehicle : 'tosun';
+  if (idle) runVehicle = owned(save.data.vehicle) ? save.data.vehicle : 'tosun';
+  const rec = save.data.vehicles[runVehicle];
+  if (!checkpoint) lastCheckpoint = null;
   sim = createSim({
-    level, vehicleId: save.data.vehicle, upgrades: rec.up,
+    level, vehicleId: runVehicle, upgrades: rec.up, checkpoint,
     settings: { assistLanding: save.data.settings.assistLanding },
     bestScore: save.data.levels[levelId]?.best ?? 0,
   });
@@ -48,6 +54,7 @@ function loadLevel(levelId, { idle = false } = {}) {
 function onSimEvent(e) {
   renderer.onEvent(e); audio.onEvent(e); ui.onEvent(e);
   if (e.name === 'levelEnd') pendingEnd = e;
+  if (e.name === 'checkpoint') lastCheckpoint = { x: e.x ?? e.pos.x, time: e.t };
   if (e.name === 'cargoDamage' || e.name === 'driverEject' || e.name === 'bodyHit') {
     if (save.data.settings.haptics && navigator.vibrate) navigator.vibrate(e.name === 'driverEject' ? 60 : 15);
   }
@@ -71,8 +78,24 @@ function finishLevel(e) {
 }
 
 const flow = {
-  startLevel(levelId) { state = 'loading'; loadLevel(levelId); state = 'playing'; ui.show('hud'); audio.unlock(); },
-  retry() { if (level) flow.startLevel(level.id); },
+  /** vehicleId verilmezse kayıttaki seçili araç (retry: aynı araç). */
+  startLevel(levelId, vehicleId) { state = 'loading'; loadLevel(levelId, { vehicleId }); state = 'playing'; ui.show('hud'); audio.unlock(); },
+  retry() { if (level) flow.startLevel(level.id, runVehicle); },
+  /** Kontrol noktasından yeniden doğ (★3 kaybolur). Nokta yoksa baştan. */
+  retryFromCheckpoint() {
+    if (!level) return;
+    if (!lastCheckpoint) return flow.retry();
+    const cp = lastCheckpoint; state = 'loading'; loadLevel(level.id, { vehicleId: runVehicle, checkpoint: cp }); state = 'playing'; ui.show('hud');
+  },
+  hasCheckpoint() { return !!lastCheckpoint; },
+  /** UI: purchase/upgrade/ui:* olaylarını ses/grafik/arayüze dağıtır. */
+  emit(name, data) { emitLocal(name, data); },
+  /** UI: ayarlar değişince. */
+  applySettings(st) {
+    audio.setVolumes({ sfx: st.sfx, music: st.music });
+    renderer.setOptions({ shake: st.shake, quality: st.quality });
+    sim?.setSettings({ assistLanding: st.assistLanding });
+  },
   nextLevel() {
     const i = CAMPAIGN.findIndex((l) => l.id === level?.id);
     if (i >= 0 && CAMPAIGN[i + 1]) flow.startLevel(CAMPAIGN[i + 1].id); else flow.toMenu();
@@ -108,7 +131,7 @@ function frame(now) {
     renderer.render(snap, state === 'menu' ? 1 : acc / SIM.step, raw);
     if (state === 'playing') {
       ui.hudUpdate(snap);
-      audio.setEngine({ vehicleId: snap.vehicle.id, rpm01: snap.vehicle.rpm, throttle: snap.vehicle.throttle, load: snap.vehicle.load, onGround: !snap.vehicle.airborne });
+      audio.setEngine({ vehicleId: snap.vehicle.id, rpm01: snap.vehicle.rpm, throttle: snap.vehicle.throttle, load: snap.vehicle.load, onGround: !snap.vehicle.airborne, reversing: snap.vehicle.reversing, speed: snap.vehicle.speed });
     }
     if (pendingEnd && state === 'playing') { resultTimer += raw; if (resultTimer > (pendingEnd.result === 'win' ? 1.0 : 0.5)) { const e = pendingEnd; pendingEnd = null; finishLevel(e); } }
   }
@@ -118,4 +141,4 @@ function frame(now) {
 flow.toMenu();
 requestAnimationFrame((t) => { last = t; frame(t); });
 
-if (params.has('debug')) window.__sarsinti = { get state() { return state; }, get sim() { return sim; }, get snap() { return snap; }, flow, input, save, renderer };
+if (params.has('debug')) window.__sarsinti = { get vehicle() { return runVehicle; }, get state() { return state; }, get sim() { return sim; }, get snap() { return snap; }, flow, input, save, renderer };

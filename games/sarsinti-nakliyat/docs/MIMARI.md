@@ -66,10 +66,11 @@ import { createSim } from './sim/sim.js';
 /**
  * @param {object} opts
  * @param {Level}  opts.level                 bölüm verisi (§10)
- * @param {'tosun'|'zipir'} [opts.vehicleId='tosun']   (pasa/koca config'te var, sim henüz KURMAZ → hata)
+ * @param {'tosun'|'zipir'|'pasa'|'koca'} [opts.vehicleId='tosun']
  * @param {{motor?:number,suspansiyon?:number,lastik?:number}} [opts.upgrades]   kademe 0..4 (save.vehicles[id].up)
  * @param {{assistLanding?:boolean}} [opts.settings]
  * @param {number} [opts.bestScore]           levelStart olayına geçer
+ * @param {{x:number,time:number}} [opts.checkpoint]   kontrol noktasından yeniden doğma: araç x'te başlar, saat `time`'dan sürer; önceki nesne/ipuçları atlanır; ★3 verilmez (`levelEnd.usedCheckpoint`)
  * @returns {Sim}
  */
 createSim(opts);
@@ -84,6 +85,7 @@ createSim(opts);
  * @prop {LevelResult|null} result           bitince dolar (levelEnd yüküyle aynı)
  * @prop {number} time                       bölüm süresi (sn, yalnızca canlı adımlar)
  * @prop {string[]} warnings                 uygulanmamış nesne türü, kapasite aşımı gibi uyarılar
+ * @prop {(p:{assistLanding?:boolean})=>void} setSettings(p)   çalışırken değişebilen ayarlar (yardımcı iniş/"kedi refleksi": ters ve yere <1,2 m ise hafif düzeltme torku)
  * @prop {()=>void} destroy()                dünyayı ve dinleyicileri bırakır
  */
 ```
@@ -116,7 +118,11 @@ input.reset()                        // takılı tuşları bırak (duraklatma/bl
   vehicle: { id, parts:[{part:'chassis'|'cab'|'roof', x,y,w,h}],   // şasi yerel koordinatı (orijin = şasi kutusu merkezi, +x = burun)
              wheels:[{id:'rear'|'front', x,y, driven}],            // tekerlek bağlantı noktası (şasi yerel)
              wheelR, travel:[lo,hi], seat:{x,y}, bay:{x0,x1,floorY,rail} },
-  checkpoints:[], hints:[{x,text,icon}] }
+  props: [ {type:'bridge', id, x, y /*tahta üst yüzü*/, len, planks, weak:[idx]},
+           {type:'seesaw', id, x, len, pivot:{x,y}, limit} ],      // sabit dekor bilgisi (dinamik parçalar snapshot.objects'te)
+  water: [ {x0, x1, y} ],                       // su bölgeleri (y = yüzey); suyun altı sürükleme/boğulma
+  checkpoints: [ {id, x, y} ], hints:[{x,text,icon}] }
+// Römorklu araç (Paşa): vehicle.trailer = { parts:[{part:'trailer',x,y,w,h}], hitch:{x,y}, wheels:[{id:'trailer',x,y,r}], bay } — yerel çerçeve: römork gövdesi (orijin = kanca noktası).
 ```
 
 ### 5.2 `sim.snapshot()` — her kare
@@ -132,7 +138,8 @@ input.reset()                        // takılı tuşları bırak (duraklatma/bl
     vx,vy, w /*açısal hız rad/s*/, speed /*m/s, kamera ileri-bakış için vx,vy*/,
     throttle, brake /*0..1*/, rpm /*0..1 (rölanti .12)*/, load /*0..1*/,
     airborne:boolean, reversing:boolean, wheelie:number /*sn*/,
-    wheels:[{ id:'rear'|'front', x,y,a,px,py,pa, r,
+    trailer: {x,y,a,px,py,pa}|null,       // yalnız Paşa: römork gövdesi (çizim için static.vehicle.trailer ile birlikte)
+    wheels:[{ id:'rear'|'front'|'rear2'|'trailer', trailer:boolean, x,y,a,px,py,pa, r,
               compression /*0..1 (0.5 = statik çökme konumu)*/, onGround, surface:string|null,
               spinning:boolean, slip /*m/s*/, spin /*açısal hız rad/s*/, bottomOut:boolean }]
               // Süspansiyon animasyonu: wheel.(x,y) ile şasi bağlantı noktası (static.vehicle.wheels[i]) arasındaki fark.
@@ -141,14 +148,15 @@ input.reset()                        // takılı tuşları bırak (duraklatma/bl
             torso:{x,y,a,px,py,pa,w,h}, head:{x,y,a,px,py,pa,r} },   // ragdoll'da bağlar kopar; gövde+kafa serbest cisim
   cargo: [{ id,type:'crate'|'watermelon'|'eggs'|'milk'|'piano'|'bale', x,y,a,px,py,pa, w,h,r /*r>0 ⇒ daire*/,
             hp,hpMax, state:'onboard'|'lost'|'delivered', reason:string|null }],
-  objects: [{ id, type:'barrel'|'rock'|…, x,y,a,px,py,pa, w,h,r, active }],   // yalnızca dinamik/tetikli nesneler
+  objects: [{ id, type:'barrel'|'rock'|'plank'|'seesaw'|'log'|'snowball', x,y,a,px,py,pa, w,h,r, active }],   // dinamik/tetikli nesneler
+              // plank (köprü tahtası: w=tahta boyu, h=0.2; köprü kırılınca serbest düşer), seesaw (w=uzunluk), log (w,h), snowball (r; active=tetiklendi)
   coins: [{ id,x,y,taken }],            // sabit konum
   combo: { count, multiplier, timeLeft01 /*0..1 halka*/, pending },
   score, pickups /*toplanan kuruş*/, cargoSummary:{total,onboard,delivered,lost}
 }
 ```
 
-Notlar: kuruş/bitiş/başlangıç konumları `static`'te; köprü/tahterevalli (P1) `objects` içine `type:'plank'|'seesaw'` olarak eklenecek (aynı poz şekli). Kamera için hız vektörü `vehicle.vx, vy`.
+Notlar: kuruş/bitiş/başlangıç konumları `static`'te. Kamera için hız vektörü `vehicle.vx, vy`. Tekerlek kimlikleri: Tosun/Zıpır `rear,front`; Koca `front,rear,rear2`; Paşa `rear,front,trailer`.
 
 ## 6. Sözleşme C — Olaylar (`src/events.js` tek kaynak; TASARIM §14)
 
@@ -157,12 +165,12 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | Olay | Yük | Not |
 |---|---|---|
 | `levelStart` | `{levelId, biome, vehicleId, cargo:[{type,count}], bestScore}` | ilk `step()`'te |
-| `levelEnd` | `{result:'win'\|'fail', reason, score, stars, time, distance, cargoDelivered, cargoLost, cargoTotal, coins, pickups, maxMultiplier, flips, intact}` | `reason`: `finish` `headHit` `flipped` `fell` `timeout` `cargoShort`. `coins` = yolda toplanan kuruş (ödül için `sim/economy.js`) |
+| `levelEnd` | `{result:'win'\|'fail', reason, score, stars, time, distance, cargoDelivered, cargoLost, cargoTotal, coins, pickups, maxMultiplier, flips, intact}` | `reason`: `finish` `headHit` `flipped` `fell` `timeout` `cargoShort` `chased` (kar topu/kaya yakaladı) `water` (suda 1,5 sn) `stuck` (gaz/fren basılıyken 5 sn kıpırdamama). `usedCheckpoint:boolean`. `coins` = yolda toplanan kuruş (ödül için `sim/economy.js`) |
 | `pause` / `resume` | `{}` | game |
 | `throttle` / `brake` | `{on}` | kenar tetikli |
 | `engine` | `{vehicleId, rpm, load, speed}` | 60 Hz (her 2. adım). Ses için `audio.setEngine` da kullanılır |
 | `wheelContact` | `{wheel, surface, started}` | |
-| `surfaceChange` | `{wheel, from, to}` | |
+| `surfaceChange` | `{wheel, from, to}` | suya girince/çıkınca `to/from:'water'` |
 | `wheelspin` | `{wheel, surface, slip}` | patinajda ≈10 Hz |
 | `suspension` | `{wheel, compression, bottomOut}` | yalnızca uç tampona vurunca (kenar) |
 | `airborne` | `{startT}` | tüm tekerler ≥0,1 sn havada |
@@ -180,10 +188,13 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | `coin` | `{value, pos}` | |
 | `driverEject` | `{headSpeed, pos}` | ragdoll başlar |
 | `crash` | `{reason, pos}` | başarısızlığın nedeni |
-| `bridgeStress` `bridgeBreak` `checkpoint` | TASARIM §14 | **P1**, henüz yayılmaz |
-| `hazardTrigger` | `{id, type:'rock'\|…, pos}` | |
+| `bridgeStress` | `{id, stress:0..1}` | zayıf tahtaya binen yük / eşik; >0,4 iken ≤10 Hz |
+| `bridgeBreak` | `{id, pos}` | zayıf tahta kopar (eşik `PROPS.bridge.weakForce`: yavaş geçiş güvenli, hızlı/sıçrayarak kopar) |
+| `checkpoint` | `{id, pos, x}` | kontrol noktası geçildi |
+| `seesaw` | `{id, angVel}` | tahterevalli hareketinde ≤10 Hz (gıcırtı) |
+| `hazardTrigger` | `{id, type:'rock'\|'snowball'\|'barrels', pos}` | kaya/kar topu tetiklenince; `barrels` ilk varil çarpışmasında |
 | `nearMiss` | `{id, distance}` | |
-| `slowmo` | `{scale, duration, reason}` | sim `timeScale`'i kendisi uygular; ses perde düşürmek için dinleyebilir |
+| `slowmo` | `{scale, duration, reason}` | `duration` **sim saniyesi**; gerçek süre = duration/scale (ör. 1 sn @0,35 ≈ 2,9 sn). Sim `timeScale`'i kendisi uygular |
 | `starEarned` | `{index:1..3}` | `levelEnd`'den sonra sırayla |
 | `purchase` / `upgrade` | `{item\|vehicleId+line, cost, level}` | UI yayar |
 | `toast` | `{text, icon}` | bölüm `hints`'inden |
@@ -276,7 +287,7 @@ Her bölüm `export default {…}` ve `levels/index.js`'te `CAMPAIGN` dizisine s
     pieces:[ …parçalar… ] },    // x=0'dan SAĞA eklenir; her parça önceki parçanın bittiği yerden başlar
   spawn:{ x:3 },                // araç şasi merkezi x (y otomatik)
   finish:{ x:'end' },           // 'end' | metre
-  cargo:[{ type:'crate', count:3 }],   // araca otomatik yerleşir (kapasite: Tosun 6, Zıpır 3)
+  cargo:[{ type:'crate', count:3 }],   // araca otomatik yerleşir (kapasite: Tosun 6, Zıpır 3, Paşa 10 (römorkta), Koca 10; yuvarlaklar arka kapağa, kutular önüne dizilir)
   minDelivered:1,               // bitişte teslim edilen < bu ise 'cargoShort' (başarısız)
   parTime:40, timeLimit:null,   // süre bonusu referansı / süre sınırı (sn)
   objects:[ …nesneler… ],
@@ -308,11 +319,14 @@ Yüzeyler: `asphalt dirt grass gravel sand mud wet snow ice` (`water` P1). Başl
 | `coins` | `x, n, spacing=1.5, h=1.2` | uygulandı (5 kuruş/adet) |
 | `barrels` | `x, cols=3, rows=3` | uygulandı (devrilen yığın) |
 | `rock` | `x, r, mass?, trigger:{x}, vx=-3` | uygulandı (araç `trigger.x`'e gelince yuvarlanır, `hazardTrigger`) |
-| `bridge` | `x, len, planks, weak:[idx]` | **P1** (şimdilik uyarı + atlanır) |
-| `seesaw` | `x, len, …` | **P1** |
-| `snowball` | `trigger` | **P1** |
+| `bridge` | `x, len, planks=len/1, weak:[idx], drop=0.1` | **uygulandı.** Zemin parçalarında `{type:'gap', len, depth}` (ya da vadi) bırakıp köprüyü `x` = çukur başı, `len` = çukur boyu ile koy. Eklemli tahtalar, iki ucu zemine bağlı. `weak` tahtalar yük/darbe eşiğini aşarsa kopar (`bridgeBreak`) |
+| `seesaw` | `x, len=8` | **uygulandı** (tahterevalli sol ucu yerde başlar; `x` = sol uç; altı düz zemin olmalı; araç ağırlık merkezini geçince devrilir) |
+| `snowball` | `trigger:{x}, behind=14, v0=6, v1=12, ramp=40, r=1.6` | **uygulandı** (kovalayan top, arkadan v0→v1 m/s; yakalarsa `chased`) |
+| `water` | `x, len, y?` | **uygulandı**; altı çukur (`gap`) olmalı; `y` = yüzey (varsayılan sol kenar −0,5). Araç gövdesi suda 1,5 sn ⇒ `water`; kargo suya düşerse `cargoLost 'water'` |
+| `logs` | `x, n, spacing=w+0.1, w=4, h=0.9, y?` | **uygulandı** yüzen kütükler (su bölgesi içine; yatay yaylı bağlı) |
+| `checkpoint` | `x` | **uygulandı** (`checkpoint` olayı; `main.flow.retryFromCheckpoint()`) |
 
-**Yıldız ölçütleri** (`{kind, …, label}`; `label` UI'da gösterilen Türkçe metin): `delivered{min}` `deliveredAll` `time{max}` `eggs{min}` (kalan yumurta can) `flips{min}` `combo{min}` (çarpan) `noReverse` `intact` (kargo hasarsız ve kayıpsız) `noHit` (şasi çarpması >6 m/s yok). Yeni ölçüt = Çekirdek'e istek.
+**Yıldız ölçütleri** (`{kind, …, label}`; `label` UI'da gösterilen Türkçe metin): `delivered{min}` `deliveredAll` `time{max}` `eggs{min}` (kalan yumurta can) `flips{min}` `combo{min}` (çarpan) `noReverse` `intact` (kargo hasarsız ve kayıpsız) `noHit` (şasi çarpması >6 m/s yok) `bridgeIntact` (köprü kopmadı) `noCheckpoint`. Yeni ölçüt = Çekirdek'e istek.
 
 ## 11. Sözleşme H — `main.js` durum makinesi
 
@@ -327,6 +341,7 @@ boot ─► menu ─(Başla/startLevel)─► loading ─► playing ◄─(resu
 - `loading` senkrondur: eski sim `destroy()`, `createSim()`, `renderer.setLevel()`, müzik. Yeniden deneme <0,4 sn.
 - `menu` durumunda arka planda boşta bir sim (CAMPAIGN[0]) çizilir, adım atılmaz.
 - `levelEnd` → `finishLevel`: ödül (`levelReward`), kayıt (`save.update`: yıldız/skor/süre/deneme, kuruş, istatistik, `flush`), `ui.show('result', …)`.
+- `flow` ek yöntemleri: `startLevel(id, vehicleId?)` (retry aynı aracı kullanır), `retryFromCheckpoint()`/`hasCheckpoint()`, `emit(name,data)` (UI → ses/grafik: purchase, upgrade, ui:*), `applySettings(settings)` (UI ayar değişince; ses seviyesi, sarsıntı, kalite, yardımcı iniş).
 - Duraklatma: `input.reset()`, `audio.suspend()`, `pause` olayı; devamda `resume`.
 - Bağlama: `sim.on('*')` → renderer/audio/ui; her karede `renderer.render`, `ui.hudUpdate`, `audio.setEngine`. `?debug` → fizik çizgileri + `window.__sarsinti` (durum, sim, snap, flow) — Test (Playwright) için.
 
@@ -336,10 +351,14 @@ boot ─► menu ─(Başla/startLevel)─► loading ─► playing ◄─(resu
 node games/sarsinti-nakliyat/tools/bot.mjs [bölümId …] [--vehicle tosun|zipir] [--speed m/s] [--max sn] [--strict]
 ```
 
-Başsız: `createSim` + `autopilot(snapshot, hedefHız)` (hedef hıza gaz/fren, havada açıyı düzelt). Her bölüm için sonuç (`OK/FAIL`), neden, süre, yıldız, skor, kargo; `--strict` kampanya bölümü bitmezse çıkış kodu 1. Sonraki adımlar (Test ekibi): bölüm başına strateji (`level.bot`), boş/dolu kasa ve araç matrisi, sürtünme eğimi testi, kafa vuruşu yanlış tetikleme testi, kargo kaybı eşikleri, determinizm (aynı giriş → aynı sonuç), kayıt bozulma testi (`save.js` Node'da bellekle çalışır). Tarayıcı duman testi: Playwright ile `index.html?debug` aç, konsol hatası yok, `window.__sarsinti.state`.
+Seçenekler: `--matrix` (tüm araçlar), `--determinism` (aynı koşu iki kez, sonuç aynı olmalı), `--strict`, `--json`. Bölümde isteğe bağlı `bot:{speed, jumpSpeed, zones:[{x0,x1,speed}], vehicles:{zipir:{speed}}}`; bot geniş çukurlardan önce otomatik hızlanır, köprüde `zones` ile yavaşlatılabilir. Başsız: `createSim` + `autopilot(snapshot, hedefHız)` (hedef hıza gaz/fren, havada açıyı düzelt). Her bölüm için sonuç (`OK/FAIL`), neden, süre, yıldız, skor, kargo; `--strict` kampanya bölümü bitmezse çıkış kodu 1. Sonraki adımlar (Test ekibi): bölüm başına strateji (`level.bot`), boş/dolu kasa ve araç matrisi, sürtünme eğimi testi, kafa vuruşu yanlış tetikleme testi, kargo kaybı eşikleri, determinizm (aynı giriş → aynı sonuç), kayıt bozulma testi (`save.js` Node'da bellekle çalışır). Tarayıcı duman testi: Playwright ile `index.html?debug` aç, konsol hatası yok, `window.__sarsinti.state`.
 
-## 13. Bilinen sınırlar / sonraki işler (Çekirdek)
+## 13. Fizik ayar kararları ve bilinen sınırlar (Çekirdek)
 
-- Fizik **dikey dilim**: Tosun/Zıpır sürülebilir, kargo/ sürücü/ yüzey/ kombo/ olaylar çalışır; **ayar (his) turu yapılmadı** (kargo arka kenarlıktan kolay kayıyor; karpuz ilk gazda düşebilir).
-- Yok: Paşa (römork) ve Koca, su/yüzdürme, köprü, tahterevalli, kar topu, kontrol noktası, Uzun Yol, gamepad.
-- Süspansiyon: WheelJoint yayı (planck 1.4'te yolculuk sınırı yok) + elle uç tamponu; frekans/sönüm `config.js`'teki sprung-kütle formülünden türetilir (`sim/vehicle.js`).
+- **Süspansiyon:** WheelJoint yayı (planck 1.4'te yolculuk sınırı yok) + elle uç tamponu; frekans/sönüm sprung kütleden türetilir (`sim/vehicle.js`). Tosun 1,7 Hz (daha yumuşak: ağırlık aktarımı görünsün), Zıpır 2,6 Hz. `pitchGain`: gaz/fren torkunun şasiye ek yüzdesi (gazda burun kalkar, frende çöker; Tosun ±0,03–0,07 rad).
+- **Kargo:** bölme "skyline" ile dizilir (yuvarlaklar arkaya, kutular öne; daireler arasına oturur), arka kapak yükseltildi, yuvarlak kargoya yuvarlanma sönümü. Normal sürüşte kargo kalır; sıçrayan tümsek/atlayış/sert inişte yumurta kırılır, kasa/karpuz düşebilir.
+- **Yumuşak zemin:** `SURFACES[*].sink` hızla orantılı batma sürüklemesi (kum ≈ 8 m/s, çamur ≈ 6,5 m/s Tosun tepe hızı). Patinaj buzda belirgin (Tosun ≈ 5 m/s'de takılır).
+- **Kafa vuruşu:** sürücü kabin içinde (tavan üstünde değil); eşik 6 m/s göreli normal hız; normal inişlerde (12–16 m/s atlayış) tetiklenmedi.
+- **Determinizm:** sabit adım, Math.random yok; `bot --determinism` aynı sonuç verir (kampanya × 4 araç).
+- Römork: Paşa'da `hitchLimit` 0,9 rad (jackknife sınırı). Paşa atlayışlı bölümlerde (2-4) düşer: tasarım gereği "Hava 1".
+- Yok: Uzun Yol, gamepad, tahterevalli+köprü için ayrı kilit/ayar arayüzü; kar topu yalnızca düz kinematik takip (zemini izler).
