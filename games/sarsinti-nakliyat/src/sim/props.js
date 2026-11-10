@@ -64,7 +64,9 @@ export function createProps(ctx) {
       objects.push(ob); snowballs.push(ob);
     },
     water(o) {
-      waters.push({ x0: o.x, x1: o.x + o.len, y: o.y ?? (heightAt(terr, o.x - 0.01) - (o.below ?? 0.5)) });
+      const bank = heightAt(terr, o.x - 0.01);
+      const y = typeof o.y === 'number' ? o.y : typeof o.y === 'string' && /^bank[-+]/.test(o.y) ? bank + parseFloat(o.y.slice(4)) : bank - (o.below ?? PROPS.water.below);   // y: mutlak sayı | 'bank-1.5' | boş (kıyı − below)
+      waters.push({ x0: o.x, x1: o.x + o.len, y });
     },
     logs(o) {
       const n = o.n ?? 3, w = o.w ?? PROPS.log.w, h = o.h ?? PROPS.log.h, sp = o.spacing ?? (w + 1.0);

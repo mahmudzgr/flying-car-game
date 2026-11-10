@@ -545,6 +545,7 @@ export function createSim(opts) {
     props: props.staticProps, water: props.waters, checkpoints: props.checkpoints.map((c) => ({ id: c.id, x: c.x, y: c.y })),
     hints: level.hints ?? [],
     mode: egen ? 'endless' : 'level',
+    terrainRev: 0,   // Uzun Yol: zemin dizileri yerinde değiştikçe artar (terrainExtended/terrainTrimmed olaylarıyla birlikte)
     biomes: egen ? endless.state.biomes : null,   // Uzun Yol: [{x0, biome}] (biyom x0'dan başlar); static.biome = aracın bulunduğu biyom
   };
 

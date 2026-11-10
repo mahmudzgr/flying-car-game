@@ -9,6 +9,7 @@ export const EVENTS = {
   comboChange: 'sim', comboBank: 'sim', comboBurn: 'sim', coin: 'sim',
   driverEject: 'sim', crash: 'sim',
   bridgeStress: 'sim', bridgeBreak: 'sim', hazardTrigger: 'sim', nearMiss: 'sim', checkpoint: 'sim', seesaw: 'sim',
+  delivery: 'sim', biomeChange: 'sim', terrainExtended: 'sim', terrainTrimmed: 'sim',
   slowmo: 'sim', starEarned: 'sim', purchase: 'ui', upgrade: 'ui', toast: 'sim',
   'ui:click': 'ui', 'ui:back': 'ui', 'ui:star': 'ui',
 };

@@ -74,7 +74,7 @@ const TEMPLATES = {
     build(c) {
       const w = lerp(3.4, 6.4, c.d) * c.r(0.95, 1.05), dy = lerp(0.8, 1.7, c.d);
       return {
-        pieces: [{ type: 'flat', len: 16, surface: c.S.road }, { type: 'ramp', len: lerp(6, 8, c.d), dy, surface: c.S.rough }, { type: 'gap', len: w, depth: 6 }, { type: 'flat', len: 18, surface: c.S.road }],
+        pieces: [{ type: 'flat', len: 16, surface: c.S.road }, { type: 'ramp', len: lerp(6, 8, c.d), dy, surface: c.biome === 'zirve' ? 'gravel' : c.S.rough }, { type: 'gap', len: w, depth: 6 }, { type: 'flat', len: 18, surface: c.S.road }],
         objects: [{ type: 'coins', x: 18, n: 4, spacing: 1.5, h: 2.6 }],
         heavy: true,
       };
@@ -137,7 +137,7 @@ const TEMPLATES = {
     minD: 0.05, w: 4, biomes: ['zirve'],
     build(c) {
       return {
-        pieces: [{ type: 'flat', len: 12, surface: 'snow' }, { type: 'flat', len: c.ri(16, 22) + Math.round(c.d * 8), surface: 'ice' }, { type: 'flat', len: 14, surface: 'snow' }],
+        pieces: [{ type: 'flat', len: 12, surface: 'gravel' }, { type: 'flat', len: c.ri(16, 22) + Math.round(c.d * 8), surface: 'ice' }, { type: 'flat', len: 14, surface: 'gravel' }],
         objects: [coinsAt(c, 16, 1.0, 4)],
       };
     },
@@ -155,10 +155,10 @@ const TEMPLATES = {
   waterLogs: {  // su + yüzen kütükler (bataklık)
     minD: 0.12, w: 3, biomes: ['bataklik'],
     build(c) {
-      const n = c.ri(3, 4), w = 4, gapLen = n * (w + 0.6) + 0.6;
+      const n = c.ri(3, 4), w = 4, gapLen = n * (w + 0.2) + 0.2;
       return {
         pieces: [{ type: 'flat', len: 14, surface: 'dirt' }, { type: 'gap', len: gapLen, depth: 4, surface: 'wet' }, { type: 'flat', len: 14, surface: 'dirt' }],
-        objects: [{ type: 'water', x: 14, len: gapLen }, { type: 'logs', x: 14 + 0.3 + w / 2, n, w, spacing: w + 0.6 }, { type: 'coins', x: 16, n: 3, spacing: 4, h: 1.5 }],
+        objects: [{ type: 'water', x: 14, len: gapLen }, { type: 'logs', x: 14 + 0.2 + w / 2, n, w, spacing: w + 0.2 }, { type: 'coins', x: 16, n: 3, spacing: 4, h: 1.5 }],
         zones: [{ x0: 8, x1: 14 + gapLen + 2, speed: 5 }],
         heavy: true,
       };

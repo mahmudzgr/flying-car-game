@@ -186,8 +186,9 @@ export const PROPS = {
   bridge: { weakForce: 12000 },  // N: zayıf tahtaya binen temas kuvveti tepesi bu değeri aşarsa tahta kopar (yavaş: ~9,5 kN, hızlı: ~17 kN)
   snowball: { r: 1.6, behind: 14, v0: 6, v1: 12, ramp: 40 },     // kovalayan top: başlangıç/son hız (m/s), ramp sn
   // Yüzen kütük: arcade "su" — yoğunluk gerçekçi (1000) değil; kütük araç ağırlığında çok batmasın. tether: yatay yay (N/m), dragX/dragY: sönüm (N·sn/m), angDamp: dönme sönümü.
-  log: { w: 4.0, h: 0.9, mass: 360, tether: 4000, dragX: 80, dragY: 500, angDamp: 1.5 },
-  water: { deadly: 1.5, density: 1000, bodyDrag: 800 },
+  log: { w: 4.0, h: 0.9, mass: 360, tether: 40000, dragX: 600, dragY: 10000, angDamp: 1.5 },
+  // density 6000: kütük araç ağırlığında ~1 cm batar (ölçüm: Tosun/Zıpır 4–10 m/s, Koca 5–7, Paşa ≥8 m/s geçer). below: su yüzeyi kıyıdan bu kadar aşağıda (kütük üstü kıyının ~0,1 m altında durur).
+  water: { deadly: 1.5, density: 6000, bodyDrag: 800, below: 0.9 },
 };
 
 /** Başarısızlık eşikleri (TASARIM §9). */

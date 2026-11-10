@@ -51,13 +51,13 @@ function findGaps(st, x0 = -Infinity, x1 = Infinity) {
 }
 
 /** Uzun Yol: algılanan yavaş bölgeler (köprü, tahterevalli, su, varil) — bot yalnızca static/snapshot'tan okur. */
-function senseZones(snap, st, x) {
+function senseZones(snap, st, x, waterSpeed = 7) {
   const zones = [];
   for (const p of st.props ?? []) {
     if (p.type === 'bridge' && x > p.x - 18 && x < p.x + p.len + 4) zones.push({ x0: p.x - 15, x1: p.x + p.len + 3, speed: 5.5 });
     if (p.type === 'seesaw' && x > p.x - 18 && x < p.x + p.len + 6) zones.push({ x0: p.x - 12, x1: p.x + p.len + 4, speed: 8 });
   }
-  for (const w of st.water ?? []) if (x > w.x0 - 18 && x < w.x1 + 4) zones.push({ x0: w.x0 - 7, x1: w.x1 + 3, speed: 5 });
+  for (const w of st.water ?? []) if (x > w.x0 - 18 && x < w.x1 + 4) zones.push({ x0: w.x0 - 7, x1: w.x1 + 3, speed: waterSpeed });
   for (const o of snap.objects) if (o.type === 'barrel' && o.x > x && o.x < x + 30) { zones.push({ x0: o.x - 14, x1: o.x + 6, speed: 8 }); break; }
   return zones;
 }
@@ -76,7 +76,7 @@ export function autopilot(snap, st, plan) {
   for (const z of plan.zones ?? []) if (x >= z.x0 && x <= z.x1) target = z.speed;
   let gaps = plan.gaps;
   if (plan.endless) {   // akan zemin: algıyı her kararda yenile
-    for (const z of senseZones(snap, st, x)) if (x >= z.x0 && x <= z.x1) target = Math.min(target, z.speed);
+    for (const z of senseZones(snap, st, x, plan.vehicleId === 'pasa' ? 9 : plan.vehicleId === 'koca' ? 6 : 7)) if (x >= z.x0 && x <= z.x1) target = Math.min(target, z.speed);
     gaps = findGaps(st, x, x + 50);
     const sf = surfAhead(st, x + 3);
     if (sf === 'ice') target = Math.min(target, 9);
@@ -96,7 +96,7 @@ export function autopilot(snap, st, plan) {
 
 export function runLevel(level, { vehicleId = 'tosun', speed, maxTime = 180 } = {}) {
   const sim = createSim({ level, vehicleId, upgrades: {}, settings: { assistLanding: true } });
-  const plan = { speed: speed ?? level.bot?.vehicles?.[vehicleId]?.speed ?? level.bot?.speed ?? Math.min(12, VEHICLES[vehicleId].maxWheelSpeed * VEHICLES[vehicleId].wheelR * 0.6), zones: level.bot?.zones, jumpSpeed: level.bot?.jumpSpeed ?? 18, endless: !!level._tpl };
+  const plan = { speed: speed ?? level.bot?.vehicles?.[vehicleId]?.speed ?? level.bot?.speed ?? Math.min(12, VEHICLES[vehicleId].maxWheelSpeed * VEHICLES[vehicleId].wheelR * 0.6), zones: level.bot?.zones, jumpSpeed: level.bot?.jumpSpeed ?? 18, endless: !!level._tpl, vehicleId };
   const ev = {};
   sim.on('*', (e) => { ev[e.name] = (ev[e.name] ?? 0) + 1; });
   let snap = sim.snapshot();
@@ -124,7 +124,7 @@ export function templateLevel(name, { d = 0.5, biome = 'kanyon', seed = 1 } = {}
 /** Uzun Yol koşusu: ölene ya da maxTime'a kadar sürer. Bellek/gövde/zemin düğümü örnekleri toplanır. */
 export function runEndless({ seed = 1, vehicleId = 'tosun', maxTime = 300, speed } = {}) {
   const sim = createSim({ endless: { seed }, vehicleId, upgrades: {}, settings: { assistLanding: true } });
-  const plan = { speed: speed ?? 11, jumpSpeed: 18, endless: true };
+  const plan = { speed: speed ?? 11, jumpSpeed: 18, endless: true, vehicleId };
   const ev = {};
   let deliveries = 0, lastEv = null;
   sim.on('*', (e) => { ev[e.name] = (ev[e.name] ?? 0) + 1; if (e.name === 'delivery') deliveries++; if (e.name === 'crash') lastEv = e; });

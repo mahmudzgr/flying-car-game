@@ -19,7 +19,7 @@ Kullanıcıyla Türkçe konuş; arayüz metinleri Türkçe.
 3. Ana menüye `<a href="../../" data-hub-back>Oyunlar</a>` ve `<script src="../../hub/back.js" defer></script>`.
    Bağlantı yalnızca ana menüde görünsün, oyun sırasında HUD'u kapatmasın.
 4. `localStorage` tüm oyunlarda ortak (aynı alan adı): oyuna özgü önek kullan. Mevcut anahtarlar:
-   `roadster-flip-save-v1…`, `paldirkuldur.v1`. Var olan anahtarları asla değiştirme; kayıtlar silinir.
+   `roadster-flip-save-v1…`, `paldirkuldur.v1`, `sarsinti.v1`. Var olan anahtarları asla değiştirme; kayıtlar silinir.
 5. `games.js`'e kayıt ekle (alanlar dosyanın başında), kapak üret, `npm run check` çalıştır.
 6. İsteğe bağlı oyun manifesti: `"start_url": "./"`, `"scope": "../../"`.
 
@@ -31,10 +31,14 @@ Kullanıcıyla Türkçe konuş; arayüz metinleri Türkçe.
   (ayrıntı: `games/paldir-kuldur/README.md`).
 - **Uçan Roadster** (`games/ucan-roadster/`) ES modülleriyle yazılmış kaynak kodu; testleri
   `node games/ucan-roadster/tools/bot.mjs` ve `endless-test.mjs`. Kayıt anahtarını ve kayıt biçimini koru.
+- **Sarsıntı Nakliyat** (`games/sarsinti-nakliyat/`) ES modülleriyle yazılmış kaynak kod; fizik motoru planck.js
+  `vendor/` içinde. Simülasyon (`src/sim/`) DOM'suz çalışır (bot Node'da koşar). Belgeler: `docs/TASARIM.md`
+  (oyun tasarımı) ve `docs/MIMARI.md` (sözleşmeler; ekip dosya sahipliği §2). Test: `node games/sarsinti-nakliyat/tools/bot.mjs --strict`
+  (`--matrix --determinism` ile tüm araçlar). Kayıt anahtarı `sarsinti.v1`; kayıt biçimini koru.
 
 ## Komutlar
 
 - `npm start` — yerel sunucu (http://localhost:8080)
 - `npm run check` — liste/klasör denetimi
-- `npm test` — denetim + Uçan Roadster otomatik pilot testleri (~40 sn)
+- `npm test` — denetim + Uçan Roadster otomatik pilot testleri + Sarsıntı Nakliyat botu (`--strict`) (~1 dk)
 - `npm run cover -- <id> [--wait ms] [--click seçici] [--hide seçici] [--webgl]` — kapak çekimi

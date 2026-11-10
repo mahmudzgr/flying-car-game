@@ -33,4 +33,12 @@ export const GAMES = [
     accent: '#ffb43a',
     orientation: 'landscape',
   },
+  {
+    id: 'sarsinti-nakliyat',
+    title: 'Sarsıntı Nakliyat',
+    tagline: 'Kargonu devirme, kafanı da vurma! Çamurda, buzda, sallanan köprülerde yaylı süspansiyonla sür; yumurtadan piyanoya her yükü sağ salim teslim et.',
+    tags: ['Fizik', 'Araba', 'Kargo', '16 bölüm'],
+    accent: '#19b5a5',
+    orientation: 'landscape',
+  },
 ];
