@@ -1,7 +1,7 @@
 // Sarsıntı Nakliyat — simülasyon çekirdeği. DOM/window/canvas/audio KULLANMAZ (Node'da çalışır).
 // Sözleşme: docs/MIMARI.md §4 (Sim API), §5 (Snapshot), §6 (Olaylar).
 import * as pl from '../../vendor/planck.mjs';
-import { SIM, CAT, CARGO, CARGO_LOSS, CARGO_SLIDE, DRIVER, ENDLESS, OBJECTS, RULES, SCORING, SURFACES, WHEELSPIN_SLIP, VEHICLES } from '../config.js';
+import { SIM, CAT, CARGO, CARGO_LOSS, CARGO_SLIDE, CARGO_STACK_MAX, DRIVER, ENDLESS, OBJECTS, RULES, SCORING, SURFACES, WHEELSPIN_SLIP, VEHICLES } from '../config.js';
 import { createBus } from './bus.js';
 import { buildTerrain, heightAt, topNear } from './terrain.js';
 import { effectiveVehicle } from './upgrades.js';
@@ -77,7 +77,7 @@ export function createSim(opts) {
     cargoSeq += items.length;
     const order = [...items.slice(0, cfg.capacity)].sort((a, b) => (CARGO[a.type].shape === 'circle' ? 0 : 1) - (CARGO[b.type].shape === 'circle' ? 0 : 1) || a.idx - b.idx);
     if (items.length > cfg.capacity) warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`);
-    const made = [];
+    const made = []; let skipped = 0;
     for (const it of order) {
       const def = CARGO[it.type];
       const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
@@ -88,11 +88,16 @@ export function createSim(opts) {
         const dx = (k + 0.5 - span / 2) * RES, q = Math.sqrt(Math.max(0, def.r * def.r - dx * dx));
         return [def.r - q, def.r + q];
       };
-      let bestX = 0, bestY = Infinity;
+      let bestX = 0, bestY = Infinity, bestScore = Infinity;
       for (let x0 = 0; x0 + span <= cols; x0++) {
-        let yb = bay.floorY;
-        for (let k = 0; k < span; k++) yb = Math.max(yb, sky[x0 + k] - prof(k)[0]);
-        if (yb < bestY - 1e-9) { bestY = yb; bestX = x0; }
+        let yb = bay.floorY, lo = Infinity;
+        for (let k = 0; k < span; k++) { yb = Math.max(yb, sky[x0 + k] - prof(k)[0]); lo = Math.min(lo, sky[x0 + k] - prof(k)[0]); }
+        // kutu, yuvarlakların tepesine/eşit olmayan yüzeye oturmasın (devrilir): zemin eşitsizliği cezalı seçilir; yuvarlak için ceza yok
+        const score = yb + (def.shape === 'box' ? 1.5 * (yb - lo) : 0);
+        if (score < bestScore - 1e-9) { bestScore = score; bestY = yb; bestX = x0; }
+      }
+      if (bestY + h > bay.floorY + (bay.stackMax ?? CARGO_STACK_MAX)) {   // yığın çok yükseğe çıkıyor (devrilir/uçar): yerleştirilmez
+        warnings.push(`Kasa dolu: ${it.type} yerleştirilmedi (yığın yüksekliği sınırı).`); skipped++; continue;
       }
       for (let k = 0; k < span; k++) sky[bestX + k] = bestY + prof(k)[1] + 0.01;
       const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
@@ -120,7 +125,7 @@ export function createSim(opts) {
   const objects = [];   // dinamik/tetikli nesneler
   const coins = [];
   const hints = (level.hints ?? []).filter((h) => !cpOpt || h.x > spawnX).map((h) => ({ ...h, shown: false }));
-  const props = createProps({ world, ground, terr, track, objects, warnings, spawnX, emit: (n, d) => emit(n, d), loseCargo: (c, r) => lose(c, r) });
+  const props = createProps({ world, ground, terr, track, objects, warnings, spawnX, topSpeed: cfg.maxWheelSpeed * (cfg.wheels.find((w) => w.driven)?.r ?? cfg.wheelR), emit: (n, d) => emit(n, d), loseCargo: (c, r) => lose(c, r) });
   function buildObject(o) {
     const gy = heightAt(terr, o.x);
     switch (o.type) {

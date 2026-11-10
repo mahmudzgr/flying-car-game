@@ -5,6 +5,7 @@
 //   node tools/bot.mjs [bölümId ...] [--vehicle tosun|zipir|pasa|koca] [--matrix] [--speed m/s] [--max sn]
 //                      [--determinism] [--strict] [--json]
 //   --matrix       : seçili bölümler × tüm araçlar tablosu (varsayılan: yalnız Tosun)
+//   --flip         : takla stratejisi: yeterli hava süresi olan atlayışlarda geri takla atar (takla ★ hedeflerinin ulaşılabilirliğini kanıtlar)
 //   --determinism  : her koşuyu iki kez sürüp sonuçların aynı olduğunu doğrular
 //   --strict       : Tosun ile bir kampanya bölümü bitmezse ya da determinizm bozulursa çıkış kodu 1
 //   --template ad [--d 0.5] [--biome kanyon] [--runs K] [--seed N] : tek Uzun Yol şablonunu K tohumla dener (ayar laboratuvarı); ad: 
@@ -30,6 +31,13 @@ function slopeAt(st, x) {
   const { xs, ys } = st.terrain;
   for (let i = 0; i < xs.length - 1; i++) if (xs[i] < xs[i + 1] && x >= xs[i] && x <= xs[i + 1]) return Math.atan2(ys[i + 1] - ys[i], xs[i + 1] - xs[i]);
   return 0;
+}
+
+/** Zemin yüksekliği (üst yüzey), x'te. */
+function groundY(st, x) {
+  const { xs, ys } = st.terrain;
+  for (let i = Math.max(0, lowerBound(xs, x) - 1); i < xs.length - 1; i++) if (xs[i] < xs[i + 1] && x >= xs[i] && x <= xs[i + 1]) return ys[i] + (ys[i + 1] - ys[i]) * (x - xs[i]) / (xs[i + 1] - xs[i]);
+  return null;
 }
 
 /** xs (azalmayan) içinde x'ten büyük-eşit ilk indeks. */
@@ -82,9 +90,27 @@ export function autopilot(snap, st, plan) {
     if (sf === 'ice') target = Math.min(target, 9);
     else if (sf === 'sand' || sf === 'mud') target = Math.max(target, plan.speed + 2);
   } else if (!gaps) gaps = plan.gaps = findGaps(st);
-  for (const g of gaps) if (x < g.x && x > g.x - 45) target = Math.max(target, Math.min(plan.jumpSpeed, 6 + (plan.endless ? 1.3 : 1.1) * g.w));   // çukura tam hızla gir
+  for (const g of gaps) if (x < g.x && x > g.x - 45) target = Math.max(target, plan.flip ? plan.jumpSpeed : Math.min(plan.jumpSpeed, 6 + (plan.endless ? 1.3 : 1.1) * g.w));   // çukura tam hızla gir
   const fwd = v.vx;
   let throttle = fwd < target ? 1 : 0, brake = fwd > target + 1.5 ? 1 : 0;
+  if ((v.airborne || (plan.flip && v.wheels.every((w) => !w.onGround))) && plan.flip) {   // --flip: yeterli hava süresi varsa geri takla (gaz), sonra frenle durdur ve eğimle hizala
+    const f = plan.air ?? (plan.air = { on: false });
+    if (!f.on) {   // havalanma anı: karar ver
+      f.on = true; f.acc = 0; f.last = v.a; f.spin = false; f.done = false;
+      const g = 9.81, ay = (VEHICLES[plan.vehicleId].airTorque / VEHICLES[plan.vehicleId].inertia) * 0.85;   // pratik açısal ivme
+      let t = 0.6; for (let k = 0; k < 4; k++) { const gy = groundY(st, v.x + v.vx * t); if (gy == null) break; const disc = v.vy * v.vy + 2 * g * (v.y - 0.75 - gy); t = disc < 0 ? 0 : (v.vy + Math.sqrt(disc)) / g; }
+      if (process.env.FLIPDBG) console.error("air", plan.vehicleId, "x", v.x.toFixed(0), "vx", v.vx.toFixed(1), "vy", v.vy.toFixed(1), "t", t.toFixed(2), "w", v.w.toFixed(2));
+      f.t = t; f.spin = t * t * ay * 0.5 + v.w * t > 2 * Math.PI - 0.6 && t > 0.9;
+      if (process.env.FLIPDBG) console.error('  ay', ay.toFixed(1), 'spin', f.spin);
+    }
+    f.acc += wrap(v.a - f.last); f.last = v.a;
+    if (process.env.FLIPDBG && f.spin) console.error('   acc', f.acc.toFixed(2), 'w', v.w.toFixed(1), 'x', v.x.toFixed(0), 'y', v.y.toFixed(1));
+    if (f.spin && !f.done && f.acc >= 2 * Math.PI - 0.55) f.done = true;
+    if (f.spin && !f.done) return { throttle: 1, brake: 0 };
+    const want = slopeAt(st, x + Math.max(0, v.vx) * 0.6), err = wrap(v.a - want - (f.spin ? 2 * Math.PI * Math.round(f.acc / (2 * Math.PI)) : 0));
+    return { throttle: err < -0.12 - v.w * 0.1 ? 1 : 0, brake: err > 0.12 - v.w * 0.1 ? 1 : 0 };
+  }
+  if (!v.airborne && plan.air && !(plan.flip && v.wheels.every((w) => !w.onGround))) plan.air.on = false;
   if (v.airborne) {
     const want = slopeAt(st, x + Math.max(0, v.vx) * 0.6);
     const err = wrap(v.a - want);
@@ -94,9 +120,9 @@ export function autopilot(snap, st, plan) {
   return { throttle, brake };
 }
 
-export function runLevel(level, { vehicleId = 'tosun', speed, maxTime = 180 } = {}) {
+export function runLevel(level, { vehicleId = 'tosun', speed, maxTime = 180, flip = false } = {}) {
   const sim = createSim({ level, vehicleId, upgrades: {}, settings: { assistLanding: true } });
-  const plan = { speed: speed ?? level.bot?.vehicles?.[vehicleId]?.speed ?? level.bot?.speed ?? Math.min(12, VEHICLES[vehicleId].maxWheelSpeed * VEHICLES[vehicleId].wheelR * 0.6), zones: level.bot?.zones, jumpSpeed: level.bot?.jumpSpeed ?? 18, endless: !!level._tpl, vehicleId };
+  const plan = { speed: speed ?? level.bot?.vehicles?.[vehicleId]?.speed ?? level.bot?.speed ?? Math.min(12, VEHICLES[vehicleId].maxWheelSpeed * VEHICLES[vehicleId].wheelR * 0.6), zones: level.bot?.zones, jumpSpeed: flip ? 30 : level.bot?.jumpSpeed ?? 18, endless: !!level._tpl, vehicleId, flip };
   const ev = {};
   sim.on('*', (e) => { ev[e.name] = (ev[e.name] ?? 0) + 1; });
   let snap = sim.snapshot();
@@ -165,6 +191,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     else if (argv[i] === '--d') opt.d = +argv[++i];
     else if (argv[i] === '--biome') opt.biome = argv[++i];
     else if (argv[i] === '--runs') opt.runs = +argv[++i];
+    else if (argv[i] === '--flip') opt.flip = true;
     else if (argv[i].startsWith('--')) flags.add(argv[i].slice(2));
     else ids.push(argv[i]);
   }
@@ -215,7 +242,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       if (!ok && CAMPAIGN.includes(lv) && vehicleId === 'tosun') hardFail++;
       rows.push({ ...r, ok });
       if (flags.has('json')) continue;
-      console.log(`${ok ? 'OK  ' : 'FAIL'} ${r.id.padEnd(9)} ${vehicleId.padEnd(6)} hedef ${String(r.target.toFixed?.(0) ?? r.target).padStart(2)} m/s  ${String(r.reason).padEnd(10)} ${r.time.toFixed(1).padStart(5)} sn  ★${r.stars}  skor ${String(r.score).padStart(5)}  kargo ${r.cargoDelivered}/${r.cargoTotal}${r.warnings.length ? '  uyarı: ' + r.warnings.join('; ') : ''}${det}`);
+      console.log(`${ok ? 'OK  ' : 'FAIL'} ${r.id.padEnd(9)} ${vehicleId.padEnd(6)} hedef ${String(r.target.toFixed?.(0) ?? r.target).padStart(2)} m/s  ${String(r.reason).padEnd(10)} ${r.time.toFixed(1).padStart(5)} sn  ★${r.stars}  skor ${String(r.score).padStart(5)}  kargo ${r.cargoDelivered}/${r.cargoTotal}  takla ${r.flips ?? 0}${r.warnings.length ? '  uyarı: ' + r.warnings.join('; ') : ''}${det}`);
     }
   }
   if (flags.has('json')) console.log(JSON.stringify(rows.map(({ events, ...r }) => r), null, 1));

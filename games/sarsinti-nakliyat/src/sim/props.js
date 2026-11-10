@@ -59,7 +59,7 @@ export function createProps(ctx) {
       const r = o.r ?? PROPS.snowball.r;
       const body = world.createBody({ type: 'kinematic', position: V(terr.startX - 14, terr.startY ?? 0) });
       body.createFixture(pl.Circle(V(0, 0), r), { friction: 0.5, filterCategoryBits: CAT.object, filterMaskBits: CAT.wheel | CAT.chassis | CAT.cargo | CAT.driver, userData: { k: 'obj' } });
-      const ob = { id: id('snowball'), type: 'snowball', body, r, trig: o.trigger?.x ?? ctx.spawnX + 2, behind: o.behind ?? PROPS.snowball.behind, v0: o.v0 ?? PROPS.snowball.v0, v1: o.v1 ?? PROPS.snowball.v1, ramp: o.ramp ?? PROPS.snowball.ramp, triggered: false, t: 0, x: 0, near: false };
+      const ob = { id: id('snowball'), type: 'snowball', body, r, trig: o.trigger?.x ?? ctx.spawnX + 2, behind: o.behind ?? PROPS.snowball.behind, v0: Math.min(o.v0 ?? PROPS.snowball.v0, ctx.topSpeed * PROPS.snowball.maxTopFrac), v1: Math.min(o.v1 ?? PROPS.snowball.v1, ctx.topSpeed * PROPS.snowball.maxTopFrac), ramp: o.ramp ?? PROPS.snowball.ramp, triggered: false, t: 0, x: 0, near: false };
       ob.pose = track(body, { w: 0, h: 0, r });
       objects.push(ob); snowballs.push(ob);
     },

@@ -49,30 +49,30 @@ export const VEHICLES = {
     id: 'tosun', name: 'Tosun', kind: 'Pikap', implemented: true,
     unlock: { stars: 0, coins: 0 },
     stats: { speed: 3, traction: 3, balance: 3, capacity: 3, air: 3 },
-    mass: 1100, comY: 0.25,               // comY: kütle merkezinin kutu merkezine göre kayması. Yüksek KM (≈1 m) = gerçek ağırlık aktarımı: gazda ~3°, frende ~6° eğim
+    mass: 1100, comY: 0.10,               // comY: kütle merkezinin kutu merkezine göre kayması (eski -0,12). KM biraz yüksek + yumuşak yay = gerçek ağırlık aktarımı (gazda ~3°, frende ~7°); daha yükseği (0,25) nehir kütüklerinde burun-üstü devrildi (3-3)
     inertia: 1350,                        // kg·m² (TASARIM §4.2 hava torku kontrolü)
     // Şasi parçaları (fizik fikstürü + çizim ipucu). role: body | cab | roof | rail
     parts: [
       { part: 'chassis', x: 0,     y: 0,    w: 3.6, h: 0.9 },
       { part: 'cab',     x: 1.2,   y: 0.9,  w: 1.0, h: 0.9 },
       { part: 'roof',    x: 1.2,   y: 1.4,  w: 0.9, h: 0.1 },
-      { part: 'chassis', x: -1.75, y: 0.68, w: 0.1, h: 0.46 },  // arka kapak (kenarlık)
+      { part: 'chassis', x: -1.75, y: 0.80, w: 0.1, h: 0.70 },  // arka kapak (kenarlık); 0,46→0,70: yuvarlak/yığın kargo normal gazda üstünden aşmasın
     ],
     wheels: [
-      { id: 'rear',  x: -1.25, y: -0.50, driven: true },   // y: yumuşak yay (1,0 Hz) daha çok çöker; dingil, çökme sonrası eski konumda dursun diye 15 cm aşağıda
-      { id: 'front', x: 1.25,  y: -0.50, driven: false },
+      { id: 'rear',  x: -1.25, y: -0.59, driven: true },   // y: yumuşak yay (0,95 Hz) daha çok çöker; çökme sonrası dingil eski yerinde (≈-0,25) dursun diye 24 cm aşağıda
+      { id: 'front', x: 1.25,  y: -0.59, driven: false },
     ],
     wheelR: 0.38, wheelMass: 35,
-    freqHz: 1.0, zeta: 0.42, travel: [-0.20, 0.20],
-    motorTorque: 1500, maxWheelSpeed: 52, brakeTorque: 3500, brakeFront: 0.6,
-    airTorque: 9000, airMaxW: 9, grip: 1.0, drag: 0.55,
+    freqHz: 0.95, zeta: 0.5, travel: [-0.24, 0.24],
+    motorTorque: 1550, maxWheelSpeed: 52, brakeTorque: 3500, brakeFront: 0.6,
+    airTorque: 11000, airMaxW: 9.5, grip: 1.0, drag: 0.55,
     capacity: 6,
     bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.46 },          // kargo bölmesi (şasi yerel)
     seat: { x: 1.15, y: 0.8 },                                     // sürücü gövdesi merkezi (şasi yerel)
   },
   zipir: {
     id: 'zipir', name: 'Zıpır', kind: 'Bagi', implemented: true,
-    unlock: { stars: 12, coins: 1100 },
+    unlock: { stars: 12, coins: 1300 },
     stats: { speed: 5, traction: 4, balance: 2, capacity: 1, air: 5 },
     mass: 600, comY: -0.1, inertia: 520,
     parts: [
@@ -89,14 +89,14 @@ export const VEHICLES = {
     wheelR: 0.42, wheelMass: 25,
     freqHz: 2.6, zeta: 0.35, travel: [-0.22, 0.22],
     motorTorque: 1100, maxWheelSpeed: 62, brakeTorque: 2400,
-    airTorque: 3200, airMaxW: 9, grip: 0.95, drag: 0.35,
+    airTorque: 3600, airMaxW: 9, cage: 1.4, grip: 0.95, drag: 0.35,
     capacity: 3,
     bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.5 },
     seat: { x: 0.65, y: 0.7 },
   },
   pasa: {
     id: 'pasa', name: 'Paşa', kind: 'Traktör + römork', implemented: true,
-    unlock: { stars: 22, coins: 2200 },
+    unlock: { stars: 22, coins: 2500 },
     stats: { speed: 1, traction: 5, balance: 4, capacity: 4, air: 1 },
     mass: 1500, comY: -0.2, inertia: 1100,
     parts: [
@@ -128,7 +128,7 @@ export const VEHICLES = {
   },
   koca: {
     id: 'koca', name: 'Koca', kind: 'Kamyon', implemented: true,
-    unlock: { stars: 34, coins: 3600 },
+    unlock: { stars: 34, coins: 4000 },
     stats: { speed: 2, traction: 4, balance: 5, capacity: 5, air: 1 },
     mass: 3200, comY: -0.25, inertia: 10000,
     parts: [
@@ -143,7 +143,7 @@ export const VEHICLES = {
       { id: 'rear2', x: -2.8, y: -0.50, driven: true },
     ],
     wheelR: 0.55, wheelMass: 80,
-    freqHz: 1.3, zeta: 0.80, travel: [-0.12, 0.14], motorTorque: 4300, maxWheelSpeed: 27, brakeTorque: 12500,
+    freqHz: 1.3, zeta: 0.80, travel: [-0.12, 0.14], motorTorque: 4800, maxWheelSpeed: 27, brakeTorque: 12500,
     airTorque: 12000, airMaxW: 2.5, grip: 1.05, drag: 0.90, capacity: 10,
     bay: { x0: -2.9, x1: 1.2, floorY: 0.65, rail: 0.7 },
     seat: { x: 2.1, y: 1.15 },
@@ -166,31 +166,33 @@ export const DRIVER = {
 
 /** Kargo türleri (TASARIM §4.4). `bayMu` = kargo–araç (kasa tabanı/duvar) etkin sürtünmesi; gerçekçi tahta/metal ≈ 0,3–0,45 → kargo sert frende kayar (sim pre-solve'da uygulanır). shape: 'box' (w,h) | 'circle' (r). */
 export const CARGO = {
-  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.40, hp: 1, hitSpeed: Infinity, value: { base: 20, perHp: 0 } },
+  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.44, hp: 1, hitSpeed: Infinity, value: { base: 20, perHp: 0 } },
   watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 9, value: { base: 25, perHp: 0 } },
-  eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 3, restitution: 0.1, friction: 0.5, bayMu: 0.26, hp: 6, hitSpeed: 4.0, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
-  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.36, hp: 1, hitSpeed: Infinity, value: { base: 22, perHp: 0 } },
+  eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 3, restitution: 0.1, friction: 0.5, bayMu: 0.34, hp: 6, hitSpeed: 3.6, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
+  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.40, hp: 1, hitSpeed: Infinity, value: { base: 22, perHp: 0 } },
   piano:      { id: 'piano',      name: 'Piyano',        shape: 'box', w: 1.5, h: 1.1, mass: 180, restitution: 0.1,  friction: 0.6, bayMu: 0.45, hp: 2, hitSpeed: 8, value: { base: 0, perHp: 75 } }, // hp 1 = "kırık" (%50)
   bale:       { id: 'bale',       name: 'Balya',         shape: 'circle', r: 0.45,  mass: 40,  restitution: 0.05, friction: 0.9, bayMu: 0.7, hp: 1, hitSpeed: Infinity, value: { base: 18, perHp: 0 } },
 };
 /** Kargo kaybı kuralları (TASARIM §4.4). */
 /** cargoSlide olayı (ses): kasa tabanında kayma hızı eşiği (m/s) ve en sık yayma aralığı (sn, kargo başına). */
 export const CARGO_SLIDE = { speed: 0.8, every: 0.15 };
+/** Kasa yığın üst sınırı (kasa zemininden, m): daha yükseğe çıkacak kargo yerleştirilmez (sim.warnings'e yazılır). Araca özel: `bay.stackMax`. */
+export const CARGO_STACK_MAX = 1.75;
 export const CARGO_LOSS = { behindDist: 8, restTime: 2, restDist: 4, deliverRadius: 6 };
 
 /** Engel/nesne türleri (TASARIM §4.4). */
 export const OBJECTS = {
   barrel: { w: 0.6, h: 0.9, mass: 12, friction: 0.3, restitution: 0.1 },
   rock:   { mass: 600, friction: 0.8, restitution: 0.1 },        // r bölüm verisinden
-  coin:   { r: 0.25, value: 5 },
+  coin:   { r: 0.25, value: 2 },
   plank:  { w: 1.0, h: 0.2, mass: 30 },                          // köprü tahtası
   seesaw: { len: 8.0, h: 0.3, mass: 200, limit: 0.45, rest: 0.12, damping: 2.0 },   // rest: sol uç yerdeyken eğim (rad); zemin teması gerçek aralığı belirler
 };
 
 /** Köprü, kar topu, su, kütük ayarları (TASARIM §4.4, §7). */
 export const PROPS = {
-  bridge: { weakForce: 12000 },  // N: zayıf tahtaya binen temas kuvveti tepesi bu değeri aşarsa tahta kopar (yavaş: ~9,5 kN, hızlı: ~17 kN)
-  snowball: { r: 1.6, behind: 14, v0: 6, v1: 12, ramp: 40 },     // kovalayan top: başlangıç/son hız (m/s), ramp sn
+  bridge: { weakForce: 15000 },  // N: zayıf tahtaya binen temas kuvveti tepesi bu değeri aşarsa tahta kopar (yavaş: ~9,5 kN, hızlı: ~17 kN)
+  snowball: { r: 1.6, behind: 14, v0: 6, v1: 12, ramp: 40, maxTopFrac: 0.9 },   // maxTopFrac: top hızı aracın tepe hızının bu oranını geçmez (yavaş araç Paşa'da kaçılabilir kalsın; Tosun/Zıpır için etkisiz)     // kovalayan top: başlangıç/son hız (m/s), ramp sn
   // Yüzen kütük: arcade "su" — yoğunluk gerçekçi (1000) değil; kütük araç ağırlığında çok batmasın. tether: yatay yay (N/m), dragX/dragY: sönüm (N·sn/m), angDamp: dönme sönümü.
   log: { w: 4.0, h: 0.9, mass: 360, tether: 40000, dragX: 600, dragY: 10000, angDamp: 1.5 },
   // density 6000: kütük araç ağırlığında ~1 cm batar (ölçüm: Tosun/Zıpır 4–10 m/s, Koca 5–7, Paşa ≥8 m/s geçer). below: su yüzeyi kıyıdan bu kadar aşağıda (kütük üstü kıyının ~0,1 m altında durur).
@@ -223,12 +225,12 @@ export const SCORING = {
 
 /** Ekonomi (TASARIM §8.3–8.4, §5). */
 export const ECONOMY = {
-  starBonus: [40, 80, 150],       // ★1/★2/★3 ilk kazanış
+  starBonus: [15, 30, 55],        // ★1/★2/★3 ilk kazanış (ölçüm: bot Tosun, 16 bölüm ≈5300 kuruş; ilk 8 bölüm ≈2100)
   repeatFactor: 0.5,
-  scoreToCoins: 20, coinsCap: 300,
-  pickupCoin: 5,
+  scoreToCoins: 60, coinsCap: 300,
+  pickupCoin: 2,                  // (bilgi; gerçek değer OBJECTS.coin.value)
   startCoins: 0,
-  upgradeCost: [100, 180, 300, 480],   // kademe 1..4
+  upgradeCost: [130, 230, 390, 620],   // kademe 1..4 (hat başına 1370; 3 hat 4110)
   upgradeMaxLevel: 4,
   resetRefund: 1.0,
 };
@@ -236,8 +238,8 @@ export const UPGRADE_LINES = ['motor', 'suspansiyon', 'lastik'];
 /** Kademe başına etki (TASARIM §8.4). upgrades.js uygular. */
 export const UPGRADE_EFFECT = {
   motor:       { torque: 0.10, speed: 0.03 },
-  suspansiyon: { freq: 0.04, zeta: 0.05, travel: 0.06 },
-  lastik:      { grip: 0.05, softRolling: -0.07 },   // softRolling: kum/çamurda yuvarlanma direnci
+  suspansiyon: { freq: 0.04, zeta: 0.05, travel: 0.10 },
+  lastik:      { grip: 0.08, softRolling: -0.12 },   // softRolling: kum/çamurda yuvarlanma direnci
 };
 
 /** Bölgeler (TASARIM §7). */
@@ -271,7 +273,7 @@ export const ENDLESS = {
   difficultyScale: 1500,  // zorluk = 1 − e^(−mesafe/ölçek)
   cargoStart: 3,          // ilk yükte kargo sayısı; her `cargoStep` teslimde +1 (araç kapasitesine kadar)
   cargoStep: 2,
-  payFactor: 1,           // teslim kuruşu = sağlam kargo değeri × payFactor
+  payFactor: 0.55,        // teslim kuruşu = sağlam kargo değeri × payFactor (5 dk Tosun botu: 1650–2360 → ~900–1300; kampanya saat başı gelirinin altında)
   deliveredLinger: 1.5,     // teslim edilen kargo gövdesi bu kadar sn sonra yok edilir
   lostLinger: 3,          // kaybedilen kargo gövdesi bu kadar sn sonra (ya da arkada kalınca) yok edilir
   goneDelay: 0.8,         // son kargo kaybından 'cargoGone' bitişine (sn)

@@ -70,6 +70,7 @@ import { createSim } from './sim/sim.js';
  * @param {{motor?:number,suspansiyon?:number,lastik?:number}} [opts.upgrades]   kademe 0..4 (save.vehicles[id].up)
  * @param {{assistLanding?:boolean}} [opts.settings]
  * @param {number} [opts.bestScore]           levelStart olayına geçer
+ * @param {number} [opts.bestDistance]        Uzun Yol rekoru (m): `newRecord` olayı ve `levelEnd.newBest` için (main.js `save.data.endless.bestDistance` geçirir)
  * @param {{x:number,time:number}} [opts.checkpoint]   kontrol noktasından yeniden doğma: araç x'te başlar, saat `time`'dan sürer; önceki nesne/ipuçları atlanır; ★3 verilmez (`levelEnd.usedCheckpoint`)
  * @returns {Sim}
  */
@@ -93,6 +94,7 @@ createSim(opts);
 - **Sıfırlama = `destroy()` + yeni `createSim()`** (senkron, ≈ birkaç ms; "yeniden dene <0,4 sn" bütçesi içinde). Kurulumda araç 0,5 sn "saat durmuşken" yere oturtulur; olay yayılmaz.
 - Olaylar `step()` **sonunda** sırayla dağıtılır (dinleyici sim'i değiştiremez/değiştirmemeli). Dinleyici hataları yakalanıp konsola yazılır.
 - Hız birimi snapshot'ta **m/s**; HUD km/s için `×3.6`.
+- Uzun Yol `levelEnd.newBest` (bool): mesafe `opts.bestDistance`ı aştı mı.
 - Başarısızlık/bitiş kuralları (kafa vuruşu, ters kalma, uçurum/çukur, süre, kargo yetersiz) sim içindedir (`levelEnd.reason`).
 
 ### Giriş (`src/input.js`)
@@ -178,7 +180,9 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | `flip` | `{count, direction:'back'\|'front', airTime}` | her tamamlanan 360°'de (havada) |
 | `wheelie` | `{duration}` | bitince (≥1 sn) |
 | `bodyHit` | `{speed, part:'roof'\|'cab'\|'chassis', normal:{x,y}}` | >2 m/s |
-| `cargoHit` | `{id, type, speed, damage}` | >1,5 m/s |
+| `cargoHit` | `{id, type, speed, damage, wall}` | >1,5 m/s; `wall:true` = kasa ön/arka duvarına (yatay normal) çarpma |
+| `cargoSlide` | `{id, type, speed}` | kargo kasa tabanında araca göre >0,8 m/s kayarken, kargo başına ≤1/0,15 sn (başlangıçta hemen) |
+| `newRecord` | `{distance}` | Uzun Yol: koşu rekor mesafeyi (`createSim opts.bestDistance`, >0 ise) aşınca bir kez |
 | `cargoDamage` | `{id, type, hpLeft}` | |
 | `cargoLost` | `{id, type, reason:'fell'\|'water'\|'broke'\|'left'}` | |
 | `cargoDelivered` | `{id, type, value, hpLeft}` | bitiş çizgisinde |
@@ -186,7 +190,7 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | `comboBank` | `{points, multiplier}` | |
 | `comboBurn` | `{reason, lostPoints}` | `badLanding` `cargoLost` `headHit` `bodyHit` |
 | `coin` | `{value, pos}` | |
-| `driverEject` | `{headSpeed, pos}` | ragdoll başlar |
+| `driverEject` | `{headSpeed, pos, cause?}` | ragdoll başlar; `cause:'roofImpact'` (ters iken tavan sert vurdu) \| `'roofHold'` (tavan üstünde ≥0,8 sn) \| yok = doğrudan kafa vuruşu |
 | `crash` | `{reason, pos}` | başarısızlığın nedeni |
 | `bridgeStress` | `{id, stress:0..1}` | zayıf tahtaya binen yük / eşik; >0,4 iken ≤10 Hz |
 | `bridgeBreak` | `{id, pos}` | zayıf tahta kopar (eşik `PROPS.bridge.weakForce`: yavaş geçiş güvenli, hızlı/sıçrayarak kopar) |
@@ -197,7 +201,7 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | `slowmo` | `{scale, duration, reason}` | `duration` **sim saniyesi**; gerçek süre = duration/scale (ör. 1 sn @0,35 ≈ 2,9 sn). Sim `timeScale`'i kendisi uygular |
 | `starEarned` | `{index:1..3}` | `levelEnd`'den sonra sırayla |
 | `purchase` / `upgrade` | `{item\|vehicleId+line, cost, level}` | UI yayar |
-| `toast` | `{text, icon}` | bölüm `hints`'inden; Uzun Yol'da teslimde de |
+| `toast` | `{text, icon}` | bölüm `hints`'inden; Uzun Yol'da teslimde de; ayrıca gaz/fren basılıyken 2,5 sn kıpırdamayınca "geri vites" ipucu (`RULES.stuckWarn`); `stuck` başarısızlığı 6 sn'de |
 | `delivery` | `{index, x, count, value, pay, total, intact, distance}` | **Uzun Yol**: teslim noktası geçildi (`pay` = bu teslimin kuruşu, `total` = koşudaki toplam) |
 | `biomeChange` | `{biome, x}` | **Uzun Yol**: araç yeni biyoma girdi (`static.biome` aynı anda değişir; müzik/gökyüzü geçişi) |
 | `terrainExtended` / `terrainTrimmed` | `{from,to,rev}` / `{to,rev}` | **Uzun Yol**: `static.terrain` dizileri yerinde uzadı/kısaldı; `static.terrainRev` arttı |
@@ -358,10 +362,14 @@ Uzun Yol: `--endless [--seed N] [--runs K] [--max sn] [--samples]` (K ardışık
 
 ## 13. Fizik ayar kararları ve bilinen sınırlar (Çekirdek)
 
-- **Süspansiyon:** WheelJoint yayı (planck 1.4'te yolculuk sınırı yok) + elle uç tamponu; frekans/sönüm sprung kütleden türetilir (`sim/vehicle.js`). Tosun 1,7 Hz (daha yumuşak: ağırlık aktarımı görünsün), Zıpır 2,6 Hz. `pitchGain`: gaz/fren torkunun şasiye ek yüzdesi (gazda burun kalkar, frende çöker; Tosun ±0,03–0,07 rad).
+- **Süspansiyon ve ağırlık aktarımı:** WheelJoint yayı (planck 1.4'te yolculuk sınırı yok) + elle uç tamponu; frekans/sönüm sprung kütleden türetilir (`sim/vehicle.js`). `pitchGain` yapay torku **kaldırıldı**: gövde eğimi yalnızca gerçek fizikten gelir. Tosun 0,95 Hz / ζ 0,5 / yolculuk ±0,24 m, kütle merkezi kutu merkezinin 0,10 m üstünde (+ dingil 24 cm aşağıda; yay çökünce tekerlek eski konumda durur): tam gazda ≈3°, tam frende ≈7° eğim, dip vurma yok (`tools/olcum.mjs tilt/brake`). Daha yüksek KM (0,25) nehir kütüklerinde (3-3) burun-üstü devrildi. Fren dağılımı `brakeFront` (Tosun 0,6 ön). Zıpır 2,6 Hz (sert, zıplayan) olarak kaldı.
 - **Kargo:** bölme "skyline" ile dizilir (yuvarlaklar arkaya, kutular öne; daireler arasına oturur), arka kapak yükseltildi, yuvarlak kargoya yuvarlanma sönümü. Normal sürüşte kargo kalır; sıçrayan tümsek/atlayış/sert inişte yumurta kırılır, kasa/karpuz düşebilir.
+- **Kargo kayması (Ayar):** kargo–araç sürtünmesi `CARGO[*].bayMu` (kasa 0,44, süt 0,40, yumurta 0,34, balya 0,7; sim pre-solve'da yalnızca kargo×şasi/duvar temaslarına uygulanır). Eşik ≈ bayMu·g·1,15 ≈ 4,5 m/s²: Tosun tam gazı (≈3,6) tutar, sert fren (≈7) kaydırır; kargo ön duvara (kabin) çarpar (`cargoHit.wall:true`), yumurta `hitSpeed` 3,6. Yuvarlak kargo serbest yuvarlanır (`roundCargoDamping` 0,5). Arka kapak (Tosun) 0,70 m. Kutu, yuvarlakların tepesine oturtulmaz (skyline düzlük cezası); yığın üst sınırı `CARGO_STACK_MAX` (1,75 m) aşılırsa kargo yerleştirilmez (`sim.warnings`). Yerleşme süresi `settleTime` 1,2 sn.
+- **Teslim gereksinimi ölçekleme:** araç kapasitesi bölüm yükünden küçükse (Zıpır 3) `minDelivered` ve `delivered{min}` ★ ölçütü yüklenen/istenen oranında ölçeklenir (`static.minDelivered` etkin değeri verir).
+- **Hava torku (bilinçli sapma):** gerçek eylemsizlikten bağımsız `airTorque` (Tosun 11000 N·m, tavan 9,5 rad/s → serbest düşüşte tam takla 1,43 sn). Kampanya rampalarındaki 0,6–1,2 sn hava takla için yetmez; takla ★ için ≥1,5 sn hava (bot: `--flip`) gerekir.
+- **Fren/yüzey:** `SURFACES` toprak 0,65 / çimen 0,58 / çakıl 0,62 (eskiden 0,8/0,7/0,75): Tosun 50 km/sa asfalt 13,7, toprak 14,9, çimen 15,9 m; buz ≈79 m.
 - **Yumuşak zemin:** `SURFACES[*].sink` hızla orantılı batma sürüklemesi (kum ≈ 8 m/s, çamur ≈ 6,5 m/s Tosun tepe hızı). Patinaj buzda belirgin (Tosun ≈ 5 m/s'de takılır).
-- **Kafa vuruşu:** sürücü kabin içinde (tavan üstünde değil); eşik 6 m/s göreli normal hız; normal inişlerde (12–16 m/s atlayış) tetiklenmedi.
+- **Kafa vuruşu:** kafa kabin tavanının altında olduğundan doğrudan nadir; iki kural eklendi (`DRIVER.roof*`): (1) araç ters (|açı|>1,9 rad) iken kabin/tavan zemine `roofCrushSpeed` (5,5 m/s; Zıpır'da `cage` ×1,4) üstü hızla vurursa, (2) ters + tavan zeminde `roofHold` (0,8 sn) kalırsa `driverEject` (`cause:'roofImpact'|'roofHold'`) → ragdoll + yavaş çekim + `headHit` başarısızlığı. Düz iniş (8 m'ye kadar) ve rampa atlayışlarında yanlış pozitif yok (`tools/olcum.mjs`/kampanya botu). Doğrudan kafa-yer temas kuralı (6 m/s) duruyor.
 - **Determinizm:** sabit adım, Math.random yok; `bot --determinism` aynı sonuç verir (kampanya × 4 araç).
 - Römork: Paşa'da `hitchLimit` 0,9 rad (jackknife sınırı). Paşa atlayışlı bölümlerde (2-4) düşer: tasarım gereği "Hava 1".
 - Yok: tahterevalli+köprü için ayrı kilit/ayar arayüzü; kar topu yalnızca düz kinematik takip (zemini izler).
@@ -373,7 +381,7 @@ Uzun Yol: `--endless [--seed N] [--runs K] [--max sn] [--samples]` (K ardışık
 
 ## 14. Uzun Yol (sonsuz mod)
 
-**Giriş:** `createSim({ endless:{seed}, vehicleId, upgrades, settings, bestScore })` (level verilmez; üreteç `data/endless.js` verir). `main.js`: `flow.startEndless(vehicleId, seed?)`, `flow.mode` (`'level'|'endless'`); `retry()` yeni tohumla yeniden başlatır. Sonuç: `ui.show('result', { result, reward, level, mode:'endless', endless:{seed, newBestDistance, newBestScore, prev} })`; kayıt `save.data.endless {bestDistance, bestScore, runs}`, kuruş `reward.total = pay + pickups`, `stats` güncellenir.
+**Giriş:** `createSim({ endless:{seed}, vehicleId, upgrades, settings, bestScore, bestDistance })` (level verilmez; üreteç `data/endless.js` verir). `main.js`: `flow.startEndless(vehicleId, seed?)`, `flow.mode` (`'level'|'endless'`); `retry()` yeni tohumla yeniden başlatır. Sonuç: `ui.show('result', { result, reward, level, mode:'endless', endless:{seed, newBestDistance, newBestScore, prev} })`; kayıt `save.data.endless {bestDistance, bestScore, runs}`, kuruş `reward.total = pay + pickups`, `stats` güncellenir.
 
 **Üretim (`data/endless.js`, tohumlu mulberry32, Math.random yok):** 40–80 m'lik parçalar; şablonlar: bumpRun, hillRoll, kicker (rampa+iniş), rampGap (dar çukur), bridge (zayıf tahtalı köprü), barrels, seesaw, softPatch (çamur/kum/kar/çimen), sandDunes, icePatch (zirve), steepHill, waterLogs (bataklık). Zorluk `1−e^(−m/1500)`: tümsek yüksekliği, çukur genişliği, zayıf tahta sayısı, kargo sayısı artar; her şablonun `minD` eşiği ve biyom listesi vardır, ağır (heavy) parçalar art arda gelmez. Biyom her 400 m'de (`elma→kanyon→bataklik→zirve→…`), teslim noktası her ~150 m'de (18 m asfalt düzlük + bayrak = `static.finishX` sıradaki teslim). Her şablon yükseklik farkını sıfırlar.
 
