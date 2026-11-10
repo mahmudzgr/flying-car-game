@@ -1,7 +1,8 @@
 // Oyun içi HUD: ilerleme, kargo, süre, hız, kombo, kuruş, bildirimler, ipucu. Sahip: Arayüz.
 // hudUpdate her karede çağrılır → DOM yalnızca değer değişince güncellenir.
 import { esc, coin, pauseIcon, cargoIcon, hintIcon, flag } from './icons.js';
-import { fmtClock, failInfo, CARGO_PLURAL } from './texts.js';
+import { SCORING } from '../config.js';
+import { fmtClock, failInfo, CARGO_PLURAL, BIOME_NAMES, fmtNum } from './texts.js';
 
 const RING = 2 * Math.PI * 17;
 
@@ -10,7 +11,7 @@ export function createHud(ctx) {
   el.className = 'hud';
   el.setAttribute('aria-label', 'Oyun göstergeleri');
   el.innerHTML = `
-    <div class="hud-tl"><div class="hud-cargo" id="h-cargo" aria-label="Kargo"></div><div class="hud-time" id="h-time">0:00.0</div></div>
+    <div class="hud-tl"><div class="hud-cargo" id="h-cargo" aria-label="Kargo"></div><div class="hud-time" id="h-time">0:00.0</div><div class="hud-end" id="h-end" hidden><span id="h-del">Teslim 0</span><span id="h-carry"></span><span id="h-rec"></span></div></div>
     <div class="hud-tc"><div class="progress" role="progressbar" aria-label="Bitişe ilerleme" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="h-prog">
       <div class="ptrack"><i class="pfill" id="h-pfill"></i><span class="ptick-wrap" id="h-ticks"></span></div>
       <div class="prange"><span class="pcar" id="h-pcar"></span></div><span class="pflag">${flag()}</span></div>
@@ -28,10 +29,11 @@ export function createHud(ctx) {
   const $ = (id) => el.querySelector('#' + id);
   const n = { cargo: $('h-cargo'), time: $('h-time'), pfill: $('h-pfill'), pcar: $('h-pcar'), prog: $('h-prog'), dist: $('h-dist'), ticks: $('h-ticks'),
     coins: $('h-coins'), coinchip: $('h-coinchip'), combo: $('h-combo'), ring: $('h-ring'), mult: $('h-mult'), count: $('h-count'),
-    speed: $('h-speed'), dl: $('h-dl'), dr: $('h-dr'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
+    speed: $('h-speed'), end: $('h-end'), del: $('h-del'), carry: $('h-carry'), rec: $('h-rec'), dl: $('h-dl'), dr: $('h-dr'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
   $('h-pause').onclick = () => ctx.flow.pause();
 
-  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' };
+  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '', del: '', carry: '', rec: '', dtext: '' };
+  let recState = 0, stuckT = 0, stuckHinted = false;
   const hp = new Map(); // kargo id → son hp (hasar farkı için)
   let lastProgress = 0, toastTimer = 0;
 
@@ -50,13 +52,17 @@ export function createHud(ctx) {
     p.addEventListener('animationend', () => p.remove());
     setTimeout(() => p.remove(), 2600);
   }
+  function showToast(text, icon) {
+    n.toast.innerHTML = `${hintIcon(icon)}<span>${esc(text)}</span>`; n.toast.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { n.toast.hidden = true; }, 2500);
+  }
   function flash() { n.flash.classList.remove('go'); void n.flash.offsetWidth; n.flash.classList.add('go'); }
   function bump(node) { node.classList.remove('bump'); void node.offsetWidth; node.classList.add('bump'); }
 
   return {
     el,
     reset() {
-      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' }); n.dl.hidden = n.dr.hidden = true;
+      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '', del: '', carry: '', rec: '', dtext: '' }); n.dl.hidden = n.dr.hidden = true; n.end.hidden = true; recState = 0; stuckT = 0; stuckHinted = false;
       hp.clear(); n.pops.innerHTML = ''; n.toast.hidden = true; n.ticks.innerHTML = ''; n.cargo.innerHTML = ''; n.combo.hidden = true; lastProgress = 0;
     },
     update(s) {
@@ -79,8 +85,24 @@ export function createHud(ctx) {
       lastProgress = p;
       const pr = Math.round(p * 500);
       if (pr !== cache.prog) { cache.prog = pr; const pc = pr / 5; n.pfill.style.transform = `scaleX(${p.toFixed(4)})`; n.pcar.style.left = `${pc}%`; n.prog.setAttribute('aria-valuenow', String(Math.round(pc))); }
-      const dm = Math.round(s.run.distance);
-      if (dm !== cache.dist) { cache.dist = dm; n.dist.textContent = `${dm} m`; }
+      const en = s.endless;
+      const dm = Math.round(en ? en.distance : s.run.distance);
+      const dtext = en ? `${dm} m · bayrağa ${Math.max(0, Math.round(en.toNext))} m` : `${dm} m`;
+      if (dtext !== cache.dtext) { cache.dtext = dtext; n.dist.textContent = dtext; }
+      if (en) {
+        if (n.end.hidden) n.end.hidden = false;
+        const dv = `Teslim ${en.deliveries}`; if (dv !== cache.del) { cache.del = dv; n.del.textContent = dv; }
+        const cy = en.carried ? `Yük ${Math.round(en.carried)}` : ''; if (cy !== cache.carry) { cache.carry = cy; n.carry.textContent = cy; }
+        const best = ctx.save.data.endless?.bestDistance | 0;
+        let rt = '';
+        if (best > 0) rt = dm > best ? 'REKOR!' : `Rekor ${fmtNum(best)} m`;
+        if (rt !== cache.rec) { cache.rec = rt; n.rec.textContent = rt; n.rec.classList.toggle('hit', dm > best); }
+        if (best > 0 && recState === 0 && dm >= best - 50 && dm < best) { recState = 1; pop(`Rekora ${best - dm} m kaldı!`, 'blue'); }
+        if (best > 0 && recState < 2 && dm > best) { recState = 2; pop('Yeni rekor!', 'gold', true); }
+      }
+      // saplanma ipucu (kıpırdamadan gaz basılı)
+      if (s.vehicle.throttle > 0.5 && s.vehicle.speed < 0.3) { stuckT += 1 / 60; if (stuckT > 2.5 && !stuckHinted) { stuckHinted = true; showToast('Geri vites: ← ya da FREN basılı tut', 'brake'); } }
+      else { stuckT = 0; stuckHinted = false; }
       // kuruş
       if (s.pickups !== cache.coins) { if (cache.coins >= 0 && s.pickups > cache.coins) bump(n.coinchip); cache.coins = s.pickups; n.coins.textContent = s.pickups; }
       // hız
@@ -110,13 +132,11 @@ export function createHud(ctx) {
     },
     onEvent(e) {
       switch (e.name) {
-        case 'toast': {
-          n.toast.innerHTML = `${hintIcon(e.icon)}<span>${esc(e.text)}</span>`; n.toast.hidden = false;
-          clearTimeout(toastTimer); toastTimer = setTimeout(() => { n.toast.hidden = true; }, 2600);
-          break;
-        }
+        case 'toast': showToast(e.text, e.icon); break;
+        case 'delivery': pop(`Teslimat +${e.pay} kuruş`, 'gold', true); break;
+        case 'biomeChange': pop(BIOME_NAMES[e.biome] ?? e.biome, 'blue', true); break;
         case 'flip': pop(`TAKLA${e.count > 1 ? ' ×' + e.count : ''}!`, 'gold', true); break;
-        case 'land': if (e.airTime >= 0.6) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
+        case 'land': if (e.airTime >= SCORING.airMin) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
         case 'wheelie': pop(`Tek teker ${e.duration.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
         case 'nearMiss': pop('Kıl payı!', 'gold'); break;
         case 'comboBank': pop(`Kombo +${Math.round(e.points)}`, 'gold'); break;

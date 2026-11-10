@@ -110,7 +110,7 @@ function getChunk(st, c, ci) {
   let ch = c.chunks.get(ci);
   if (ch) { // akan zemin (Uzun Yol): uç parçalar / biyom değiştiyse yeniden üret
     const xs = st.terrain.xs;
-    if ((ch.open && (ch.startX !== xs[0] || ch.endX !== xs[xs.length - 1])) || (st.biomes && biomeAtX(st, ci * CW + CW / 2) !== ch.biome)) { c.chunks.delete(ci); ch = null; }
+    if ((ch.open && (ch.startX !== xs[0] || ch.endX !== xs[xs.length - 1])) || (st.biomes && st.biomes.length && ci * CW + CW / 2 >= st.biomes[0].x0 && biomeAtX(st, ci * CW + CW / 2) !== ch.biome)) { c.chunks.delete(ci); ch = null; }
   }
   if (!ch) {
     ch = buildChunk(st, ci, c.K); c.chunks.set(ci, ch);

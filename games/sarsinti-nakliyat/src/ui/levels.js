@@ -4,7 +4,6 @@ import { esc, stars, star, lock, coin, check, cargoIcon, vehicleArt, arrowRight,
 import { levelLock, totalStars, ownedVehicles, regionOf } from './progress.js';
 import { fmtTime, fmtNum, CARGO_NAMES, diffName, BIOME_NAMES } from './texts.js';
 
-const MAX_PER_REGION = 4;
 
 export function createLevels(ctx) {
   const el = document.createElement('section');
@@ -28,7 +27,8 @@ export function createLevels(ctx) {
     const regLocked = stars_ < reg.unlockStars;
     const cards = [];
     const focusId = (list.find((x) => !levelLock(d, ctx.levels, x).locked && !((d.levels[x.id]?.stars | 0) >= 1)) ?? list.find((x) => !levelLock(d, ctx.levels, x).locked))?.id;
-    for (let i = 0; i < Math.max(MAX_PER_REGION, list.length); i++) {
+    const perRegion = Math.max(4, ...REGIONS.map((r) => regionLevels(r.id).length));
+    for (let i = 0; i < Math.max(perRegion, list.length); i++) {
       const l = list[i];
       if (!l) { cards.push(`<div class="lcard soon" aria-hidden="true"><div class="lnum">${region}-${i + 1}</div><div class="lsoon">${lock()}<span>Yakında</span></div></div>`); continue; }
       const rec = d.levels[l.id] ?? {};
@@ -37,6 +37,7 @@ export function createLevels(ctx) {
       cards.push(`<button class="lcard ${lk.locked ? 'locked' : ''} ${(rec.stars | 0) >= 3 ? 'gold' : ''}" data-act="level" data-id="${esc(l.id)}" data-key="l${esc(l.id)}" ${l.id === focusId ? 'data-autofocus' : ''} aria-label="${esc(l.id)} ${esc(l.name)}${lk.locked ? ', kilitli: ' + esc(lk.text) : ', ' + (rec.stars | 0) + ' yıldız'}">
         <div class="lnum">${esc(l.id)}</div>
         <div class="lname">${esc(l.name)}</div>
+        ${l.teaches ? `<div class="lteach">${esc(l.teaches)}</div>` : ''}
         <div class="lstars">${stars(rec.stars | 0)}</div>
         ${lk.locked ? `<div class="llock">${lock()}<span>${esc(lk.text)}</span></div>`
           : `<div class="lmeta"><span>${cargoTotal} kargo</span><span>${rec.bestTime ? clock() + fmtTime(rec.bestTime) : diffName(l.difficulty)}</span></div>`}

@@ -52,7 +52,7 @@ function rock(ctx, o, px) {
 
 function plank(ctx, o, px) {
   const w = o.w || 1, h = o.h || 0.2;
-  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, 0.03); fs(ctx, px, '#b98a52', 2.2);
+  ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, 0.03); fs(ctx, px, '#d9a868', 2.6);
   ctx.strokeStyle = rgba(INK, 0.5); ctx.lineWidth = 1.2 * px; ctx.beginPath(); ctx.moveTo(-w * 0.3, -h * 0.2); ctx.lineTo(w * 0.1, -h * 0.2); ctx.moveTo(-w * 0.1, h * 0.22); ctx.lineTo(w * 0.35, h * 0.22); ctx.stroke();
   for (const sx of [-1, 1]) circle(ctx, sx * (w / 2 - 0.08), 0, 0.025), ctx.fillStyle = '#59616b', ctx.fill();
   if (o.weak) { // zayıf tahta: kırmızı çatlak + işaret
@@ -310,12 +310,12 @@ export function drawBridge(ctx, prop, planks, st, px) {
       prev = { x, y };
     }
     ctx.lineTo(ax1, anchor);
-    ctx.lineWidth = w + 3 * px; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = w; ctx.strokeStyle = col; ctx.stroke();
+    ctx.globalAlpha = 0.6; ctx.lineWidth = w + 1.6 * px; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = w; ctx.strokeStyle = col; ctx.stroke(); ctx.globalAlpha = 1;
   };
-  rope(lift, 0.045, '#d9bd82', ay);
-  ctx.lineWidth = 0.025; ctx.strokeStyle = '#c9a56a'; ctx.beginPath();
-  for (let i = 0; i < planks.length; i += 2) { const p = planks[i]; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - Math.sin(p.a) * lift, p.y + Math.cos(p.a) * lift); }
-  ctx.stroke();
+  rope(lift, 0.028, '#e8d4a0', ay);
+  ctx.globalAlpha = 0.55; ctx.lineWidth = 0.02; ctx.strokeStyle = '#c9a56a'; ctx.beginPath();
+  for (let i = 0; i < planks.length; i += 3) { const p = planks[i]; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - Math.sin(p.a) * lift, p.y + Math.cos(p.a) * lift); }
+  ctx.stroke(); ctx.globalAlpha = 1;
 }
 
 /** Kontrol noktası bayrağı. reached → yeşil, değilse beyaz. */

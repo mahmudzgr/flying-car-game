@@ -14,7 +14,6 @@ export function createHome(ctx) {
   function draw() {
     const d = ctx.save.data;
     el.innerHTML = `
-      <a class="back" href="../../" data-hub-back aria-label="Oyunlar: oyun seçim ekranına dön">Oyunlar</a>
       <div class="home-tr">
         <span class="chip" aria-label="Kuruş">${coin()}<b>${fmtNum(d.coins)}</b></span>
         <span class="chip" aria-label="Yıldız">${starsSvg(1, 1)}<b>${totalStars(d)}</b></span>
@@ -28,9 +27,9 @@ export function createHome(ctx) {
           <p class="logo-tag">Kargonu devirme, kafanı da vurma!</p>
         </div>
         <nav class="home-menu" aria-label="Ana menü">
-          <button class="btn btn-primary btn-xl" data-act="play" data-autofocus data-key="play"><span>Oyna</span>${arrowRight()}</button>
-          <button class="btn btn-sun" data-act="garage" data-key="garage">Garaj</button>
-          <button class="btn btn-ghost" data-act="settings" data-key="settings">Ayarlar</button>
+          <button class="btn btn-primary btn-xl" data-act="play" data-autofocus data-key="play"><span>Siparişler</span>${arrowRight()}</button>
+          <button class="btn btn-sun btn-lg" data-act="endless" data-key="endless"><span>Uzun Yol</span></button>
+          <div class="row2"><button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button><button class="btn btn-ghost" data-act="settings" data-key="settings">Ayarlar</button></div>
         </nav>
       </div>
       <p class="home-foot">Ok tuşları + Enter ile de gezebilirsin</p>`;
@@ -39,6 +38,7 @@ export function createHome(ctx) {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'play') ctx.nav.push('levels', { region: nextPlayable(ctx.save.data, ctx.levels)?.region ?? 1 });
+    else if (act === 'endless') ctx.nav.push('endless');
     else if (act === 'garage') ctx.nav.push('garage');
     else if (act === 'settings') ctx.nav.push('settings', { from: 'menu' });
     else if (act === 'fs') { ctx.toggleFullscreen(); }

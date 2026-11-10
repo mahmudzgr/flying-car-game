@@ -10,7 +10,7 @@ export function createPause(ctx) {
     const l = ctx.currentLevel();
     ctx.nav.render(el, `
       <div class="panel pause-panel">
-        <small>${l ? `${esc(l.id)} · ${esc(l.name)}` : 'Oyun'}</small>
+        <small>${l ? `${esc(l.id)} · ${esc(l.name)}` : ctx.isEndless() ? 'Uzun Yol' : 'Oyun'}</small>
         <h2>Duraklatıldı</h2>
         <div class="menu-col">
           <button class="btn btn-primary btn-lg" data-act="resume" data-autofocus data-key="resume"><span>Devam</span>${arrowRight()}</button>
@@ -52,10 +52,11 @@ export function createResult(ctx) {
   function draw() {
     clear();
     const { result: r, reward, level } = params;
+    if (params.mode === 'endless') return drawEndless();
     const win = r.result === 'win';
     const d = ctx.save.data, rec = d.levels[level?.id] ?? {};
     const nextExists = win && level && ctx.levels.findIndex((l) => l.id === level.id) >= 0 && ctx.levels[ctx.levels.findIndex((l) => l.id === level.id) + 1];
-    el.classList.toggle('win', win); el.classList.toggle('fail', !win);
+    el.classList.toggle('win', win); el.classList.toggle('fail', !win); el.classList.remove('endless-res');
     if (win) {
       const goals = [2, 3].map((n) => `<li class="${r.stars >= n ? 'done' : 'miss'}"><span class="gstars">${stars(n, n)}</span><span class="gtext">${esc((level?.stars?.[n] ?? []).map((c) => c.label).join(' + ') || '—')}</span>${r.stars >= n ? check('gtick') : cross('gx')}</li>`).join('');
       const best = rec.bestTime && Math.abs(rec.bestTime - r.time) < 0.001;
@@ -114,6 +115,44 @@ export function createResult(ctx) {
     }
   }
 
+  function drawEndless() {
+    const { result: r, reward, endless: en } = params;
+    el.classList.remove('win'); el.classList.add('fail', 'endless-res');
+    const info = failInfo(r.reason, r.runs | 0);
+    const rec = en?.newBestDistance || en?.newBestScore;
+    ctx.nav.render(el, `
+      <div class="panel result-panel ${rec ? 'record' : ''}">
+        <header class="res-head"><div><small>Uzun Yol · ${esc(info.title)}</small><h2>${rec ? 'Yeni rekor!' : esc(info.line)}</h2></div>
+          <div class="big-dist"><b>${fmtNum(r.distance)}</b><small>metre</small></div></header>
+        <div class="res-body">
+          <div class="res-col">
+            <dl class="dl">
+              <div><dt>Teslimat</dt><dd><b>${r.deliveries | 0}</b></dd></div>
+              <div><dt>Teslim edilen kargo</dt><dd>${r.cargoDelivered | 0}</dd></div>
+              <div><dt>Skor</dt><dd>${fmtNum(r.score)}${en?.newBestScore ? ' <em class="rec">rekor!</em>' : ''}</dd></div>
+              <div><dt>Mesafe rekoru</dt><dd>${fmtNum(Math.max(en?.prev?.bestDistance | 0, Math.round(r.distance)))} m${en?.newBestDistance ? ' <em class="rec">yeni!</em>' : ''}</dd></div>
+              ${r.flips ? `<div><dt>Takla</dt><dd>${r.flips}</dd></div>` : ''}
+            </dl>
+            <p class="fail-tip">${bulb()}<span><b>İpucu:</b> ${esc(info.tip)}</span></p>
+          </div>
+          <div class="res-col reward">
+            <ul class="dl rew">
+              <li><span>Teslimat ücreti</span><b>+${fmtNum(reward?.deliveryPay ?? 0)}</b></li>
+              <li><span>Yolda toplanan</span><b>+${fmtNum(reward?.pickups ?? 0)}</b></li>
+            </ul>
+            <div class="total">${coin()}<b id="res-total">+0</b></div>
+          </div>
+        </div>
+        <footer class="res-actions">
+          <button class="btn btn-ghost" data-act="home" data-key="home">Menü</button>
+          <button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button>
+          <button class="btn btn-primary btn-xl" data-act="retry" data-key="retry" data-autofocus><span>Tekrar</span>${arrowRight()}</button>
+        </footer>
+      </div>`);
+    countTo(el.querySelector('#res-total'), reward?.total ?? 0);
+    if (rec) ctx.emit('ui:star', { index: 3 });
+  }
+
   el.addEventListener('click', (e) => {
     const guard = performance.now() - shownAt < 350;
     const b = e.target.closest('[data-act]');
@@ -127,6 +166,7 @@ export function createResult(ctx) {
       case 'cp': ctx.flow.retryFromCheckpoint(); break;
       case 'next': ctx.flow.nextLevel(); break;
       case 'garage': ctx.goMenu('garage'); break;
+      case 'home': ctx.goMenu('home'); break;
       case 'levels': ctx.goMenu('levels', params?.level?.region); break;
     }
   });

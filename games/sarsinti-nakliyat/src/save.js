@@ -15,7 +15,7 @@ export function defaults() {
     endless: { bestDistance: 0, bestScore: 0, runs: 0 },
     stats: { distance: 0, flips: 0, airTime: 0, cargoDelivered: 0, cargoLost: 0, crashes: 0, playTime: 0 },
     // master: ana ses (TASARIM §15 şemasına eklenen alan; eski kayıtlarda varsayılan 1)
-    settings: { master: 1, sfx: 1, music: 0.7, shake: 2, haptics: true, assistLanding: true, quality: 'high', btnScale: 1 },
+    settings: { master: 1, sfx: 1, music: 0.7, shake: 2, haptics: true, assistLanding: true, quality: 'high', btnScale: 0.85 },
     tutorial: { seen: [] },
   };
 }

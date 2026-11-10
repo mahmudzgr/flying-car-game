@@ -11,12 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <!-- Oyun Salonu: ana menüdeki "Oyunlar" bağlantısı (data-hub-back) src/ui/home.js içinde üretilir; hub/back.js sayfa sonunda yüklenir. -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <canvas id="game" aria-label="Oyun alanı"></canvas>
   <div id="ui"></div>
+  <a class="back" href="../../" data-hub-back aria-label="Oyunlar: oyun seçim ekranına dön">Oyunlar</a>
   <noscript><p class="nojs">Sarsıntı Nakliyat'ı oynamak için JavaScript gerekli.</p></noscript>
   <script type="module" src="src/main.js"></script>
   <script src="../../hub/back.js" defer></script>
