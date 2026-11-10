@@ -156,7 +156,7 @@ export function createRenderer(canvas, opts = {}) {
     for (const c of s.cargo) {
       let m = seenCargo.get(c.id);
       if (!m) { m = { x: c.x, y: c.y, slide: 0 }; seenCargo.set(c.id, m); if (!firstCargo && c.state === 'onboard') { fresh++; stars(c.x, c.y + 0.3, 5, ['#ffd23c', '#fff'], 2.5); } continue; }
-      if (c.state === 'onboard' && dtP > 0.001 && o.quality !== 'low') {
+      if (false && c.state === 'onboard') {
         const vx = (c.x - m.x) / dtP - s.vehicle.vx, vy = (c.y - m.y) / dtP - s.vehicle.vy;
         const rel = Math.hypot(vx, vy);
         if (rel > 1.3 && rel < 12 && s.vehicle.speed > 0.5 || (rel > 1.3 && rel < 12 && s.vehicle.brake > 0.3)) {
@@ -307,6 +307,7 @@ export function createRenderer(canvas, opts = {}) {
           const sp = e.speed ?? 2, hh = (c.h ?? c.r * 2) / 2;
           dustBurst(c.x, c.y - hh, 'dirt', 2 + sp * 0.6, 1.5, 1);
           if (c.type === 'crate' || c.type === 'piano') burst('crate', c.x, c.y, false);
+          if (e.wall) { const wx = c.x + (v.vx >= 0 ? 1 : -1) * ((c.w ?? c.r * 2) / 2 + 0.05); for (let i = 0; i < 6; i++) particles.spawn(2, wx, c.y, (Math.random() - 0.3) * 2.5, 0.5 + Math.random() * 2, 0.5, 0.04, '#d8a85c', -9, 0, 0, 8, 1); }
           if (sp > 3) addShake(Math.min(4, sp * 0.4));
         }
         break;
@@ -333,7 +334,8 @@ export function createRenderer(canvas, opts = {}) {
         texts.add('+' + (e.value ?? 5), p.x, p.y + 0.5, 0.3, '#ffd23c', 0.7, 2);
         break;
       }
-      case 'delivery': { const fx = st.finishX; for (let i = 0; i < 40 * q; i++) { const a = Math.PI * (0.2 + Math.random() * 0.6), sp = 5 + Math.random() * 7; particles.spawn(6, fx + (Math.random() - 0.5) * 3, st.finishY + 3, Math.cos(a) * sp * (Math.random() - 0.5) * 1.6, Math.sin(a) * sp, 1.6 + Math.random(), 0.07 + Math.random() * 0.05, ['#ffd23c', '#e8453c', '#19b5a5', '#fff', '#ff7a3c'][i % 5], -7, 0.6, 0, 6, 1); } texts.add('TESLİM! +' + (e.pay ?? e.coins ?? ''), v.x, v.y + 2.4, 0.6, '#7be08a', 1.6, 1.0); break; }
+      case 'delivery': { const fx = st.finishX; for (let i = 0; i < 40 * q; i++) { const a = Math.PI * (0.2 + Math.random() * 0.6), sp = 5 + Math.random() * 7; particles.spawn(6, fx + (Math.random() - 0.5) * 3, st.finishY + 3, Math.cos(a) * sp * (Math.random() - 0.5) * 1.6, Math.sin(a) * sp, 1.6 + Math.random(), 0.07 + Math.random() * 0.05, ['#ffd23c', '#e8453c', '#19b5a5', '#fff', '#ff7a3c'][i % 5], -7, 0.6, 0, 6, 1); } break; }
+      case 'cargoSlide': { const c = cargoById(e.id); if (c) { const hh = (c.h ?? c.r * 2) / 2; for (let i = 0; i < 2; i++) particles.spawn(1, c.x, c.y - hh, (Math.random() - 0.5) * 1.5 - (v.vx >= 0 ? 0.5 : -0.5), 0.3 + Math.random() * 0.5, 0.4, 0.05, '#d9c9a4', 0.2, 2, 0.2, 0, 0.55); } break; }
       case 'comboChange': {
         if (e.count >= 2) {
           const m = 1 + Math.floor(e.count / 2);

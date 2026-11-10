@@ -417,3 +417,7 @@ label.srow > span { min-width: 74px; }
   .logo-word span, .logo-car, .logo-car .wh, .rotate-warn .phone, .hud-time.urgent { animation: none; }
   .pop, .toast, .bump { animation-duration: .01s; }
 }
+
+.ci.cnt { align-items: center; gap: 1px; margin-right: 4px; font-size: 13px; }
+.ci.cnt .cross { color: var(--red); width: 16px; height: 16px; }
+.ci.lostc { color: var(--red); }

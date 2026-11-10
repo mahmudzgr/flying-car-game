@@ -1,6 +1,6 @@
 // Oyun içi HUD: ilerleme, kargo, süre, hız, kombo, kuruş, bildirimler, ipucu. Sahip: Arayüz.
 // hudUpdate her karede çağrılır → DOM yalnızca değer değişince güncellenir.
-import { esc, coin, pauseIcon, cargoIcon, hintIcon, flag } from './icons.js';
+import { esc, cross, coin, pauseIcon, cargoIcon, hintIcon, flag } from './icons.js';
 import { SCORING } from '../config.js';
 import { fmtClock, failInfo, CARGO_PLURAL, BIOME_NAMES, fmtNum } from './texts.js';
 
@@ -33,7 +33,7 @@ export function createHud(ctx) {
   $('h-pause').onclick = () => ctx.flow.pause();
 
   const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '', del: '', carry: '', rec: '', dtext: '' };
-  let recState = 0, stuckT = 0, stuckHinted = false;
+  let isEndless = false, recState = 0, stuckT = 0, stuckHinted = false;
   const hp = new Map(); // kargo id → son hp (hasar farkı için)
   let lastProgress = 0, toastTimer = 0;
 
@@ -71,7 +71,11 @@ export function createHud(ctx) {
       const st = s.cargo.map((c) => c.state[0] + c.hp).join('');
       if (sig !== cache.sig || st !== cache.cargoSig) {
         cache.sig = sig; cache.cargoSig = st;
-        n.cargo.innerHTML = s.cargo.map(cargoHtml).join('');
+        if (s.cargo.length > 6) {
+          const g = new Map(); let lostN = 0;
+          for (const c of s.cargo) { if (c.state === 'onboard') g.set(c.type, (g.get(c.type) ?? 0) + 1); else if (c.state === 'lost') lostN++; }
+          n.cargo.innerHTML = [...g].map(([t, k]) => `<span class="ci cnt" title="${esc(CARGO_PLURAL[t] ?? t)}">${cargoIcon(t, 'ok')}<b>×${k}</b></span>`).join('') + (lostN ? `<span class="ci cnt lostc">${cross()}<b>${lostN}</b></span>` : '');
+        } else n.cargo.innerHTML = s.cargo.map(cargoHtml).join('');
         for (const c of s.cargo) hp.set(c.id, c.hp);
       }
       // süre
@@ -85,24 +89,20 @@ export function createHud(ctx) {
       lastProgress = p;
       const pr = Math.round(p * 500);
       if (pr !== cache.prog) { cache.prog = pr; const pc = pr / 5; n.pfill.style.transform = `scaleX(${p.toFixed(4)})`; n.pcar.style.left = `${pc}%`; n.prog.setAttribute('aria-valuenow', String(Math.round(pc))); }
-      const en = s.endless;
+      const en = s.endless; isEndless = !!en;
       const dm = Math.round(en ? en.distance : s.run.distance);
       const dtext = en ? `${dm} m · bayrağa ${Math.max(0, Math.round(en.toNext))} m` : `${dm} m`;
       if (dtext !== cache.dtext) { cache.dtext = dtext; n.dist.textContent = dtext; }
       if (en) {
         if (n.end.hidden) n.end.hidden = false;
         const dv = `Teslim ${en.deliveries}`; if (dv !== cache.del) { cache.del = dv; n.del.textContent = dv; }
-        const cy = en.carried ? `Yük ${Math.round(en.carried)}` : ''; if (cy !== cache.carry) { cache.carry = cy; n.carry.textContent = cy; }
+        const cy = en.carried ? `Yük: ${Math.round(en.carried)} kuruş` : ''; if (cy !== cache.carry) { cache.carry = cy; n.carry.textContent = cy; }
         const best = ctx.save.data.endless?.bestDistance | 0;
         let rt = '';
         if (best > 0) rt = dm > best ? 'REKOR!' : `Rekor ${fmtNum(best)} m`;
         if (rt !== cache.rec) { cache.rec = rt; n.rec.textContent = rt; n.rec.classList.toggle('hit', dm > best); }
         if (best > 0 && recState === 0 && dm >= best - 50 && dm < best) { recState = 1; pop(`Rekora ${best - dm} m kaldı!`, 'blue'); }
-        if (best > 0 && recState < 2 && dm > best) { recState = 2; pop('Yeni rekor!', 'gold', true); }
-      }
-      // saplanma ipucu (kıpırdamadan gaz basılı)
-      if (s.vehicle.throttle > 0.5 && s.vehicle.speed < 0.3) { stuckT += 1 / 60; if (stuckT > 2.5 && !stuckHinted) { stuckHinted = true; showToast('Geri vites: ← ya da FREN basılı tut', 'brake'); } }
-      else { stuckT = 0; stuckHinted = false; }
+              }
       // kuruş
       if (s.pickups !== cache.coins) { if (cache.coins >= 0 && s.pickups > cache.coins) bump(n.coinchip); cache.coins = s.pickups; n.coins.textContent = s.pickups; }
       // hız
@@ -132,7 +132,9 @@ export function createHud(ctx) {
     },
     onEvent(e) {
       switch (e.name) {
-        case 'toast': showToast(e.text, e.icon); break;
+        case 'toast': if (!(isEndless && /^Teslim/.test(e.text))) showToast(e.text, e.icon); break;
+        case 'delivery': pop(`Teslimat +${e.pay} kuruş`, 'gold', true); break;
+        case 'newRecord': recState = 2; pop('Yeni rekor!', 'gold', true); break;
         case 'biomeChange': pop(BIOME_NAMES[e.biome] ?? e.biome, 'blue', true); break;
         case 'flip': pop(`TAKLA${e.count > 1 ? ' ×' + e.count : ''}!`, 'gold', true); break;
         case 'land': if (e.airTime >= SCORING.airMin) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;

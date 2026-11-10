@@ -119,7 +119,7 @@ export function createResult(ctx) {
     const { result: r, reward, endless: en } = params;
     el.classList.remove('win'); el.classList.add('fail', 'endless-res');
     const info = failInfo(r.reason, r.runs | 0);
-    const rec = en?.newBestDistance || en?.newBestScore;
+    const rec = en?.newBestDistance || en?.newBestScore || r.newBest;
     ctx.nav.render(el, `
       <div class="panel result-panel ${rec ? 'record' : ''}">
         <header class="res-head"><div><small>Uzun Yol · ${esc(info.title)}</small><h2>${rec ? 'Yeni rekor!' : esc(info.line)}</h2></div>

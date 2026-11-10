@@ -21,9 +21,9 @@ export const FALLBACK = {
   },
 };
 /** Egzoz çıkış noktası (şasi yerel) — partikül için. */
-export const EXHAUST = { tosun: { x: -1.95, y: -0.36 }, zipir: { x: -1.46, y: 0.52 }, pasa: { x: 0.97, y: 1.52 }, koca: { x: 1.25, y: 2.1 } };
+export const EXHAUST = { tosun: { x: -1.95, y: -0.36 }, zipir: { x: -1.5, y: 0.16 }, pasa: { x: 0.97, y: 1.52 }, koca: { x: 1.25, y: 2.1 } };
 /** Ön far konumu (şasi yerel). */
-export const HEADLIGHT = { tosun: { x: 1.8, y: 0.28 }, zipir: { x: 1.3, y: 0.18 }, pasa: { x: 1.4, y: 0.2 }, koca: { x: 2.98, y: 0.3 } };
+export const HEADLIGHT = { tosun: { x: 1.8, y: 0.4 }, zipir: { x: 1.3, y: 0.18 }, pasa: { x: 1.4, y: 0.2 }, koca: { x: 2.98, y: 0.3 } };
 
 function geo(vs, id) {
   if (vs && vs.parts && vs.parts.length) return vs;
@@ -148,77 +148,62 @@ function lights(ctx, v, px, hl, tl, big = 1) {
 // ================================================================ TOSUN
 function tosunBody(ctx, v, vs, px, g, hubs) {
   const C = VEHICLE_COLORS.tosun, Cd = shade(C, -0.22), Cl = shade(C, 0.4);
-  const body = path('tosun.body', (p) => {
-    // yatak + kapı + kaput tek siluet
+  const body = path('tosun.body2', (p) => {
+    // yatak + kabin + kaput tek siluet (kabin x 0.7..1.7, tavan ~1.45; fizik: cab y 0.45..1.35)
     p.moveTo(-1.7, -0.45);
     p.arcTo(-1.8, -0.45, -1.8, -0.3, 0.1); p.lineTo(-1.8, 0.45);
-    p.lineTo(0.6, 0.45); p.lineTo(0.6, 0.75);
-    p.lineTo(1.3, 0.75);
-    p.quadraticCurveTo(1.5, 0.74, 1.62, 0.7);          // kaput
-    p.quadraticCurveTo(1.78, 0.66, 1.8, 0.5);
+    p.lineTo(0.7, 0.45); p.lineTo(0.7, 1.3);
+    p.quadraticCurveTo(0.7, 1.42, 0.82, 1.42); p.lineTo(1.4, 1.42);          // tavan
+    p.quadraticCurveTo(1.52, 1.42, 1.58, 1.3); p.lineTo(1.7, 0.92);            // ön cam eğimi
+    p.quadraticCurveTo(1.78, 0.86, 1.8, 0.7);
     p.lineTo(1.8, -0.32); p.arcTo(1.8, -0.45, 1.68, -0.45, 0.1); p.closePath();
     return p;
   });
   drawP(ctx, body, C, px, 2.4);
-  // alt gölge şeridi
   ctx.save(); ctx.clip(body);
   ctx.fillStyle = Cd; ctx.fillRect(-1.9, -0.5, 3.8, 0.2);
-  ctx.fillStyle = Cl; ctx.globalAlpha = 0.55; ctx.fillRect(-1.9, 0.38, 2.6, 0.07); ctx.globalAlpha = 1;
-  // krem yan şerit
+  ctx.fillStyle = Cl; ctx.globalAlpha = 0.55; ctx.fillRect(-1.9, 0.38, 2.6, 0.07); ctx.fillRect(0.75, 1.36, 0.65, 0.05); ctx.globalAlpha = 1;
   ctx.fillStyle = CREAM; ctx.fillRect(-1.9, 0.02, 3.8, 0.1);
   ctx.lineWidth = 1.4 * px; ctx.strokeStyle = rgba(INK, 0.55);
   ctx.beginPath(); ctx.moveTo(-1.9, 0.02); ctx.lineTo(1.9, 0.02); ctx.moveTo(-1.9, 0.12); ctx.lineTo(1.9, 0.12); ctx.stroke();
-  // kapı çizgisi
-  ctx.beginPath(); ctx.moveTo(0.62, 0.7); ctx.lineTo(0.62, -0.3); ctx.moveTo(1.28, 0.7); ctx.lineTo(1.28, -0.3); ctx.strokeStyle = rgba(INK, 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0.72, 0.4); ctx.lineTo(0.72, -0.3); ctx.moveTo(1.5, 0.4); ctx.lineTo(1.5, -0.3); ctx.strokeStyle = rgba(INK, 0.5); ctx.stroke();
   ctx.restore();
-  // tekerlek yuvaları (karanlık kemer)
+  // yan cam (sürücü arkasında kalır): açık mavi, hafif şeffaf
+  ctx.beginPath(); ctx.moveTo(0.8, 0.82); ctx.lineTo(0.8, 1.3); ctx.lineTo(1.42, 1.3); ctx.lineTo(1.6, 0.92); ctx.lineTo(1.55, 0.82); ctx.closePath();
+  ctx.fillStyle = rgba(GLASS, 0.9); ctx.fill(); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0.95, 1.28); ctx.lineTo(1.1, 0.86); ctx.lineWidth = 0.05; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.stroke();
+  // tekerlek yuvaları (rest konumu = bağlantı +0.34)
   ctx.save(); ctx.clip(body);
-  for (const h of hubs) { circle(ctx, h.ax, h.ay, g.wheelR + 0.1); ctx.fillStyle = DARK; ctx.fill(); }
+  for (const h of hubs) { circle(ctx, h.ax, h.ay + 0.36, g.wheelR + 0.14); ctx.fillStyle = DARK; ctx.fill(); }
   ctx.restore();
-  // tampon
   ctx.beginPath(); rr(ctx, -1.9, -0.4, 0.12, 0.16, 0.04); fs(ctx, px, '#8d95a0', 1.8);
   ctx.beginPath(); rr(ctx, 1.74, -0.38, 0.13, 0.18, 0.05); fs(ctx, px, CHROME, 1.8);
-  // kasa içi (arka duvar tarafı): iç panel koyu
-  ctx.beginPath(); rr(ctx, -1.72, 0.45, 0.1, 0.46, 0.03); fs(ctx, px, Cd, 2);
-  ctx.beginPath(); rr(ctx, -1.74, 0.88, 0.14, 0.06, 0.03); fs(ctx, px, Cl, 1.6);       // tahta üst kenar
-  ctx.beginPath(); rr(ctx, -1.8, 0.42, 2.4, 0.07, 0.03); fs(ctx, px, Cl, 1.8);          // yatak dudağı
-  // çamurluk (arka)
-  ctx.beginPath(); rr(ctx, -1.64 - 0.12, -0.45, 0.07, 0.3, 0.03); fs(ctx, px, DARK, 1.2);
-  // koltuk arkalığı + kabin arka duvarı
-  ctx.beginPath(); rr(ctx, 0.6, 0.45, 0.2, 0.55, 0.07); fs(ctx, px, Cd, 2.2);
-  ctx.beginPath(); rr(ctx, 0.66, 0.55, 0.08, 0.3, 0.03); ctx.fillStyle = shade(Cd, -0.3); ctx.fill();
-  // roll çubuğu (tavan): ince tüp
-  ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0.7, 0.98); ctx.lineTo(0.7, 1.04); ctx.lineTo(1.45, 1.04); ctx.lineTo(1.34, 0.78);
-  ctx.lineWidth = 0.075 + 3.4 * px; ctx.strokeStyle = INK; ctx.stroke();
-  ctx.lineWidth = 0.075; ctx.strokeStyle = Cl; ctx.stroke();
-  // egzoz borusu
+  // arka kapak: 0.45 → 1.15
+  ctx.beginPath(); rr(ctx, -1.8, 0.45, 0.1, 0.7, 0.03); fs(ctx, px, Cd, 2);
+  ctx.beginPath(); rr(ctx, -1.82, 1.1, 0.14, 0.07, 0.03); fs(ctx, px, Cl, 1.6);
+  ctx.beginPath(); rr(ctx, -1.8, 0.42, 2.5, 0.07, 0.03); fs(ctx, px, Cl, 1.8);
+  // koltuk arkalığı (camın arkasında)
+  ctx.beginPath(); rr(ctx, 0.78, 0.45, 0.2, 0.55, 0.07); fs(ctx, px, Cd, 2.2);
   ctx.beginPath(); rr(ctx, -1.97, -0.4, 0.14, 0.09, 0.04); fs(ctx, px, '#59616b', 1.4);
-  // ön cam (sürücünün arkasında kalır; yarı saydam)
-  ctx.beginPath(); ctx.moveTo(1.3, 0.75); ctx.lineTo(1.22, 1.04); ctx.lineTo(1.45, 1.04); ctx.lineTo(1.4, 0.74); ctx.closePath();
-  ctx.fillStyle = rgba(GLASS, 0.45); ctx.fill(); ctx.lineWidth = 1.8 * px; ctx.strokeStyle = INK; ctx.stroke();
 }
 function tosunFront(ctx, v, vs, px) {
   const C = VEHICLE_COLORS.tosun, Cd = shade(C, -0.22), Cl = shade(C, 0.4);
-  // kapı üst kenarı ve cam: sürücünün alt gövdesini örter
-  ctx.beginPath(); rr(ctx, 0.6, 0.45, 0.72, 0.3, 0.06); fs(ctx, px, C, 2.2);
-  ctx.beginPath(); rr(ctx, 0.66, 0.68, 0.6, 0.06, 0.03); ctx.fillStyle = Cl; ctx.fill();
-  ctx.beginPath(); rr(ctx, 0.9, 0.52, 0.22, 0.07, 0.03); fs(ctx, px, CHROME, 1.3);   // kapı kolu
-  // ayna
-  ctx.beginPath(); rr(ctx, 1.26, 0.78, 0.06, 0.12, 0.03); fs(ctx, px, Cd, 1.4);
-  // kaput çizgisi + ızgara
+  // kapı alt paneli (sürücünün gövdesini örter) + cam çerçevesi
+  ctx.beginPath(); rr(ctx, 0.7, 0.45, 0.85, 0.38, 0.06); fs(ctx, px, C, 2.2);
+  ctx.beginPath(); rr(ctx, 0.76, 0.76, 0.74, 0.06, 0.03); ctx.fillStyle = Cl; ctx.fill();
+  ctx.beginPath(); rr(ctx, 1.05, 0.58, 0.22, 0.07, 0.03); fs(ctx, px, CHROME, 1.3);
+  ctx.beginPath(); rr(ctx, 1.46, 0.84, 0.07, 0.14, 0.03); fs(ctx, px, Cd, 1.4);      // ayna
   ctx.lineWidth = 1.4 * px; ctx.strokeStyle = rgba(INK, 0.55);
-  ctx.beginPath(); ctx.moveTo(1.4, 0.68); ctx.lineTo(1.78, 0.52); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1.62, 0.8); ctx.lineTo(1.78, 0.68); ctx.stroke();
 }
 
 // ================================================================ ZIPIR
 function zipirBody(ctx, v, vs, px, g, hubs, t) {
   const C = VEHICLE_COLORS.zipir, Cd = shade(C, -0.25), Cl = shade(C, 0.42), STEEL = '#cfd6dc';
-  // motor bloğu (arka) + egzoz
-  ctx.beginPath(); rr(ctx, -1.3, 0.3, 0.8, 0.42, 0.08); fs(ctx, px, '#5d6671', 2.2);
-  ctx.lineWidth = 1.4 * px; ctx.strokeStyle = rgba('#ffffff', 0.35);
-  ctx.beginPath(); for (let i = 0; i < 4; i++) { ctx.moveTo(-1.22 + i * 0.18, 0.4); ctx.lineTo(-1.22 + i * 0.18, 0.66); } ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-1.28, 0.55); ctx.lineTo(-1.46, 0.52); ctx.lineWidth = 0.09 + 3.4 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
+  // arka kargo rafı + egzoz (kargo bölmesi x -1.22..0.08, zemin 0.35)
+  ctx.beginPath(); rr(ctx, -1.3, 0.3, 1.45, 0.1, 0.04); fs(ctx, px, '#59616b', 2);
+  ctx.beginPath(); rr(ctx, -1.32, 0.35, 0.09, 0.5, 0.03); fs(ctx, px, STEEL, 1.8);
+  ctx.beginPath(); ctx.moveTo(-1.28, 0.2); ctx.lineTo(-1.48, 0.16); ctx.lineWidth = 0.09 + 3.4 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
   ctx.lineWidth = 0.09; ctx.strokeStyle = CHROME; ctx.stroke();
   // gövde (tekne)
   const body = path('zipir.body', (p) => {
@@ -240,8 +225,8 @@ function zipirBody(ctx, v, vs, px, g, hubs, t) {
     ctx.lineWidth = 0.07; ctx.strokeStyle = C; ctx.stroke();
   }
   // koltuk
-  ctx.beginPath(); rr(ctx, -0.35, 0.32, 0.55, 0.5, 0.12); fs(ctx, px, '#3b3340', 2.2);
-  ctx.beginPath(); rr(ctx, -0.3, 0.32, 0.4, 0.14, 0.06); ctx.fillStyle = C; ctx.fill();
+  ctx.beginPath(); rr(ctx, 0.28, 0.32, 0.6, 0.55, 0.12); fs(ctx, px, '#3b3340', 2.2);
+  ctx.beginPath(); rr(ctx, 0.33, 0.32, 0.45, 0.14, 0.06); ctx.fillStyle = C; ctx.fill();
   // roll kafesi (tüp)
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const tube = (pts, w = 0.08) => {
@@ -249,14 +234,14 @@ function zipirBody(ctx, v, vs, px, g, hubs, t) {
     ctx.lineWidth = w + 3.4 * px; ctx.strokeStyle = INK; ctx.stroke();
     ctx.lineWidth = w; ctx.strokeStyle = STEEL; ctx.stroke();
   };
-  tube([-0.2, 0.35, -0.2, 1.15, 0.8, 1.15, 0.8, 0.35]);
-  tube([-0.2, 1.15, -0.75, 0.62], 0.06);
-  tube([-0.2, 0.75, 0.8, 0.75], 0.05);
-  tube([0.8, 1.15, 1.18, 0.55], 0.06);                     // ön destek
+  tube([0.15, 0.35, 0.15, 1.52, 1.15, 1.52, 1.15, 0.35]);
+  tube([0.15, 1.52, -0.45, 0.62], 0.06);
+  tube([0.15, 0.95, 1.15, 0.95], 0.05);
+  tube([1.15, 1.52, 1.34, 0.55], 0.06);                     // ön destek
   // ön tampon çubuğu + farlar
   tube([1.34, 0.35, 1.52, 0.2, 1.4, -0.12], 0.07);
   // anten + flama
-  const ax = -1.1, ay = 0.7;
+  const ax = -1.28, ay = 0.85;
   const bend = clamp(-(v.vx ?? 0) * 0.022 - (v.w ?? 0) * 0.05, -0.55, 0.12) , fl = Math.sin(t * 19) * 0.04;
   const tx = ax + bend * 0.5 - 0.02, ty = ay + 1.55;
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(ax + bend * 0.15, ay + 0.8, tx, ty);
@@ -267,12 +252,12 @@ function zipirBody(ctx, v, vs, px, g, hubs, t) {
 function zipirFront(ctx, v, vs, px) {
   const C = VEHICLE_COLORS.zipir, Cl = shade(C, 0.42);
   // yan kapı/çamurluk paneli: sürücünün bacaklarını örter
-  ctx.beginPath(); ctx.moveTo(-0.38, 0.35); ctx.lineTo(0.88, 0.35); ctx.lineTo(0.82, 0.62); ctx.quadraticCurveTo(0.4, 0.66, 0.1, 0.6); ctx.lineTo(-0.38, 0.55); ctx.closePath();
+  ctx.beginPath(); ctx.moveTo(0.1, 0.35); ctx.lineTo(1.3, 0.35); ctx.lineTo(1.26, 0.6); ctx.quadraticCurveTo(0.9, 0.64, 0.6, 0.58); ctx.lineTo(0.1, 0.52); ctx.closePath();
   fs(ctx, px, C, 2.2);
-  ctx.beginPath(); rr(ctx, -0.3, 0.52, 1.0, 0.05, 0.02); ctx.fillStyle = Cl; ctx.fill();
+  ctx.beginPath(); rr(ctx, 0.15, 0.5, 1.0, 0.05, 0.02); ctx.fillStyle = Cl; ctx.fill();
   // direksiyon
-  ctx.beginPath(); ctx.moveTo(0.62, 0.62); ctx.lineTo(0.55, 0.98); ctx.lineWidth = 0.05 + 3 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineWidth = 0.05; ctx.strokeStyle = '#59616b'; ctx.stroke();
-  ctx.save(); ctx.translate(0.55, 0.98); ctx.rotate(0.35); ctx.beginPath(); ctx.ellipse(0, 0, 0.05, 0.17, 0, 0, TAU); fs(ctx, px, '#59616b', 1.8); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(1.02, 0.6); ctx.lineTo(0.95, 0.95); ctx.lineWidth = 0.05 + 3 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineWidth = 0.05; ctx.strokeStyle = '#59616b'; ctx.stroke();
+  ctx.save(); ctx.translate(0.95, 0.95); ctx.rotate(0.35); ctx.beginPath(); ctx.ellipse(0, 0, 0.05, 0.17, 0, 0, TAU); fs(ctx, px, '#59616b', 1.8); ctx.restore();
 }
 
 // ================================================================ PAŞA (traktör + römork)
@@ -435,7 +420,7 @@ export function drawVehicleBack(ctx, v, vs, px, t = ART.t) {
   ctx.save(); ctx.translate(v.x, v.y); ctx.rotate(v.a);
   if (id === 'tosun') {
     tosunBody(ctx, v, vs, px, g, hubs);
-    wheelsAndStruts(ctx, v, g, px, C, 0.62, '#ffb02e', 0.075, 5, 'tosun');
+    wheelsAndStruts(ctx, v, g, px, C, 0.8, '#ffb02e', 0.075, 5, 'tosun');
     lights(ctx, v, px, HEADLIGHT.tosun, { x: -1.78, y: 0.2 });
   } else if (id === 'zipir') {
     zipirBody(ctx, v, vs, px, g, hubs, t);
