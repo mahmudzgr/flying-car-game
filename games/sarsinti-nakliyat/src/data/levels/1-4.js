@@ -6,6 +6,7 @@ export default {
   region: 1, order: 4,
   biome: 'elma', music: 'elma', difficulty: 2,
   teaches: 'Hava kontrolü, kombo',
+  recommended: { vehicle: 'tosun', tier: 1 },   // 16 m vadi: Paşa atlayamaz
 
   terrain: {
     surface: 'dirt',
@@ -36,8 +37,8 @@ export default {
     ],
   },
   spawn: { x: 3 }, finish: { x: 'end' },
-  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 2 }],
-  minDelivered: 1,
+  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 1 }],
+  minDelivered: 0,                     // takla rotası kargoyu savurur (risk–ödül); güvenli rota kargoyu taşır
   parTime: 46, timeLimit: null,
   objects: [
     { type: 'coins', x: 22, n: 5, spacing: 1.7, h: 1.2 },
@@ -55,7 +56,7 @@ export default {
   ],
   stars: {
     2: [{ kind: 'flips', min: 1, label: 'Bir takla at' }],
-    3: [{ kind: 'flips', min: 1, label: 'Taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }, { kind: 'delivered', min: 3, label: 'En az 3 kargo teslim' }],
+    3: [{ kind: 'flips', min: 1, label: 'Taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }, { kind: 'deliveredAll', label: '3 kargonun hepsi' }],
   },
   reward: { base: 90 },
   bot: { speed: 12 },

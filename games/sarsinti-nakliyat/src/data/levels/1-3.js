@@ -16,12 +16,14 @@ export default {
       { type: 'bumps', len: 22, h: 0.2, n: 4, surface: 'wet' },          // tahta tümsekler (alçak ve geniş: güvenli ders)
       { type: 'flat', len: 14, surface: 'dirt' },
       { type: 'slope', len: 36, dy: -5.0, surface: 'dirt' },             // 1. dik iniş (~8°)
+      { type: 'bumps', len: 12, h: 0.3, n: 3, surface: 'wet' },          // inişin dibinde tahta eşik: hızlı gelirsen yumurtalar sarsılır
       { type: 'flat', len: 20, surface: 'grass' },                       // nefes + fren payı
       { type: 'bumps', len: 30, h: 0.28, n: 5, surface: 'wet' },         // tahta tümsekler: yavaş geç
       { type: 'flat', len: 12, surface: 'dirt' },
       { type: 'slope', len: 20, dy: 2.5 },
       { type: 'flat', len: 8 },
       { type: 'slope', len: 44, dy: -7.5, surface: 'dirt' },             // 2. dik iniş (~10°): büyük an
+      { type: 'bumps', len: 14, h: 0.32, n: 3, surface: 'wet' },         // inişin dibinde ikinci eşik
       { type: 'hills', len: 30, amp: 0.6, waves: 2, surface: 'grass' },
       { type: 'flat', len: 30, surface: 'asphalt' },                     // kısa asfalt: hızlanma ödülü
       { type: 'bumps', len: 26, h: 0.22, n: 4, surface: 'dirt' },
@@ -32,7 +34,7 @@ export default {
   spawn: { x: 3 }, finish: { x: 'end' },
   cargo: [{ type: 'eggs', count: 1 }, { type: 'crate', count: 2 }],
   minDelivered: 1,
-  parTime: 52, timeLimit: null,
+  parTime: 50, timeLimit: null,
   objects: [
     { type: 'coins', x: 24, n: 5, spacing: 1.7, h: 1.2 },
     { type: 'coins', x: 94, n: 4, spacing: 1.7, h: 1.0 },
@@ -48,7 +50,7 @@ export default {
   ],
   stars: {
     2: [{ kind: 'eggs', min: 3, label: 'En az 3 yumurta sağlam' }],
-    3: [{ kind: 'eggs', min: 6, label: '6 yumurtanın hepsi sağlam' }],
+    3: [{ kind: 'eggs', min: 6, label: '6 yumurtanın hepsi sağlam' }, { kind: 'time', max: 56, label: '56 sn altında' }],
   },
   reward: { base: 80 },
   bot: { speed: 9 },

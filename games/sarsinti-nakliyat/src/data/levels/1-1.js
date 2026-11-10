@@ -34,7 +34,7 @@ export default {
   finish: { x: 'end' },
   cargo: [{ type: 'crate', count: 3 }],
   minDelivered: 1,
-  parTime: 40,
+  parTime: 34,
   timeLimit: null,
   objects: [
     { type: 'coins', x: 20, n: 4, spacing: 1.6, h: 1.1 },
@@ -52,7 +52,7 @@ export default {
   ],
   stars: {
     2: [{ kind: 'deliveredAll', label: '3 kasadan 3\'ü teslim' }],
-    3: [{ kind: 'time', max: 40, label: '40 sn içinde bitir' }],
+    3: [{ kind: 'time', max: 32, label: '32 sn içinde bitir' }],
   },
   reward: { base: 70 },
   bot: { speed: 12 },

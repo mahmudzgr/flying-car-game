@@ -34,7 +34,7 @@ export default {
   spawn: { x: 3 }, finish: { x: 'end' },
   cargo: [{ type: 'milk', count: 5 }],
   minDelivered: 2,
-  parTime: 62, timeLimit: null,
+  parTime: 50, timeLimit: null,
   objects: [
     { type: 'coins', x: 22, n: 5, spacing: 1.7, h: 1.1 },
     { type: 'coins', x: 76, n: 5, spacing: 1.8, h: 1.0 },       // güvenli ilk kum
@@ -53,7 +53,7 @@ export default {
   ],
   stars: {
     2: [{ kind: 'deliveredAll', label: '5 bidonun hepsi teslim' }],
-    3: [{ kind: 'time', max: 70, label: '70 sn içinde' }, { kind: 'noReverse', label: 'Geri vites kullanma' }],
+    3: [{ kind: 'time', max: 50, label: '50 sn içinde' }, { kind: 'noReverse', label: 'Geri vites kullanma' }],
   },
   reward: { base: 110 },
   bot: { speed: 12 },
