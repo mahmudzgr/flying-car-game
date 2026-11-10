@@ -182,6 +182,8 @@ export function createSim(opts) {
   };
   const groundChild = (c, fa) => (fa.getUserData()?.k === 'ground' ? c.getChildIndexA() : c.getChildIndexB());
 
+  // köprü tahtası, kütük, tahterevalli: tekerlek için zemin sayılır (havada sayılmasın; yüzey 'wet')
+  const isSupport = (Y) => Y.k === 'obj' && (Y.prop?.type === 'plank' || Y.prop?.type === 'log' || Y.prop?.type === 'seesaw');
   world.on('pre-solve', (c) => {
     const A = c.getFixtureA().getUserData(), B = c.getFixtureB().getUserData();
     let w = null, g = null, gd = null;
@@ -205,9 +207,9 @@ export function createSim(opts) {
     if (!A || !B) return;
     const spd = relSpeed(c);
     for (const [X, Y, fx] of [[A, B, fa], [B, A, fb]]) {
-      if (X.k === 'wheel' && Y.k === 'ground') {
+      if (X.k === 'wheel' && (Y.k === 'ground' || isSupport(Y))) {
         const w = wheelById[X.id]; w.contacts++;
-        w.surface = (Y.surf ?? terr.surf)[groundChild(c, fa.getUserData()?.k === 'ground' ? fa : fb)] ?? w.surface;
+        w.surface = Y.k === 'ground' ? (Y.surf ?? terr.surf)[groundChild(c, fa.getUserData()?.k === 'ground' ? fa : fb)] ?? w.surface : 'wet';
         emit('wheelContact', { wheel: w.id, surface: w.surface, started: true });
       } else if ((X.k === 'chassis' || X.k === 'wheel') && Y.prop?.type === 'barrel' && !Y.prop.hit) {
         Y.prop.hit = true;
@@ -231,7 +233,7 @@ export function createSim(opts) {
     const A = c.getFixtureA().getUserData(), B = c.getFixtureB().getUserData();
     if (!A || !B) return;
     for (const [X, Y] of [[A, B], [B, A]]) {
-      if (X.k === 'wheel' && Y.k === 'ground') {
+      if (X.k === 'wheel' && (Y.k === 'ground' || isSupport(Y))) {
         const w = wheelById[X.id]; w.contacts = Math.max(0, w.contacts - 1);
         emit('wheelContact', { wheel: w.id, surface: w.surface, started: false });
       }
@@ -421,12 +423,13 @@ export function createSim(opts) {
     if (S.combo.count > 0) { S.combo.timer -= DT; if (S.combo.timer <= 0) bank(); }
 
     // kargo kaybı
+    const bp = veh.bayBody.getPosition();   // kargonun taşındığı gövde (Paşa'da römork); diğer araçlarda şasi
     for (const c of cargo) {
       if (c.state !== 'onboard') continue;
       const cpos = c.body.getPosition();
       if (cpos.y < killY + SIM.killDepth * 0.5) { lose(c, 'fell'); continue; }
-      if (p.x - cpos.x > CARGO_LOSS.behindDist) { lose(c, 'left'); continue; }
-      const farFromCar = Math.hypot(cpos.x - p.x, cpos.y - p.y) > CARGO_LOSS.restDist;
+      if (bp.x - cpos.x > CARGO_LOSS.behindDist) { lose(c, 'left'); continue; }
+      const farFromCar = Math.hypot(cpos.x - bp.x, cpos.y - bp.y) > CARGO_LOSS.restDist;
       if (farFromCar && c.body.getLinearVelocity().length() < 0.3) { c.restT += DT; if (c.restT > CARGO_LOSS.restTime) lose(c, 'fell'); } else c.restT = 0;
     }
 
