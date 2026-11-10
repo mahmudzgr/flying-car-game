@@ -113,6 +113,7 @@ export function createSim(opts) {
           const body = world.createBody({ type: 'dynamic', position: V(o.x + cI * (d.w + 0.03) + (r % 2 ? d.w / 2 : 0), gy + d.h / 2 + r * (d.h + 0.01) + 0.01) });
           body.createFixture(pl.Box(d.w / 2, d.h / 2), { density: d.mass / (d.w * d.h), friction: d.friction, restitution: d.restitution, filterCategoryBits: CAT.object, filterMaskBits: 0xffff, userData: { k: 'obj' } });
           const ob = { id: `o${objSeq++}`, type: 'barrel', body, hit: false };
+          body.getFixtureList().setUserData({ k: 'obj', prop: ob });   // çarpışma dinleyicisi (hit/hazardTrigger) varili tanısın
           ob.pose = track(body, { w: d.w, h: d.h, r: 0 });
           objects.push(ob);
         }
@@ -190,7 +191,7 @@ export function createSim(opts) {
     if (!A || !B) return;
     const spd = relSpeed(c);
     for (const [X, Y, fx] of [[A, B, fa], [B, A, fb]]) {
-      if (X.k === 'chassis' && (X.part === 'roof' || X.part === 'cab') && Y.k === 'ground') veh.roofC++;
+      if (X.k === 'chassis' && (X.part === 'roof' || X.part === 'cab') && Y.k === 'ground') { veh.roofC++; if (spd > 1) S.roofLastSpd = spd; }
       if (X.k === 'cargo' && Y.k === 'chassis') X.c.bayC++;
       if (X.k === 'wheel' && (Y.k === 'ground' || isSupport(Y))) {
         const w = wheelById[X.id]; w.contacts++;
@@ -203,14 +204,14 @@ export function createSim(opts) {
       if (X.k === 'chassis' && (Y.k === 'ground' || Y.k === 'obj')) {
         if (spd > 2 && (X.part === 'roof' || X.part === 'cab') && Y.k === 'ground' && !veh.driver.ejected && Math.abs(wrapAngle(veh.chassis.getAngle())) > DRIVER.roofInvertedAngle
           && spd > DRIVER.roofCrushSpeed * (cfg.cage ?? 1) && !S.pendingEject) {
-          S.pendingEject = { headSpeed: spd, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y }, cause: 'roofImpact' };   // ters inip tavan yere sert vurdu
+          S.pendingEject = { headSpeed: spd, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y }, cause: 'roof' };   // ters inip tavan yere sert vurdu
         }
         if (spd > 2) {
           emit('bodyHit', { speed: spd, part: X.part === 'cab' ? 'cab' : X.part === 'roof' ? 'roof' : 'chassis', normal: { x: c.getWorldManifold(null)?.normal.x ?? 0, y: c.getWorldManifold(null)?.normal.y ?? 1 } });
           if (spd > RULES.badLandingSpeed) { S.stats.hits++; burn('bodyHit'); }
         }
       } else if (X.k === 'head' && Y.k !== 'torso' && !veh.driver.ejected && spd > DRIVER.headHitSpeed) {
-        S.pendingEject = { headSpeed: spd, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y } };
+        S.pendingEject = { headSpeed: spd, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y }, cause: 'roof' };   // kafa doğrudan yere/nesneye vurdu
       } else if (X.k === 'cargo') {
         const cg = X.c;
         if (spd > 1.5 && cg.state === 'onboard') {
@@ -312,7 +313,7 @@ export function createSim(opts) {
     S.result = {
       result, reason, score, stars, time: S.t, distance: dist,
       cargoDelivered: delivered.length, cargoLost: S.stats.cargoLost, cargoTotal: cargo.length,
-      coins: S.pickups, pickups: S.pickups, usedCheckpoint: !!cpOpt, maxMultiplier: S.stats.maxMult, flips: S.stats.flips, intact,
+      coins: S.pickups, pickups: S.pickups, cause: S.failCause ?? null, usedCheckpoint: !!cpOpt, maxMultiplier: S.stats.maxMult, flips: S.stats.flips, intact,
     };
     emit('levelEnd', S.result);
     for (let i = 1; i <= stars; i++) emit('starEarned', { index: i });
@@ -442,7 +443,7 @@ export function createSim(opts) {
     }
     // tavan üstünde kalma: ters + kabin/tavan zeminde ≥ DRIVER.roofHold sn ⇒ kafa vuruşu (araç ters dönüp tavanı üstünde kalmışsa)
     S.roofT = veh.roofC > 0 && Math.abs(wrapAngle(ang)) > DRIVER.roofInvertedAngle && !veh.driver.ejected ? (S.roofT ?? 0) + DT : 0;
-    if (S.roofT > DRIVER.roofHold && !S.pendingEject) S.pendingEject = { headSpeed: 0, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y }, cause: 'roofHold' };
+    if (S.roofT > DRIVER.roofHold && !S.pendingEject) S.pendingEject = { headSpeed: S.roofLastSpd ?? 0, pos: { x: veh.driver.head.getPosition().x, y: veh.driver.head.getPosition().y }, cause: 'upsideDown' };   // headSpeed: araç ters devrilirken tavanın yere son vuruş hızı
 
     // Uzun Yol: teslim, üretim, temizlik
     if (endless) {
@@ -487,11 +488,11 @@ export function createSim(opts) {
     if (S.pendingEject) {
       const ev = S.pendingEject; S.pendingEject = null;
       world.destroyJoint(veh.driver.seatJoint); veh.driver.ejected = true;
-      emit('driverEject', ev); emit('crash', { reason: 'headHit', pos: ev.pos });
+      emit('driverEject', ev); emit('crash', { reason: 'headHit', pos: ev.pos, cause: ev.cause, headSpeed: ev.headSpeed });
       burn('headHit'); slowmo('headHit', 'headHit');
-      S.pendingFail = { at: S.t + DRIVER.failDelay, reason: 'headHit' };
+      S.pendingFail = { at: S.t + DRIVER.failDelay, reason: 'headHit', cause: ev.cause };
     }
-    if (S.pendingFail && S.t >= S.pendingFail.at) { endLevel('fail', S.pendingFail.reason); return; }
+    if (S.pendingFail && S.t >= S.pendingFail.at) { S.failCause = S.pendingFail.cause; endLevel('fail', S.pendingFail.reason); return; }
     if (S.pendingFail) return;
 
     // takılma: gaz/fren basılıyken 5 sn kıpırdamama (çukura/kayaya sıkışma) → yeniden denemeye izin ver

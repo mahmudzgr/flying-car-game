@@ -52,7 +52,7 @@ export default {
     { x: 4, text: 'Bu bölümde rampalar var: havada uç, kombo yap', icon: 'jump' },
     { x: 62, text: 'Rampa: hızını koru. Havada gaz = burun yukarı, fren = aşağı', icon: 'jump' },
     { x: 160, text: 'Çukurlu rampa! Yeterli hız şart', icon: 'warn' },
-    { x: 272, text: 'Büyük vadi: hız şart (≥10 m/s). Havada gaza basılı tut: takla!', icon: 'jump' },
+    { x: 272, text: 'Büyük vadi: hız şart (≥36 km/sa). Havada gaza basılı tut: takla!', icon: 'jump' },
   ],
   stars: {
     2: [{ kind: 'flips', min: 1, label: 'Bir takla at' }],

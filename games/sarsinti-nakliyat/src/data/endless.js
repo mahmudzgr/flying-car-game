@@ -42,7 +42,7 @@ const TEMPLATES = {
   bumpRun: {
     minD: 0, w: 3, biomes: null,
     build(c) {
-      const len = c.ri(24, 36), h = lerp(0.2, 0.46, c.d) * c.r(0.9, 1.1);
+      const len = c.ri(24, 36), h = lerp(0.2, 0.46, c.d) * c.r(0.9, 1.1) * (c.slow ? 0.7 : 1);   // slow: Paşa/Koca için alçak tümsek
       return {
         pieces: [{ type: 'flat', len: 8, surface: c.S.road }, { type: 'bumps', len, h, n: c.ri(4, 6), surface: c.S.bump }, { type: 'flat', len: 8, surface: c.S.road }],
         objects: [coinsAt(c, 12, 1.1)],
@@ -189,7 +189,7 @@ export function createEndlessGen(seed, { vehicleId } = {}) {
   let idx = 0, nextPadAt = ENDLESS.deliveryEvery, lastTpl = '', lastHeavy = false, lastBiome = 'elma';
 
   const mk = (d, biome) => ({
-    d, biome, S: SURF[biome], rng,
+    d, biome, S: SURF[biome], rng, slow: !!SLOW_BANNED[vehicleId],
     r: (a, b) => a + rng() * (b - a),
     ri: (a, b) => a + Math.floor(rng() * (b - a + 1)),
   });

@@ -45,7 +45,7 @@ export default {
   minDelivered: 2,
   parTime: 60, timeLimit: null,
   objects: [
-    { type: 'snowball', trigger: { x: 34 }, behind: 14, v0: 6, v1: 12, ramp: 45 },
+    { type: 'snowball', trigger: { x: 34 }, behind: 14, v0: 5.2, v1: 12, ramp: 45 },
     { type: 'coins', x: 22, n: 5, spacing: 1.8, h: 1.1 },
     { type: 'coins', x: 90, n: 6, spacing: 2.4, h: 1.0 },       // inişte: hızlıyken topla
     { type: 'coins', x: 218, n: 6, spacing: 2.4, h: 1.0 },      // buz yaması

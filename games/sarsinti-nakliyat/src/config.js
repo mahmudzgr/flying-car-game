@@ -80,7 +80,7 @@ export const VEHICLES = {
       { part: 'roof',    x: 0.65, y: 1.5,  w: 1.3, h: 0.08 },    // roll kafesi tavanı
       { part: 'cab',     x: 1.15, y: 0.95, w: 0.1, h: 1.2 },     // ön ayak
       { part: 'cab',     x: 0.15, y: 0.95, w: 0.1, h: 1.2 },     // arka ayak
-      { part: 'chassis', x: -1.28, y: 0.54, w: 0.08, h: 0.38 },   // arka kenarlık
+      { part: 'chassis', x: -1.28, y: 0.60, w: 0.08, h: 0.50 },   // arka kenarlık
     ],
     wheels: [
       { id: 'rear',  x: -1.1, y: -0.15, driven: true },
@@ -91,12 +91,12 @@ export const VEHICLES = {
     motorTorque: 1100, maxWheelSpeed: 62, brakeTorque: 2400,
     airTorque: 3600, airMaxW: 9, cage: 1.4, grip: 0.95, drag: 0.35,
     capacity: 3,
-    bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.38 },
+    bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.5 },
     seat: { x: 0.65, y: 0.7 },
   },
   pasa: {
     id: 'pasa', name: 'Paşa', kind: 'Traktör + römork', implemented: true,
-    unlock: { stars: 22, coins: 2500 },
+    unlock: { stars: 20, coins: 2500 },
     stats: { speed: 1, traction: 5, balance: 4, capacity: 4, air: 1 },
     mass: 1500, comY: -0.2, inertia: 1100,
     parts: [
@@ -128,7 +128,7 @@ export const VEHICLES = {
   },
   koca: {
     id: 'koca', name: 'Koca', kind: 'Kamyon', implemented: true,
-    unlock: { stars: 34, coins: 4000 },
+    unlock: { stars: 30, coins: 4000 },
     stats: { speed: 2, traction: 4, balance: 5, capacity: 5, air: 1 },
     mass: 3200, comY: -0.25, inertia: 10000,
     parts: [
