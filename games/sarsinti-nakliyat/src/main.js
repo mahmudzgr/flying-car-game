@@ -147,6 +147,7 @@ window.addEventListener('orientationchange', () => renderer.resize());
 audio.setVolumes({ sfx: save.data.settings.sfx, music: save.data.settings.music });
 
 function frame(now) {
+  input.poll?.();
   const raw = Math.min((now - last) / 1000, SIM.maxFrameDt); last = now;
   if (sim && (state === 'playing' || state === 'result' || state === 'menu')) {
     if (state !== 'menu') {

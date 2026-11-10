@@ -423,7 +423,7 @@ export function createSim(opts) {
     if (S.combo.count > 0) { S.combo.timer -= DT; if (S.combo.timer <= 0) bank(); }
 
     // kargo kaybı
-    const bp = veh.bayBody.getPosition();   // kargonun taşındığı gövde (Paşa'da römork); diğer araçlarda şasi
+    const bayC = cfg.trailer?.bay ?? cfg.bay, bp = veh.bayBody.getWorldPoint(V((bayC.x0 + bayC.x1) / 2, bayC.floorY));   // kargonun taşındığı gövde (Paşa'da römork); diğer araçlarda şasi
     for (const c of cargo) {
       if (c.state !== 'onboard') continue;
       const cpos = c.body.getPosition();

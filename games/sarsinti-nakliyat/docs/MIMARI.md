@@ -165,7 +165,7 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | Olay | Yük | Not |
 |---|---|---|
 | `levelStart` | `{levelId, biome, vehicleId, cargo:[{type,count}], bestScore}` | ilk `step()`'te |
-| `levelEnd` | `{result:'win'\|'fail', reason, score, stars, time, distance, cargoDelivered, cargoLost, cargoTotal, coins, pickups, maxMultiplier, flips, intact}` | `reason`: `finish` `headHit` `flipped` `fell` `timeout` `cargoShort` `chased` (kar topu/kaya yakaladı) `water` (suda 1,5 sn) `stuck` (gaz/fren basılıyken 5 sn kıpırdamama). `usedCheckpoint:boolean`. `coins` = yolda toplanan kuruş (ödül için `sim/economy.js`) |
+| `levelEnd` | `{result:'win'\|'fail', reason, score, stars, time, distance, cargoDelivered, cargoLost, cargoTotal, coins, pickups, maxMultiplier, flips, intact}` | `reason`: `finish` `headHit` `flipped` `fell` `timeout` `cargoShort` `chased` (kar topu/kaya yakaladı) `water` (suda 1,5 sn) `stuck` (gaz/fren basılıyken 5 sn kıpırdamama) `cargoGone` (Uzun Yol: araçtaki son kargo da gitti). `usedCheckpoint:boolean`. Uzun Yol'da `result:'end'` (win/fail değil) ve ek alanlar §14. `coins` = yolda toplanan kuruş (ödül için `sim/economy.js`) |
 | `pause` / `resume` | `{}` | game |
 | `throttle` / `brake` | `{on}` | kenar tetikli |
 | `engine` | `{vehicleId, rpm, load, speed}` | 60 Hz (her 2. adım). Ses için `audio.setEngine` da kullanılır |
@@ -197,7 +197,10 @@ Biçim: **düz nesne** `e = { name, t, ...yük }`; `t` = bölüm saniyesi (sim o
 | `slowmo` | `{scale, duration, reason}` | `duration` **sim saniyesi**; gerçek süre = duration/scale (ör. 1 sn @0,35 ≈ 2,9 sn). Sim `timeScale`'i kendisi uygular |
 | `starEarned` | `{index:1..3}` | `levelEnd`'den sonra sırayla |
 | `purchase` / `upgrade` | `{item\|vehicleId+line, cost, level}` | UI yayar |
-| `toast` | `{text, icon}` | bölüm `hints`'inden |
+| `toast` | `{text, icon}` | bölüm `hints`'inden; Uzun Yol'da teslimde de |
+| `delivery` | `{index, x, count, value, pay, total, intact, distance}` | **Uzun Yol**: teslim noktası geçildi (`pay` = bu teslimin kuruşu, `total` = koşudaki toplam) |
+| `biomeChange` | `{biome, x}` | **Uzun Yol**: araç yeni biyoma girdi (`static.biome` aynı anda değişir; müzik/gökyüzü geçişi) |
+| `terrainExtended` / `terrainTrimmed` | `{from,to,rev}` / `{to,rev}` | **Uzun Yol**: `static.terrain` dizileri yerinde uzadı/kısaldı; `static.terrainRev` arttı |
 
 Dağıtım: main.js `sim.on('*', e => { renderer.onEvent(e); audio.onEvent(e); ui.onEvent(e) })`. Yeni olay eklemek = `events.js` + bu tablo + ilgili ekibe haber.
 
@@ -351,7 +354,7 @@ boot ─► menu ─(Başla/startLevel)─► loading ─► playing ◄─(resu
 node games/sarsinti-nakliyat/tools/bot.mjs [bölümId …] [--vehicle tosun|zipir] [--speed m/s] [--max sn] [--strict]
 ```
 
-Seçenekler: `--matrix` (tüm araçlar), `--determinism` (aynı koşu iki kez, sonuç aynı olmalı), `--strict`, `--json`. Bölümde isteğe bağlı `bot:{speed, jumpSpeed, zones:[{x0,x1,speed}], vehicles:{zipir:{speed}}}`; bot geniş çukurlardan önce otomatik hızlanır, köprüde `zones` ile yavaşlatılabilir. Başsız: `createSim` + `autopilot(snapshot, hedefHız)` (hedef hıza gaz/fren, havada açıyı düzelt). Her bölüm için sonuç (`OK/FAIL`), neden, süre, yıldız, skor, kargo; `--strict` kampanya bölümü bitmezse çıkış kodu 1. Sonraki adımlar (Test ekibi): bölüm başına strateji (`level.bot`), boş/dolu kasa ve araç matrisi, sürtünme eğimi testi, kafa vuruşu yanlış tetikleme testi, kargo kaybı eşikleri, determinizm (aynı giriş → aynı sonuç), kayıt bozulma testi (`save.js` Node'da bellekle çalışır). Tarayıcı duman testi: Playwright ile `index.html?debug` aç, konsol hatası yok, `window.__sarsinti.state`.
+Uzun Yol: `--endless [--seed N] [--runs K] [--max sn] [--samples]` (K ardışık tohum; gövde/zemin düğümü/bellek örnekleri), `--template ad [--d 0.5] [--biome b] [--runs K]` (tek şablon laboratuvarı). `node --expose-gc` ile bellek örneği daha doğru. Seçenekler: `--matrix` (tüm araçlar), `--determinism` (aynı koşu iki kez, sonuç aynı olmalı), `--strict`, `--json`. Bölümde isteğe bağlı `bot:{speed, jumpSpeed, zones:[{x0,x1,speed}], vehicles:{zipir:{speed}}}`; bot geniş çukurlardan önce otomatik hızlanır, köprüde `zones` ile yavaşlatılabilir. Başsız: `createSim` + `autopilot(snapshot, hedefHız)` (hedef hıza gaz/fren, havada açıyı düzelt). Her bölüm için sonuç (`OK/FAIL`), neden, süre, yıldız, skor, kargo; `--strict` kampanya bölümü bitmezse çıkış kodu 1. Sonraki adımlar (Test ekibi): bölüm başına strateji (`level.bot`), boş/dolu kasa ve araç matrisi, sürtünme eğimi testi, kafa vuruşu yanlış tetikleme testi, kargo kaybı eşikleri, determinizm (aynı giriş → aynı sonuç), kayıt bozulma testi (`save.js` Node'da bellekle çalışır). Tarayıcı duman testi: Playwright ile `index.html?debug` aç, konsol hatası yok, `window.__sarsinti.state`.
 
 ## 13. Fizik ayar kararları ve bilinen sınırlar (Çekirdek)
 
@@ -361,4 +364,23 @@ Seçenekler: `--matrix` (tüm araçlar), `--determinism` (aynı koşu iki kez, s
 - **Kafa vuruşu:** sürücü kabin içinde (tavan üstünde değil); eşik 6 m/s göreli normal hız; normal inişlerde (12–16 m/s atlayış) tetiklenmedi.
 - **Determinizm:** sabit adım, Math.random yok; `bot --determinism` aynı sonuç verir (kampanya × 4 araç).
 - Römork: Paşa'da `hitchLimit` 0,9 rad (jackknife sınırı). Paşa atlayışlı bölümlerde (2-4) düşer: tasarım gereği "Hava 1".
-- Yok: Uzun Yol, gamepad, tahterevalli+köprü için ayrı kilit/ayar arayüzü; kar topu yalnızca düz kinematik takip (zemini izler).
+- Yok: tahterevalli+köprü için ayrı kilit/ayar arayüzü; kar topu yalnızca düz kinematik takip (zemini izler).
+
+- **Destek yüzeyleri:** köprü tahtası, kütük ve tahterevalli artık tekerlek için ZEMİN sayılır (`wheel.contacts`, `onGround`, yüzey `wet`); önceden bu nesnelerin üstünde araç "havada" sayılıp gaz/fren hava torkuna gidiyordu.
+- **Kargo kaybı ölçümü** (`restDist`/`behindDist`) kargonun taşındığı gövdenin (Paşa'da römork bölmesi) merkezinden yapılır.
+- **Su/kütük (arcade):** `PROPS.water.density` 6000 (gerçekçi değil: kütük araç ağırlığında ~1 cm batar), kütük yatay yayı 40 kN/m, dikey sönüm 10 kN·sn/m. `water.y` mutlak sayı | `'bank-1.5'` | boş (kıyı − `PROPS.water.below`=0,9). Ölçüm (kütük 4 m ×4, aralık 0,2): Tosun/Zıpır 4–10 m/s, Koca 5–7, Paşa ≥8 m/s geçer.
+- **Gamepad:** `input.js` — sağ tetik (7) gaz, sol tetik (6) fren (ya da sol çubuk ←/→), Start (9) duraklat, A (0) onay; `input.poll()` main döngüsünde her karede çağrılır.
+
+## 14. Uzun Yol (sonsuz mod)
+
+**Giriş:** `createSim({ endless:{seed}, vehicleId, upgrades, settings, bestScore })` (level verilmez; üreteç `data/endless.js` verir). `main.js`: `flow.startEndless(vehicleId, seed?)`, `flow.mode` (`'level'|'endless'`); `retry()` yeni tohumla yeniden başlatır. Sonuç: `ui.show('result', { result, reward, level, mode:'endless', endless:{seed, newBestDistance, newBestScore, prev} })`; kayıt `save.data.endless {bestDistance, bestScore, runs}`, kuruş `reward.total = pay + pickups`, `stats` güncellenir.
+
+**Üretim (`data/endless.js`, tohumlu mulberry32, Math.random yok):** 40–80 m'lik parçalar; şablonlar: bumpRun, hillRoll, kicker (rampa+iniş), rampGap (dar çukur), bridge (zayıf tahtalı köprü), barrels, seesaw, softPatch (çamur/kum/kar/çimen), sandDunes, icePatch (zirve), steepHill, waterLogs (bataklık). Zorluk `1−e^(−m/1500)`: tümsek yüksekliği, çukur genişliği, zayıf tahta sayısı, kargo sayısı artar; her şablonun `minD` eşiği ve biyom listesi vardır, ağır (heavy) parçalar art arda gelmez. Biyom her 400 m'de (`elma→kanyon→bataklik→zirve→…`), teslim noktası her ~150 m'de (18 m asfalt düzlük + bayrak = `static.finishX` sıradaki teslim). Her şablon yükseklik farkını sıfırlar.
+
+**Akış (`sim/endless.js`):** araçtan 260 m ileriye zemin üretilir; fizik zemini hayalet köşeli (ghost vertex) zincir parçalarıdır (`userData.surf` yüzey dizisi); dinamik nesneler (varil, köprü, kütük, tahterevalli) araç 70 m yaklaşınca kurulur; 60 m gerideki gövde/eklem/zemin parçası/kuruş yok edilir; görsel zemin dizisi 90 m geriden **yerinde** kırpılır. Ölçüm (bot, 5 dk): gövde ≤ ~60 (bütçe 70), zemin düğümü ≤ ~480, bellek düz (~11 MB). Aynı tohum+giriş → aynı sonuç.
+
+**Sözleşme uzatması (geriye uyumlu):** `static.terrain.{xs,ys,surf}` ve `static.props/water/bounds/finishX/finishY/killY/biome` Uzun Yol'da YERİNDE değişir (mutlak x ile aranan okuyucular çalışır; indeks önbelleğine güvenmeyin). `static.terrainRev` her uzama/kırpmada artar; `terrainExtended`/`terrainTrimmed` olayları yayılır. Uzama her zaman ≥100 m ilerde olur (görünür alanı etkilemez). `static.biome` aracın bulunduğu biyomdur; `static.biomes = [{x0, biome}]` son 3 kayıt; `static.mode = 'endless'`. `snapshot.coins` listesi değişince YENİ dizi olur. `snapshot.cargo` yalnızca canlı + yakın zamanda teslim/kayıp gövdeleri içerir (teslim edilen 1,5 sn, kaybolan 3 sn kalır); `cargoSummary` kümülatiftir. `snapshot.run.progress` = sıradaki teslime ilerleme.
+
+**`snapshot.endless`:** `{seed, distance, nextX, toNext, leg 0..1, deliveries, pay (kuruş), carried (taşınan kargonun kuruş değeri), biome, nextBiome, nextBiomeX, difficulty 0..1, cargoPts, loaded, deliveredItems}`; `snapshot.score` = anlık skor.
+
+**Teslim:** bayrağı geçince bölmedeki sağlam kargo (≤`deliverRadius`) `cargoDelivered` olur, değeri × `ENDLESS.payFactor` kuruş ödenir (`delivery` olayı), teslim edilenler yere düşer, araca yeni yük gelir (3 kargo, her 2 teslimde +1, araç kapasitesine kadar; tür havuzu zorlukla genişler, piyano yalnız kapasite ≥8). **Bitiş (ölüm):** `headHit`, `flipped`, `fell`, `water`, `stuck`, `chased`, `cargoGone` (son kargo gidince 0,8 sn sonra). **Skor** = banka kombo puanı + mesafe (1/m) + Σ teslim kargo değeri ×10 (hasarsız teslimde +%25). `levelEnd` yükü: `{result:'end', mode:'endless', seed, reason, score, distance, deliveries, pay, deliveredValue, cargoDelivered, cargoLost, cargoTotal, pickups, biome, difficulty, time, flips, maxMultiplier}`. Ayarlar: `config.js → ENDLESS`.

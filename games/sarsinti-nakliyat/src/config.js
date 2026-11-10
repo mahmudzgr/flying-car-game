@@ -174,11 +174,11 @@ export const CARGO_LOSS = { behindDist: 8, restTime: 2, restDist: 4, deliverRadi
 
 /** Engel/nesne türleri (TASARIM §4.4). */
 export const OBJECTS = {
-  barrel: { w: 0.6, h: 0.9, mass: 30, friction: 0.5, restitution: 0.1 },
+  barrel: { w: 0.6, h: 0.9, mass: 12, friction: 0.3, restitution: 0.1 },
   rock:   { mass: 600, friction: 0.8, restitution: 0.1 },        // r bölüm verisinden
   coin:   { r: 0.25, value: 5 },
   plank:  { w: 1.0, h: 0.2, mass: 30 },                          // köprü tahtası
-  seesaw: { len: 8.0, h: 0.3, mass: 200, limit: 0.45, rest: 0.22, damping: 2.0 },   // rest: sol uç yerdeyken eğim (rad); zemin teması gerçek aralığı belirler
+  seesaw: { len: 8.0, h: 0.3, mass: 200, limit: 0.45, rest: 0.12, damping: 2.0 },   // rest: sol uç yerdeyken eğim (rad); zemin teması gerçek aralığı belirler
 };
 
 /** Köprü, kar topu, su, kütük ayarları (TASARIM §4.4, §7). */
@@ -253,7 +253,7 @@ export const CAMERA = {
 /** Uzun Yol (sonsuz mod) ayarları (TASARIM §6). Mesafeler metre. */
 export const ENDLESS = {
   genAhead: 260,          // araçtan bu kadar ileriye kadar zemin üretilir (teslim aralığından büyük: ileride hep bir bayrak vardır)
-  spawnAhead: 80,         // dinamik nesneler (varil, köprü, kütük...) araç bu kadar yaklaşınca kurulur (gövde bütçesi)
+  spawnAhead: 70,         // dinamik nesneler (varil, köprü, kütük...) araç bu kadar yaklaşınca kurulur (gövde bütçesi)
   keepBehind: 60,         // araçtan bu kadar geride kalan nesne/kargo/zemin gövdesi yok edilir
   trimBehind: 90,         // zemin dizisi (görsel) bu kadar geriden kırpılır; fizik parçaları keepBehind'da atılır
   tickEvery: 10,          // üretim/temizlik denetimi kaç adımda bir (teslim denetimi her adım)
@@ -265,7 +265,7 @@ export const ENDLESS = {
   cargoStart: 3,          // ilk yükte kargo sayısı; her `cargoStep` teslimde +1 (araç kapasitesine kadar)
   cargoStep: 2,
   payFactor: 1,           // teslim kuruşu = sağlam kargo değeri × payFactor
-  deliveredLinger: 3,     // teslim edilen kargo gövdesi bu kadar sn sonra yok edilir
-  lostLinger: 6,          // kaybedilen kargo gövdesi bu kadar sn sonra (ya da arkada kalınca) yok edilir
+  deliveredLinger: 1.5,     // teslim edilen kargo gövdesi bu kadar sn sonra yok edilir
+  lostLinger: 3,          // kaybedilen kargo gövdesi bu kadar sn sonra (ya da arkada kalınca) yok edilir
   goneDelay: 0.8,         // son kargo kaybından 'cargoGone' bitişine (sn)
 };
