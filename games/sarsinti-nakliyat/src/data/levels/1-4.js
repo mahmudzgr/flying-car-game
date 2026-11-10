@@ -29,7 +29,7 @@ export default {
       // 3. rampa: büyük vadi atlayışı
       { type: 'ramp', len: 16, dy: 5.0 },                              // dik fırlatma: ≥1,5 sn havada (takla fırsatı)
       { type: 'pts', pts: [[0, -17], [16, 0], [0, 9]] },          // 16 m vadi; karşı yaka 8 m aşağıda (iniş yamacı affeder)
-      { type: 'slope', len: 34, dy: -4.0 },                       // iniş yönüne eğimli iniş rampası
+      { type: 'slope', len: 24, dy: -8.0 },                       // ~19° iniş rampası: takla sonrası iniş yönüne eğimli
       { type: 'flat', len: 20, surface: 'dirt' },
       { type: 'hills', len: 60, amp: 0.8, waves: 2, surface: 'grass' },
       { type: 'flat', len: 30, surface: 'asphalt' },
@@ -51,11 +51,11 @@ export default {
     { x: 4, text: 'Bu bölümde rampalar var: havada uç, kombo yap', icon: 'jump' },
     { x: 62, text: 'Rampa: hızını koru. Havada gaz = burun yukarı, fren = aşağı', icon: 'jump' },
     { x: 160, text: 'Çukurlu rampa! Yeterli hız şart', icon: 'warn' },
-    { x: 272, text: 'Büyük vadi atlayışı: takla atmak ister misin?', icon: 'jump' },
+    { x: 272, text: 'Büyük vadi: hız şart (≥10 m/s). Havada gaza basılı tut: takla!', icon: 'jump' },
   ],
   stars: {
-    2: [{ kind: 'flips', min: 1, label: 'Bir takla at ve bitir' }],
-    3: [{ kind: 'flips', min: 2, label: '2 taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }],
+    2: [{ kind: 'flips', min: 1, label: 'Bir takla at' }],
+    3: [{ kind: 'flips', min: 1, label: 'Taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }, { kind: 'delivered', min: 3, label: 'En az 3 kargo teslim' }],
   },
   reward: { base: 90 },
   bot: { speed: 12 },
