@@ -11,12 +11,12 @@ export function createHud(ctx) {
   el.className = 'hud';
   el.setAttribute('aria-label', 'Oyun göstergeleri');
   el.innerHTML = `
-    <div class="hud-tl"><div class="hud-cargo" id="h-cargo" aria-label="Kargo"></div><div class="hud-time" id="h-time">0:00.0</div><div class="hud-end" id="h-end" hidden><span id="h-del">Teslim 0</span><span id="h-carry"></span><span id="h-rec"></span></div></div>
+    <div class="hud-tl"><div class="hud-cargo" id="h-cargo" aria-label="Kargo"></div><div class="hud-time" id="h-time">0:00.0</div></div>
     <div class="hud-tc"><div class="progress" role="progressbar" aria-label="Bitişe ilerleme" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="h-prog">
       <div class="ptrack"><i class="pfill" id="h-pfill"></i><span class="ptick-wrap" id="h-ticks"></span></div>
       <div class="prange"><span class="pcar" id="h-pcar"></span></div><span class="pflag">${flag()}</span></div>
-      <div class="pdist" id="h-dist">0 m</div></div>
-    <div class="hud-tr"><span class="chip coins" id="h-coinchip">${coin()}<b id="h-coins">0</b></span>
+      <div class="pdist" id="h-dist">0 m</div><div class="hud-end" id="h-end" hidden><span id="h-del">Teslim 0</span><span id="h-carry"></span><span id="h-rec"></span></div></div>
+    <div class="hud-tr"><span class="chip coins" id="h-coinchip" title="Bu bölümde toplanan kuruş" aria-label="Bu bölümde toplanan kuruş">${coin()}<b id="h-coins">0</b></span>
       <button class="pausebtn" id="h-pause" aria-label="Duraklat" title="Duraklat (Esc)">${pauseIcon()}</button></div>
     <div class="hud-bc">
       <div class="combo" id="h-combo" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring-bg" cx="20" cy="20" r="17"/><circle class="ring" id="h-ring" cx="20" cy="20" r="17" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="0" transform="rotate(-90 20 20)"/></svg><b id="h-mult">×1</b><small id="h-count"></small></div>

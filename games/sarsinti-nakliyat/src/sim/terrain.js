@@ -112,10 +112,10 @@ export function heightAt(t, x) {
   return best === -Infinity ? t.minY : best;
 }
 
-/** x çevresinde ±r m içindeki en yüksek zemin noktası (çukur/uçurum duvarı tespiti için). */
-export function topNear(t, x, r) {
+/** x çevresinde ±r m içindeki en yüksek zemin noktası (çukur/uçurum duvarı tespiti için). minX: bunun solundaki noktalar sayılmaz (başlangıç duvarı). */
+export function topNear(t, x, r, minX = -Infinity) {
   const { xs, ys } = t;
   let best = -Infinity;
-  for (let i = lowerBound(xs, x - r); i < xs.length && xs[i] <= x + r; i++) if (ys[i] > best) best = ys[i];
+  for (let i = lowerBound(xs, Math.max(x - r, minX)); i < xs.length && xs[i] <= x + r; i++) if (ys[i] > best) best = ys[i];
   return best === -Infinity ? t.minY : best;
 }

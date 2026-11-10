@@ -56,7 +56,7 @@ export const VEHICLES = {
       { part: 'chassis', x: 0,     y: 0,    w: 3.6, h: 0.9 },
       { part: 'cab',     x: 1.2,   y: 0.9,  w: 1.0, h: 0.9 },
       { part: 'roof',    x: 1.2,   y: 1.4,  w: 0.9, h: 0.1 },
-      { part: 'chassis', x: -1.75, y: 0.80, w: 0.1, h: 0.70 },  // arka kapak (kenarlık); 0,46→0,70: yuvarlak/yığın kargo normal gazda üstünden aşmasın
+      { part: 'chassis', x: -1.75, y: 0.62, w: 0.1, h: 0.34 },  // arka kapak (kenarlık); 0,46 → 0,70 → 0,34 (2. tur: alçak kapak = sert fren/tümsek+gazda kargo kaçabilir)
     ],
     wheels: [
       { id: 'rear',  x: -1.25, y: -0.59, driven: true },   // y: yumuşak yay (0,95 Hz) daha çok çöker; çökme sonrası dingil eski yerinde (≈-0,25) dursun diye 24 cm aşağıda
@@ -67,7 +67,7 @@ export const VEHICLES = {
     motorTorque: 1550, maxWheelSpeed: 52, brakeTorque: 3500, brakeFront: 0.6,
     airTorque: 11000, airMaxW: 9.5, grip: 1.0, drag: 0.55,
     capacity: 6,
-    bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.46 },          // kargo bölmesi (şasi yerel)
+    bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.34 },          // kargo bölmesi (şasi yerel)
     seat: { x: 1.15, y: 0.8 },                                     // sürücü gövdesi merkezi (şasi yerel)
   },
   zipir: {
@@ -80,7 +80,7 @@ export const VEHICLES = {
       { part: 'roof',    x: 0.65, y: 1.5,  w: 1.3, h: 0.08 },    // roll kafesi tavanı
       { part: 'cab',     x: 1.15, y: 0.95, w: 0.1, h: 1.2 },     // ön ayak
       { part: 'cab',     x: 0.15, y: 0.95, w: 0.1, h: 1.2 },     // arka ayak
-      { part: 'chassis', x: -1.28, y: 0.6,  w: 0.08, h: 0.5 },   // arka kenarlık
+      { part: 'chassis', x: -1.28, y: 0.54, w: 0.08, h: 0.38 },   // arka kenarlık
     ],
     wheels: [
       { id: 'rear',  x: -1.1, y: -0.15, driven: true },
@@ -91,7 +91,7 @@ export const VEHICLES = {
     motorTorque: 1100, maxWheelSpeed: 62, brakeTorque: 2400,
     airTorque: 3600, airMaxW: 9, cage: 1.4, grip: 0.95, drag: 0.35,
     capacity: 3,
-    bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.5 },
+    bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.38 },
     seat: { x: 0.65, y: 0.7 },
   },
   pasa: {
@@ -135,7 +135,7 @@ export const VEHICLES = {
       { part: 'chassis', x: 0,    y: 0,    w: 6.0, h: 1.3 },
       { part: 'cab',     x: 2.15, y: 1.15, w: 1.5, h: 1.0 },
       { part: 'roof',    x: 2.15, y: 1.7,  w: 1.4, h: 0.1 },
-      { part: 'chassis', x: -2.95, y: 1.0, w: 0.1, h: 0.7 },       // arka kapak
+      { part: 'chassis', x: -2.95, y: 0.91, w: 0.1, h: 0.52 },       // arka kapak
     ],
     wheels: [
       { id: 'front', x: 2.3,  y: -0.50, driven: false },
@@ -145,7 +145,7 @@ export const VEHICLES = {
     wheelR: 0.55, wheelMass: 80,
     freqHz: 1.3, zeta: 0.80, travel: [-0.12, 0.14], motorTorque: 4800, maxWheelSpeed: 27, brakeTorque: 12500,
     airTorque: 12000, airMaxW: 2.5, grip: 1.05, drag: 0.90, capacity: 10,
-    bay: { x0: -2.9, x1: 1.2, floorY: 0.65, rail: 0.7 },
+    bay: { x0: -2.9, x1: 1.2, floorY: 0.65, rail: 0.52 },
     seat: { x: 2.1, y: 1.15 },
   },
 };
@@ -166,10 +166,10 @@ export const DRIVER = {
 
 /** Kargo türleri (TASARIM §4.4). `bayMu` = kargo–araç (kasa tabanı/duvar) etkin sürtünmesi; gerçekçi tahta/metal ≈ 0,3–0,45 → kargo sert frende kayar (sim pre-solve'da uygulanır). shape: 'box' (w,h) | 'circle' (r). */
 export const CARGO = {
-  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.44, hp: 1, hitSpeed: Infinity, value: { base: 20, perHp: 0 } },
-  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 9, value: { base: 25, perHp: 0 } },
+  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.36, hp: 2, hitSpeed: 6.5, maxHitDamage: 1, survive: true, value: { base: 0, perHp: 10 } },   // ağır darbe (>6,5 m/s) = hasar (hp 2→1, değer %50); ikinci darbe yok etmez (survive)
+  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 6.0, value: { base: 25, perHp: 0 } },
   eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 3, restitution: 0.1, friction: 0.5, bayMu: 0.34, hp: 6, hitSpeed: 3.6, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
-  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.40, hp: 1, hitSpeed: Infinity, value: { base: 22, perHp: 0 } },
+  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.36, hp: 2, hitSpeed: 5.5, maxHitDamage: 1, survive: true, value: { base: 0, perHp: 11 } },   // bidon: >5,5 m/s hasar (ezik), yok olmaz
   piano:      { id: 'piano',      name: 'Piyano',        shape: 'box', w: 1.5, h: 1.1, mass: 180, restitution: 0.1,  friction: 0.6, bayMu: 0.45, hp: 2, hitSpeed: 8, value: { base: 0, perHp: 75 } }, // hp 1 = "kırık" (%50)
   bale:       { id: 'bale',       name: 'Balya',         shape: 'circle', r: 0.45,  mass: 40,  restitution: 0.05, friction: 0.9, bayMu: 0.7, hp: 1, hitSpeed: Infinity, value: { base: 18, perHp: 0 } },
 };

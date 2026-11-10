@@ -30,17 +30,35 @@ export function createRenderer(canvas, opts = {}) {
   let T = 0, shakeAmt = 0, shakePh = 0, flash = 0, flashCol = '#fff', vig = 0, vigRed = 0, lastMult = 1, lastCamX = 0, finishWon = false, finishT = 0;
   const wheelAcc = [0, 0, 0, 0, 0, 0]; let exhAcc = 0; const lastContact = [null, null, null, null, null, null];
   const o = { debug: !!opts.debug, quality: opts.quality ?? 'high', shake: opts.shake ?? 2 };
+  // Otomatik kalite: 'high'/'auto' = uyarlamalı (kademe 0..2), 'low' = sabit en düşük kademe
+  const DPR_CAP = [2, 1.5, 1], PART_CAP = [320, 220, 110];
+  let tier = o.quality === 'low' ? 2 : 0, ftSum = 0, ftN = 0, ftT = 0, coolT = 6, goodT = 0, upWait = 14;
+  function setTier(n) {
+    if (n === tier) return;
+    tier = n; applyQuality(); clearBackdropCache(); if (st) { clearTerrainCache(st); try { prewarmBackdrop(st.biome, view, view.dpr); } catch (e) { /* */ } }
+    resize();
+  }
+  function adapt(dt) {
+    if (o.quality === 'low' || dt > 0.12) return;      // duraklatma/sekme geçişi ölçüm dışı
+    ftSum += dt; ftN++; ftT += dt; coolT -= dt;
+    if (ftT < 3) return;
+    const avg = ftSum / ftN; ftSum = 0; ftN = 0; ftT = 0;
+    if (coolT > 0) return;
+    if (avg > 0.022 && tier < 2) { setTier(tier + 1); coolT = 4; goodT = 0; upWait = Math.min(120, upWait * 1.6); }
+    else if (avg < 0.0185 && tier > 0) { goodT += 3; if (goodT >= upWait) { setTier(tier - 1); coolT = 6; goodT = 0; } }
+    else if (avg >= 0.0185) goodT = 0;
+  }
   const range = { x0: 0, x1: 0, y0: 0, y1: 0 };
   const bridgeGroups = [[], [], [], []], plain = [];
   let lastFinishX = null, lastFinishY = 0; const gates = []; const seenCargo = new Map(); let firstCargo = true;
   let vigCv = null, vigKey = '', bgBiome = null, bgPrev = null, bgFade = 1;
 
   function applyQuality() {
-    ART.quality = o.quality;
-    particles.setCap(o.quality === 'low' ? 140 : 320);
+    ART.tier = tier; ART.quality = tier >= 2 ? 'low' : 'high';
+    particles.setCap(PART_CAP[tier]);
   }
   function resize() {
-    const dpr = Math.min(globalThis.devicePixelRatio || 1, o.quality === 'low' ? 1.25 : CAMERA.maxDpr);
+    const dpr = Math.min(globalThis.devicePixelRatio || 1, CAMERA.maxDpr, DPR_CAP[tier]);
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
     const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
     if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
@@ -75,7 +93,7 @@ export function createRenderer(canvas, opts = {}) {
   }
   const cp = { x: 0, y: 0 };
   function dustBurst(x, y, surf, n, spread = 3, up = 1.5) {
-    const c = DUST[surf] ?? DUST.dirt, q = o.quality === 'low' ? 0.6 : 1;
+    const c = DUST[surf] ?? DUST.dirt, q = tier >= 1 ? 0.6 : 1;
     n = Math.round(n * q);
     for (let i = 0; i < n; i++) {
       const dir = Math.random() < 0.5 ? -1 : 1;
@@ -106,7 +124,7 @@ export function createRenderer(canvas, opts = {}) {
 
   // ------------------------------------------------------------ sürekli efektler (kare başı)
   function continuousFx(s, dtP) {
-    const v = s.vehicle, q = o.quality === 'low' ? 0.5 : 1;
+    const v = s.vehicle, q = tier >= 1 ? 0.5 : 1;
     // tekerlek tozu / izler
     for (let i = 0; i < v.wheels.length && i < 6; i++) {
       const w = v.wheels[i];
@@ -174,6 +192,7 @@ export function createRenderer(canvas, opts = {}) {
   // ------------------------------------------------------------ ana çizim
   function render(snap, alpha, dt) {
     if (!st) return;
+    adapt(dt);
     T += dt; ART.t = T; ART.biome = st.biome; ART.dpr = view.dpr;
     const s = out = interpolateSnapshot(snap, alpha, out); cur = s;
     const ts = clamp(snap.timeScale ?? 1, 0.1, 1), dtP = dt * ts;
@@ -242,7 +261,7 @@ export function createRenderer(canvas, opts = {}) {
     // gölge
     const v = s.vehicle;
     const gy = heightAt(st, v.x);
-    drawShadow(ctx, v.x, gy, slopeAt(st, v.x), Math.max(0, v.y - gy - 0.5), v.id === 'koca' ? 2.8 : v.id === 'pasa' ? 2.0 : v.id === 'zipir' ? 1.5 : 1.9, px);
+    if (tier < 2) drawShadow(ctx, v.x, gy, slopeAt(st, v.x), Math.max(0, v.y - gy - 0.5), v.id === 'koca' ? 2.8 : v.id === 'pasa' ? 2.0 : v.id === 'zipir' ? 1.5 : 1.9, px);
     drawVehicleBack(ctx, v, st.vehicle, px, T);
     for (const c of s.cargo) { if (c.x < range.x0 - 4 || c.x > range.x1 + 4) continue; drawCargo(ctx, c, px); }
     drawDriver(ctx, s.driver, px, T);
@@ -263,11 +282,11 @@ export function createRenderer(canvas, opts = {}) {
 
     // ekran katmanı
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    if (o.quality !== 'low' || st.biome === 'zirve') { ambient.update(dtP, bgBiome, cam.x - lastCamX, view); ambient.draw(ctx, bgBiome, view, T, o.quality); }
+    if (tier < 2 || bgBiome === 'zirve') { ambient.update(dtP, bgBiome, cam.x - lastCamX, view); ambient.draw(ctx, bgBiome, view, T, tier >= 1 ? 'low' : 'high'); }
     lastCamX = cam.x;
     // hız çizgileri
     const spd = v.speed;
-    if (spd > 18 && o.quality !== 'low') {
+    if (spd > 18 && tier < 1) {
       const a = clamp((spd - 18) / 14, 0, 1) * 0.35; ctx.globalAlpha = a; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath();
       for (let i = 0; i < 7; i++) { const yy = ((i * 0.137 + T * 0.9) % 1) * view.h, xx = ((i * 0.31 + T * 2.3) % 1) * view.w; ctx.moveTo(xx, yy); ctx.lineTo(xx - 40 - spd, yy); }
       ctx.stroke(); ctx.globalAlpha = 1;
@@ -284,7 +303,7 @@ export function createRenderer(canvas, opts = {}) {
   function onEvent(e) {
     if (e.name === 'levelStart') { particles.clear(); skids.clear(); texts.clear(); resetCargoFx(); lastMult = 1; flash = 0; vig = 0; shakeAmt = 0; return; }
     if (!cur || !st) return;
-    const v = cur.vehicle, q = o.quality === 'low' ? 0.6 : 1;
+    const v = cur.vehicle, q = tier >= 1 ? 0.6 : 1;
     switch (e.name) {
       case 'land': {
         const imp = e.impactSpeed ?? 0;
@@ -351,6 +370,7 @@ export function createRenderer(canvas, opts = {}) {
       case 'nearMiss': { texts.add('ÇOK YAKIN!', v.x, v.y + 2.0, 0.42, '#ffd23c', 0.9, 1.4); break; }
       case 'driverEject': {
         const p = e.pos ?? cur.driver.head;
+        if (e.cause === 'roofImpact' || e.cause === 'roofHold' || e.cause === 'roof') { const rp = vPos({ x: 0.9, y: 1.4 }); sparks(rp.x, rp.y, Math.round(14 * q), 0, 1); dustBurst(rp.x, rp.y - 0.4, 'dirt', 6); }
         addShake(10); flash = 0.35; flashCol = '#ff6a5a'; vigRed = 1; camera.kick(-4);
         stars(p.x, p.y, Math.round(10 * q), ['#ffd23c', '#fff', '#ff6a5a'], 5);
         texts.add('AY!', p.x, p.y + 1.0, 0.7, '#ff5a5f', 1.0, 1.6);
@@ -396,8 +416,9 @@ export function createRenderer(canvas, opts = {}) {
     setOptions(p) {
       const q = o.quality;
       Object.assign(o, p);
-      if (p.quality && p.quality !== q) { ART.quality = o.quality; applyQuality(); clearBackdropCache(); if (st) clearTerrainCache(st); resize(); }
+      if (p.quality && p.quality !== q) { tier = o.quality === 'low' ? 2 : 0; goodT = 0; upWait = 14; applyQuality(); clearBackdropCache(); if (st) clearTerrainCache(st); resize(); }
     },
+    get tier() { return tier; },
     destroy() { if (st) clearTerrainCache(st); st = null; cur = null; out = null; },
   };
 }

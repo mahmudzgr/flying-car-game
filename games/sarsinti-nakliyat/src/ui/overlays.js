@@ -1,5 +1,6 @@
 // Duraklatma, sonuç ve onay ekranları. Sahip: Arayüz.
-import { esc, stars, star, coin, check, cross, bulb, arrowRight, clock } from './icons.js';
+import { esc, lock, stars, star, coin, check, cross, bulb, arrowRight, clock } from './icons.js';
+import { levelLock } from './progress.js';
 import { failInfo, WIN_TITLES, fmtTime, fmtNum, CARGO_PLURAL } from './texts.js';
 
 export function createPause(ctx) {
@@ -55,7 +56,11 @@ export function createResult(ctx) {
     if (params.mode === 'endless') return drawEndless();
     const win = r.result === 'win';
     const d = ctx.save.data, rec = d.levels[level?.id] ?? {};
-    const nextExists = win && level && ctx.levels.findIndex((l) => l.id === level.id) >= 0 && ctx.levels[ctx.levels.findIndex((l) => l.id === level.id) + 1];
+    const li = level ? ctx.levels.findIndex((l) => l.id === level.id) : -1;
+    const nextLevel = win && li >= 0 ? ctx.levels[li + 1] : null;
+    const nlock = nextLevel ? levelLock(d, ctx.levels, nextLevel) : null;
+    const nextExists = nextLevel && !nlock.locked;
+    const lockNote = nextLevel && nlock.locked ? `<p class="lock-note">${lock()} ${esc(nextLevel.id)} henüz kilitli: ${esc(nlock.text)}</p>` : '';
     el.classList.toggle('win', win); el.classList.toggle('fail', !win); el.classList.remove('endless-res');
     if (win) {
       const goals = [2, 3].map((n) => `<li class="${r.stars >= n ? 'done' : 'miss'}"><span class="gstars">${stars(n, n)}</span><span class="gtext">${esc((level?.stars?.[n] ?? []).map((c) => c.label).join(' + ') || '—')}</span>${r.stars >= n ? check('gtick') : cross('gx')}</li>`).join('');
@@ -85,10 +90,11 @@ export function createResult(ctx) {
               <div class="total">${coin()}<b id="res-total">+0</b></div>
             </div>
           </div>
+          ${lockNote}
           <footer class="res-actions">
-            <button class="btn btn-ghost" data-act="retry" data-key="retry" ${nextExists ? '' : 'data-autofocus'}>Tekrar</button>
+            <button class="btn btn-ghost" data-act="retry" data-key="retry" ${nextExists || lockNote ? '' : 'data-autofocus'}>Tekrar</button>
             <button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button>
-            <button class="btn btn-ghost" data-act="levels" data-key="levels">Bölümler</button>
+            <button class="btn ${lockNote ? 'btn-primary' : 'btn-ghost'}" data-act="levels" data-key="levels" ${lockNote ? 'data-autofocus' : ''}>Bölümler</button>
             ${nextExists ? `<button class="btn btn-primary" data-act="next" data-key="next" data-autofocus><span>Sonraki</span>${arrowRight()}</button>` : ''}
           </footer>
         </div>`);
@@ -97,14 +103,15 @@ export function createResult(ctx) {
         el.querySelector(`.rs[data-i="${i}"]`)?.classList.add('lit'); ctx.emit('ui:star', { index: i });
       }, 350 + (i - 1) * 520));
     } else {
-      const info = failInfo(r.reason, (rec.tries | 0) + (r.reason?.length | 0));
+      const info = failInfo(r.reason, (rec.tries | 0) + (r.reason?.length | 0), r.cause ?? r.headCause);
       const lostCoins = reward?.total | 0;
       ctx.nav.render(el, `
         <div class="panel result-panel fail-panel">
           <div class="fail-head"><span class="fail-badge" aria-hidden="true">!</span><div><small>${esc(level?.id ?? '')} · ${esc(level?.name ?? '')}${rec.tries ? ` · deneme ${rec.tries}` : ''}</small><h2>${esc(info.title)}</h2></div></div>
           <p class="fail-line">${esc(info.line)}</p>
           <p class="fail-tip">${bulb()}<span><b>İpucu:</b> ${esc(info.tip)}</span></p>
-          ${r.cargoTotal ? `<p class="fail-meta">Kargo: ${r.cargoDelivered}/${r.cargoTotal} teslim${lostCoins ? ` · yoldan ${coin()} +${fmtNum(lostCoins)}` : ''}</p>` : ''}
+          ${r.cargoTotal ? `<p class="fail-meta">Kargo: ${r.cargoDelivered}/${r.cargoTotal} teslim</p>` : ''}
+          <p class="fail-meta">${coin()} Yolda toplanan kuruşlar bölümü bitirince hesaba geçer.</p>
           <footer class="res-actions">
             <button class="btn btn-primary btn-xl" data-act="retry" data-key="retry" data-autofocus><span>Tekrar dene</span>${arrowRight()}</button>
             ${ctx.flow.hasCheckpoint?.() ? '<button class="btn btn-sun" data-act="cp" data-key="cp">Kontrol noktasından</button>' : ''}

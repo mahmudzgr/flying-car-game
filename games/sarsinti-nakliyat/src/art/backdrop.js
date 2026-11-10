@@ -32,7 +32,7 @@ export function drawSky(ctx, biome, view) {
 // ---------------------------------------------------------------- şerit önbelleği
 const strips = new Map();
 function getStrip(biome, layer, view, dpr) {
-  const bs = Math.min(dpr, 1.25);
+  const bs = ART.tier >= 1 ? 1 : Math.min(dpr, 1.25);
   const key = `${biome}|${layer}|${view.w}|${view.h}|${bs}|${ART.quality}`;
   let s = strips.get(key);
   if (s) return s;
@@ -58,6 +58,7 @@ export function clearBackdropCache() { strips.clear(); skyKey = ''; }
 export function drawParallax(ctx, biome, layer, camX, view, scale, camY = 0) {
   const dpr = ART.dpr || 1;
   const s = getStrip(biome, layer, view, dpr);
+  if (layer === 3 && ART.tier >= 2) return;
   const f = FACT[layer];
   let off = camX * scale * f + (layer === 3 ? ART.t * 7 : 0);
   off = ((off % s.P) + s.P) % s.P;

@@ -31,6 +31,8 @@ Havada gaz geri takla, fren ön takla torku verir.
 - **Tosun** (pikap, baştan açık), **Zıpır** (bagi), **Paşa** (römorklu traktör), **Koca** (kamyon): yıldız ve
   kuruşla açılır, garajda yükseltilir.
 
+- **Uzun Yol** (sonsuz mod): ana menüden seç; araç seç, her ~150 m'de bayrağa teslimat yap, yeni yük al. Biyomlar değişir, kargon bitene ya da kaza yapana kadar sürer; mesafe ve skor rekoru kaydedilir.
+
 Ayrıntılı tasarım: [`docs/TASARIM.md`](docs/TASARIM.md).
 
 ## Kayıt

@@ -3,6 +3,7 @@
 import * as pl from '../../vendor/planck.mjs';
 import { SIM, CAT, CARGO, CARGO_LOSS, CARGO_SLIDE, CARGO_STACK_MAX, DRIVER, ENDLESS, OBJECTS, RULES, SCORING, SURFACES, WHEELSPIN_SLIP, VEHICLES } from '../config.js';
 import { createBus } from './bus.js';
+import { layoutCargo, planCargo } from './cargoPlan.js';
 import { buildTerrain, heightAt, topNear } from './terrain.js';
 import { effectiveVehicle } from './upgrades.js';
 import { createProps } from './props.js';
@@ -65,42 +66,14 @@ export function createSim(opts) {
   /** Kargo listesini ([{type,count}]) araç bölmesine dizer. moving=true: araç hareket halindeyken (Uzun Yol'da teslimden sonra yenileme). */
   function loadCargo(list, moving = false) {
     const bay = cfg.trailer?.bay ?? cfg.bay;
-    // "Skyline" yerleştirme: her parça, bölmenin en alçak uygun yerine konur (önce zemin dolar, yuvarlaklar üste çıkmaz).
-    const RES = 0.05, cols = Math.max(1, Math.floor((bay.x1 - bay.x0) / RES));
-    const sky = new Array(cols).fill(bay.floorY);
-    // yerleşim sırası: yuvarlaklar (karpuz/balya) önce → arka kapağa dayanır; kutular önlerine. Kimlik (c0..) bölüm sırasına göredir.
-    const items = [];
-    for (const grp of list ?? []) {
-      if (!CARGO[grp.type]) throw new Error(`Bilinmeyen kargo: ${grp.type}`);
-      for (let i = 0; i < (grp.count ?? 1); i++) items.push({ type: grp.type, idx: cargoSeq + items.length });
-    }
-    cargoSeq += items.length;
-    const order = [...items.slice(0, cfg.capacity)].sort((a, b) => (CARGO[a.type].shape === 'circle' ? 0 : 1) - (CARGO[b.type].shape === 'circle' ? 0 : 1) || a.idx - b.idx);
-    if (items.length > cfg.capacity) warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`);
-    const made = []; let skipped = 0;
-    for (const it of order) {
-      const def = CARGO[it.type];
-      const w = def.shape === 'box' ? def.w : def.r * 2, h = def.shape === 'box' ? def.h : def.r * 2;
-      const span = Math.min(cols, Math.ceil((w + 0.02) / RES));
-      // profil: dairede alt/üst eğrisi (yuvarlaklar birbirinin arasına oturur), kutuda düz
-      const prof = (k) => {
-        if (def.shape === 'box') return [0, h];
-        const dx = (k + 0.5 - span / 2) * RES, q = Math.sqrt(Math.max(0, def.r * def.r - dx * dx));
-        return [def.r - q, def.r + q];
-      };
-      let bestX = 0, bestY = Infinity, bestScore = Infinity;
-      for (let x0 = 0; x0 + span <= cols; x0++) {
-        let yb = bay.floorY, lo = Infinity;
-        for (let k = 0; k < span; k++) { yb = Math.max(yb, sky[x0 + k] - prof(k)[0]); lo = Math.min(lo, sky[x0 + k] - prof(k)[0]); }
-        // kutu, yuvarlakların tepesine/eşit olmayan yüzeye oturmasın (devrilir): zemin eşitsizliği cezalı seçilir; yuvarlak için ceza yok
-        const score = yb + (def.shape === 'box' ? 1.5 * (yb - lo) : 0);
-        if (score < bestScore - 1e-9) { bestScore = score; bestY = yb; bestX = x0; }
-      }
-      if (bestY + h > bay.floorY + (bay.stackMax ?? CARGO_STACK_MAX)) {   // yığın çok yükseğe çıkıyor (devrilir/uçar): yerleştirilmez
-        warnings.push(`Kasa dolu: ${it.type} yerleştirilmedi (yığın yüksekliği sınırı).`); skipped++; continue;
-      }
-      for (let k = 0; k < span; k++) sky[bestX + k] = bestY + prof(k)[1] + 0.01;
-      const local = V(bay.x0 + bestX * RES + w / 2 + 0.01, bestY + h / 2 + 0.01);
+    const { placed, skipped } = layoutCargo(list, bay, cfg.capacity, cargoSeq);
+    cargoSeq += placed.length + skipped.length;
+    if (skipped.some((k) => k.reason === 'capacity')) warnings.push(`Kargo kapasitesi aşıldı (${cfg.capacity}); fazlası yerleştirilmedi.`);
+    for (const k of skipped) if (k.reason === 'stack') warnings.push(`Kasa dolu: ${k.type} yerleştirilmedi (yığın yüksekliği sınırı).`);
+    const made = [];
+    for (const it of placed) {
+      const { def, w, h } = it;
+      const local = V(it.lx, it.ly);
       const wpos = veh.bayBody.getWorldPoint(local);
       const body = world.createBody({ type: 'dynamic', position: wpos, angle: veh.bayBody.getAngle(), gravityScale: SIM.cargoGravityScale, angularDamping: def.shape === 'circle' ? SIM.roundCargoDamping : 0.1 });
       const shape = def.shape === 'box' ? pl.Box(w / 2, h / 2) : pl.Circle(V(0, 0), def.r);
@@ -268,6 +241,8 @@ export function createSim(opts) {
   }
   function applyDamage(cg, dmg) {
     if (dmg <= 0 || cg.hp <= 0) return;
+    if (cg.def.survive) dmg = Math.min(dmg, cg.hp - 1);   // kasa/bidon: darbe hasar verir, yok etmez
+    if (dmg <= 0) return;
     cg.hp = Math.max(0, cg.hp - dmg);
     S.air.cargoOk = false;
     emit('cargoDamage', { id: cg.id, type: cg.type, hpLeft: cg.hp });
@@ -344,14 +319,14 @@ export function createSim(opts) {
     if (result === 'win') slowmo('finish', 'finish');
   }
   // Araç kapasitesi bölüm yükünden küçükse (Zıpır: 3) teslim gereksinimi yüklenen kargo oranında ölçeklenir (adalet; MIMARI §4).
-  const wantedTotal = (egen ? 0 : (level.cargo ?? []).reduce((a, g) => a + (g.count ?? 1), 0)) || cargo.length;
-  const needDelivered = (n) => (cargo.length >= wantedTotal ? n : Math.max(1, Math.min(cargo.length, Math.ceil(n * cargo.length / wantedTotal))));
+  const plan = egen ? null : planCargo(level, vehicleId);   // teslim gereksinimi: arayüzle aynı tek kaynak (sim/cargoPlan.js)
+  const needDelivered = (n) => (plan ? plan.need({ kind: 'delivered', min: n }) : n);
   function evalStars() {
     const st = S.stats, delivered = cargo.filter((c) => c.state === 'delivered');
     const ok = (k) => {
       switch (k.kind) {
         case 'delivered': return st.cargoDelivered >= needDelivered(k.min);
-        case 'deliveredAll': return st.cargoDelivered === cargo.length;
+        case 'deliveredAll': return st.cargoDelivered >= (plan ? plan.need(k) : cargo.length);
         case 'time': return S.t <= k.max;
         case 'eggs': return st.eggsLeft >= k.min;
         case 'flips': return st.flips >= k.min;
@@ -522,7 +497,7 @@ export function createSim(opts) {
     if (tilt > RULES.flipAngle && speed < RULES.flipSpeed) S.flipT += DT; else S.flipT = 0;
     if (S.flipT >= RULES.flipTime) { emit('crash', { reason: 'flipped', pos: { x: p.x, y: p.y } }); endLevel('fail', 'flipped'); return; }
     // çukura düşüp kalma: çevre zeminin 3 m altında 1.5 sn
-    S.pitT = p.y < topNear(terr, p.x, 3) - 2.5 ? (S.pitT ?? 0) + DT : 0;
+    S.pitT = p.y < topNear(terr, p.x, 3, terr.startX + 0.05) - 2.5 ? (S.pitT ?? 0) + DT : 0;
     if (S.pitT > 1.5) { emit('crash', { reason: 'fell', pos: { x: p.x, y: p.y } }); endLevel('fail', 'fell'); return; }
     if (p.y < killY) { emit('crash', { reason: 'fell', pos: { x: p.x, y: p.y } }); endLevel('fail', 'fell'); return; }
     if (level.timeLimit && S.t >= level.timeLimit) { endLevel('fail', 'timeout'); return; }

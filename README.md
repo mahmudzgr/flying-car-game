@@ -9,7 +9,7 @@ hesap ya da derleme adımı yok. Site GitHub Pages ile yayınlanacak şekilde d�
 |---|---|---|
 | **Uçan Roadster** | 2.5D fizik: dönen rampadan fırla, havada takla at, iticilerle platforma kon. 16 bölüm, sonsuz mod. | [`games/ucan-roadster/`](games/ucan-roadster/) |
 | **Paldır Küldür** | Fizik yıkım: sapanla gülle fırlat, kuleleri yık, jöleleri patlat. 40 bölüm, Sonsuz Kuşatma, Oyun Alanı. | [`games/paldir-kuldur/`](games/paldir-kuldur/) |
-| **Sarsıntı Nakliyat** | Yan görünüşlü fizik nakliyesi: yaylı süspansiyonlu araçla bozuk yollarda, çamurda, buzda ve sallanan köprülerde kargonu devirmeden teslim et. 16 bölüm, 4 araç. | [`games/sarsinti-nakliyat/`](games/sarsinti-nakliyat/) |
+| **Sarsıntı Nakliyat** | Yan görünüşlü fizik nakliyesi: yaylı süspansiyonlu araçla bozuk yollarda, çamurda, buzda ve sallanan köprülerde kargonu devirmeden teslim et. 16 bölüm, 4 araç, Uzun Yol (sonsuz) modu. | [`games/sarsinti-nakliyat/`](games/sarsinti-nakliyat/) |
 
 Her oyunun ayrıntıları kendi klasöründeki `README.md` dosyasında.
 

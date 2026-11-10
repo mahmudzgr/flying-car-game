@@ -11,6 +11,7 @@ import { createSave } from './save.js';
 import { createRenderer } from './render/index.js';
 import { createAudio } from './audio/index.js';
 import { createUI } from './ui/index.js';
+import { levelLock } from './ui/progress.js';
 
 const params = new URLSearchParams(location.search);
 const canvas = document.getElementById('game');
@@ -42,12 +43,13 @@ function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null, endles
   const rec = save.data.vehicles[runVehicle];
   if (!checkpoint) lastCheckpoint = null;
   sim = createSim({
-    level: endless ? undefined : level, endless, vehicleId: runVehicle, upgrades: rec.up, checkpoint,
+    level: endless ? undefined : level, endless, vehicleId: runVehicle, upgrades: rec.up,
+    checkpoint: checkpoint ?? (idle ? { x: 30, time: 0 } : null),   // menü arka planı: başlangıç duvarı kadraja girmesin (QA #12)
     settings: { assistLanding: save.data.settings.assistLanding },
     bestDistance: endless ? save.data.endless.bestDistance : 0,
     bestScore: endless ? save.data.endless.bestScore : save.data.levels[levelId]?.best ?? 0,
   });
-  if (sim.warnings.length) console.warn('[sim]', ...sim.warnings);
+  if (sim.warnings.length && params.has('debug')) console.warn('[sim]', ...sim.warnings);
   renderer.setLevel(sim.static);
   acc = 0; pendingEnd = null; resultTimer = 0;
   if (!idle) sim.on('*', onSimEvent);
@@ -123,10 +125,19 @@ const flow = {
     renderer.setOptions({ shake: st.shake, quality: st.quality });
     sim?.setSettings({ assistLanding: st.assistLanding });
   },
+  /** Sonraki bölümün durumu: { exists, locked, lock } — arayüz "Sonraki" düğmesini `locked` ise gizler (levelLock: ui/progress.js). */
+  nextInfo() {
+    const i = CAMPAIGN.findIndex((l) => l.id === level?.id), next = i >= 0 ? CAMPAIGN[i + 1] : null;
+    if (!next) return { exists: false, locked: false, lock: null };
+    const lock = levelLock(save.data, CAMPAIGN, next);
+    return { exists: true, locked: lock.locked, lock, next };
+  },
+  /** Sonraki bölümü başlatır; yoksa ya da kilitliyse (bölge yıldız şartı) bölüm seçimine/menüye döner ve false verir. */
   nextLevel() {
-    if (runEndless) return flow.startEndless(runVehicle);
-    const i = CAMPAIGN.findIndex((l) => l.id === level?.id);
-    if (i >= 0 && CAMPAIGN[i + 1]) flow.startLevel(CAMPAIGN[i + 1].id); else flow.toMenu();
+    if (runEndless) { flow.startEndless(runVehicle); return true; }
+    const info = flow.nextInfo();
+    if (info.exists && !info.locked) { flow.startLevel(info.next.id); return true; }
+    flow.toMenu(); return false;
   },
   pause() { if (state !== 'playing') return; state = 'paused'; input.reset(); audio.suspend(); emitLocal('pause'); ui.show('pause'); },
   resume() { if (state !== 'paused') return; state = 'playing'; last = performance.now(); audio.resume(); emitLocal('resume'); ui.show('hud'); },

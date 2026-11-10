@@ -51,7 +51,7 @@ export function migrate(raw) {
     master: num(s.master, 1, 0, 1), sfx: num(s.sfx, 1, 0, 1), music: num(s.music, 0.7, 0, 1),
     shake: [0, 1, 2].includes(s.shake) ? s.shake : 2,
     haptics: s.haptics !== false, assistLanding: s.assistLanding !== false,
-    quality: s.quality === 'low' ? 'low' : 'high', btnScale: num(s.btnScale, 1, 0.7, 1.4),
+    quality: s.quality === 'low' ? 'low' : 'high', btnScale: num(s.btnScale, 0.85, 0.7, 1.4),
   };
   out.tutorial = { seen: Array.isArray(raw.tutorial?.seen) ? raw.tutorial.seen.filter((x) => typeof x === 'string') : [] };
   out.v = SCHEMA_VERSION;
@@ -79,7 +79,7 @@ export function createSave(storage) {
     timer = null; lastWrite = Date.now(); dirty = false;
     let text;
     try { text = JSON.stringify(api.data); } catch (e) { api.lastError = e; return; }
-    api.persistent = io.set(SAVE_KEY, text);
+    api.persistent = io.set(SAVE_KEY, text) && !!store;
     if (!api.persistent) dirty = true;           // bir sonraki fırsatta yeniden dene
   };
   const api = {
