@@ -1,7 +1,7 @@
 // Bölge/bölüm seçimi + bölüm ön ekranı (brifing). Sahip: Arayüz.
 import { REGIONS, VEHICLES } from '../config.js';
 import { esc, stars, star, lock, coin, check, cargoIcon, vehicleArt, arrowRight, clock } from './icons.js';
-import { levelLock, totalStars, ownedVehicles, regionOf } from './progress.js';
+import { levelLock, totalStars, ownedVehicles, regionOf, cargoTotal, loadedCount, scaledNeed } from './progress.js';
 import { fmtTime, fmtNum, CARGO_NAMES, diffName, BIOME_NAMES } from './texts.js';
 
 
@@ -92,11 +92,24 @@ export function createBrief(ctx) {
 
   function draw() {
     const d = ctx.save.data, rec = d.levels[level.id] ?? {};
+    const vid = d.vehicle, vname = VEHICLES[vid]?.name ?? '';
+    const total = cargoTotal(level), loaded = loadedCount(level, vid);
+    const scaled = loaded < total;
+    const noteFor = (n) => {
+      if (!scaled) return '';
+      const parts = [];
+      for (const c of level.stars?.[n] ?? []) {
+        if (c.kind === 'delivered') parts.push(`en az ${scaledNeed(c.min, level, vid)}/${loaded} teslim`);
+        else if (c.kind === 'deliveredAll') parts.push(`${loaded}/${loaded} teslim`);
+      }
+      return parts.length ? `${vname} ile: ${parts.join(', ')}` : '';
+    };
     const goals = [
       { n: 1, text: 'Bitiş bayrağına ulaş' },
       { n: 2, text: (level.stars?.[2] ?? []).map((c) => c.label).join(' + ') || '—' },
       { n: 3, text: (level.stars?.[3] ?? []).map((c) => c.label).join(' + ') || '—' },
     ];
+    const need = level.minDelivered ?? 1;
     const cargo = (level.cargo ?? []).map((c) => `<li>${cargoIcon(c.type)}<span><b>${c.count}×</b> ${esc(CARGO_NAMES[c.type] ?? c.type)}</span></li>`).join('');
     const owned = ownedVehicles(d);
     const recm = recommended();
@@ -118,8 +131,9 @@ export function createBrief(ctx) {
           <div class="brief-col">
             <h3>Kargo</h3>
             <ul class="cargo-list">${cargo || '<li>—</li>'}</ul>
+            ${scaled ? `<p class="note warnnote">${vname}'a ${loaded} parça sığar (${total} yerine); gereken teslim: ${scaledNeed(need, level, vid)}.</p>` : ''}
             <h3>Hedefler</h3>
-            <ol class="goals">${goals.map((g) => `<li class="${(rec.stars | 0) >= g.n ? 'done' : ''}"><span class="gstars">${stars(g.n, g.n)}</span><span class="gtext">${esc(g.text)}</span>${(rec.stars | 0) >= g.n ? check('gtick') : ''}</li>`).join('')}</ol>
+            <ol class="goals">${goals.map((g) => `<li class="${(rec.stars | 0) >= g.n ? 'done' : ''}"><span class="gstars">${stars(g.n, g.n)}</span><span class="gtext">${esc(g.text)}${noteFor(g.n) ? `<small class="gnote">${esc(noteFor(g.n))}</small>` : ''}</span>${(rec.stars | 0) >= g.n ? check('gtick') : ''}</li>`).join('')}</ol>
             ${level.timeLimit ? `<p class="note">${clock()} Süre sınırı: <b>${level.timeLimit} sn</b></p>` : ''}
             ${rec.best ? `<p class="note">En iyi: <b>${fmtNum(rec.best)}</b> puan · ${fmtTime(rec.bestTime)}</p>` : ''}
           </div>

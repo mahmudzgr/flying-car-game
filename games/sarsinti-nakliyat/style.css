@@ -421,3 +421,5 @@ label.srow > span { min-width: 74px; }
 .ci.cnt { align-items: center; gap: 1px; margin-right: 4px; font-size: 13px; }
 .ci.cnt .cross { color: var(--red); width: 16px; height: 16px; }
 .ci.lostc { color: var(--red); }
+.gnote { display: block; font-size: 11px; font-weight: 800; color: var(--accent-d); }
+.warnnote { color: #8f2a22; }

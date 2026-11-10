@@ -61,3 +61,11 @@ export function resetUpgrades(save, id) {
   return refund;
 }
 export const ownedVehicles = (d) => VEHICLE_ORDER.filter((id) => d.vehicles[id]?.owned && VEHICLES[id].implemented);
+
+// --- Araca göre etkin teslim gereksinimi (sim.js `needDelivered` ile AYNI formül; ISTEKLER: sim'den dışa aktarılırsa import edilecek) ---
+export const cargoTotal = (level) => (level.cargo ?? []).reduce((a, c) => a + c.count, 0);
+export const loadedCount = (level, vehicleId) => Math.min(VEHICLES[vehicleId]?.capacity ?? Infinity, cargoTotal(level));
+export function scaledNeed(n, level, vehicleId) {
+  const want = cargoTotal(level), loaded = loadedCount(level, vehicleId);
+  return loaded >= want ? n : Math.max(1, Math.min(loaded, Math.ceil(n * loaded / want)));
+}

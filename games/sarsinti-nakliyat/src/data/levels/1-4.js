@@ -27,16 +27,16 @@ export default {
       { type: 'bumps', len: 30, h: 0.3, n: 5 },
       { type: 'flat', len: 24, surface: 'grass' },
       // 3. rampa: büyük vadi atlayışı
-      { type: 'ramp', len: 16, dy: 3.0 },
-      { type: 'pts', pts: [[0, -8], [7.5, 0], [0, 5.5]] },        // 7,5 m vadi; karşı yaka 2,5 m aşağıda
-      { type: 'slope', len: 22, dy: -3.0 },
+      { type: 'ramp', len: 16, dy: 5.0 },                              // dik fırlatma: ≥1,5 sn havada (takla fırsatı)
+      { type: 'pts', pts: [[0, -17], [16, 0], [0, 9]] },          // 16 m vadi; karşı yaka 8 m aşağıda (iniş yamacı affeder)
+      { type: 'slope', len: 24, dy: -8 },                       // iniş yönüne eğimli iniş rampası
       { type: 'flat', len: 20, surface: 'dirt' },
       { type: 'hills', len: 60, amp: 0.8, waves: 2, surface: 'grass' },
       { type: 'flat', len: 30, surface: 'asphalt' },
     ],
   },
   spawn: { x: 3 }, finish: { x: 'end' },
-  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 4 }],
+  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 2 }],
   minDelivered: 1,
   parTime: 46, timeLimit: null,
   objects: [
