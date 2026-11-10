@@ -40,7 +40,7 @@ export function buildVehicle(world, cfg, x, y) {
   const makeWheel = (w, parent, parentMass, nOnParent, parentCfg) => {
     const r = w.r ?? cfg.wheelR, wm = w.mass ?? cfg.wheelMass;
     const spMass = parentMass / nOnParent;
-    const omega = 2 * Math.PI * (parentCfg.freqHz ?? cfg.freqHz);
+    const omega = 2 * Math.PI * (w.freqHz ?? parentCfg.freqHz ?? cfg.freqHz);
     const k = spMass * omega * omega;
     const wOmega = Math.sqrt(k / wm);
     const jointHz = wOmega / (2 * Math.PI);
@@ -86,7 +86,7 @@ export function buildVehicle(world, cfg, x, y) {
 
   return {
     cfg, chassis, trailer, bayBody: trailer ? trailer.body : chassis, wheels, driver: { torso, head, seatJoint, neckJoint, ejected: false },
-    airborne: false, airT: 0, groundT: 0, revTimer: 0, reversing: false, rpm: 0, load: 0,
+    airborne: false, roofC: 0, airT: 0, groundT: 0, revTimer: 0, reversing: false, rpm: 0, load: 0,
     throttle: 0, brake: 0, gravity: SIM.gravity,
   };
 }
@@ -105,7 +105,7 @@ export function driveVehicle(veh, input, opt) {
   veh.reversing = veh.revTimer > RULES.reverseDelay;
 
   const nDriven = wheels.filter((w) => w.driven).length || 1;
-  const nBrake = wheels.filter((w) => !w.trailerWheel).length;
+  const nBrake = wheels.filter((w) => !w.trailerWheel).length, nFront = wheels.filter((w) => w.id === 'front').length || 1;
   let rpmAcc = 0;
   for (const w of wheels) {
     const j = w.joint;
@@ -118,7 +118,8 @@ export function driveVehicle(veh, input, opt) {
     } else if (brk > 0.1 && veh.reversing) {                   // geri
       torque = (w.driven ? cfg.motorTorque / nDriven : 0) * 0.6 * brk; speed = cfg.maxWheelSpeed * RULES.reverseSpeedFrac;
     } else if (brk > 0.1) {                                     // fren (tüm tekerlekler)
-      torque = cfg.brakeTorque / nBrake * brk; speed = 0;
+      const front = w.id === 'front', bf = cfg.brakeFront ?? 0.5;   // fren dağılımı: ön tekerlek(ler) payı bf
+      torque = cfg.brakeTorque * (front ? bf / nFront : (1 - bf) / (nBrake - nFront)) * brk; speed = 0;
     }
     j.enableMotor(true); j.setMotorSpeed(speed); j.setMaxMotorTorque(torque);
     if (w.driven) rpmAcc += om / cfg.maxWheelSpeed;
@@ -165,12 +166,7 @@ export function driveVehicle(veh, input, opt) {
   }
   if (sinkF) chassis.applyForceToCenter(V(-v.x * sinkF * cfg.mass * 1.15, -v.y * sinkF * cfg.mass * 1.15 * 0.3), true);
 
-  // ağırlık aktarımı abartısı (görsel/his): gazda burun kalkar, frende çöker (config: pitchGain)
-  if (onGround > 0 && cfg.pitchGain) {
-    let pt = veh.load * cfg.motorTorque * cfg.pitchGain;
-    if (brk > 0.1 && fwdSpeed > 1) pt -= brk * cfg.brakeTorque * cfg.pitchGain * 0.8;
-    if (pt) chassis.applyTorque(pt, true);
-  }
+  // Ağırlık aktarımı için yapay tork YOK: gövde eğimi yalnızca gerçek fizikten (süspansiyon frekansı/sönümü, kütle merkezi yüksekliği, tekerlek temas kuvveti) gelir (TASARIM §4.5).
   // hava torku (TASARIM §3.3)
   const frac = onGround === 0 ? 1 : onGround < tw.length ? 0.35 : 0;
   if (frac > 0) {

@@ -16,8 +16,8 @@ export const SIM = {
   chainEdge: 1.0,           // zemin poliçizgisi kenar uzunluğu (≤1,2 m)
   startWallHeight: 8,       // bölüm başında geri çıkışı engelleyen duvar
   killDepth: 14,            // en alçak zeminin bu kadar altı = uçurum çizgisi (killY)
-  roundCargoDamping: 1.5,   // yuvarlak kargo (karpuz/balya) yuvarlanma sönümü
-  settleTime: 0.5,          // başlangıçta aracın yere oturması için hareketsiz bırakıldığı süre (sn, saat durur)
+  roundCargoDamping: 0.5,   // yuvarlak kargo (karpuz/balya) yuvarlanma sönümü (düşük = serbest yuvarlanır)
+  settleTime: 1.2,          // başlangıçta aracın yere oturması için hareketsiz bırakıldığı süre (sn, saat durur)
 };
 
 /** Çarpışma kategorileri (planck filterCategoryBits/maskBits). */
@@ -26,9 +26,9 @@ export const CAT = { ground: 0x1, chassis: 0x2, wheel: 0x4, cargo: 0x8, driver: 
 /** Yüzeyler (TASARIM §4.3). mu = etkin sürtünme; rolling = tekerlek angularDamping. */
 export const SURFACES = {
   asphalt: { id: 'asphalt', name: 'Asfalt', mu: 1.0, rolling: 0.10, sink: 0 },
-  dirt:    { id: 'dirt',    name: 'Toprak yol', mu: 0.80, rolling: 0.25, sink: 0.015 },
-  grass:   { id: 'grass',   name: 'Çimen', mu: 0.70, rolling: 0.35, sink: 0.03 },
-  gravel:  { id: 'gravel',  name: 'Çakıl', mu: 0.75, rolling: 0.30, sink: 0.04, shake: true },
+  dirt:    { id: 'dirt',    name: 'Toprak yol', mu: 0.65, rolling: 0.25, sink: 0.015 },
+  grass:   { id: 'grass',   name: 'Çimen', mu: 0.58, rolling: 0.35, sink: 0.03 },
+  gravel:  { id: 'gravel',  name: 'Çakıl', mu: 0.62, rolling: 0.30, sink: 0.04, shake: true },
   sand:    { id: 'sand',    name: 'Kum', mu: 0.60, rolling: 1.20, sink: 0.25, },
   mud:     { id: 'mud',     name: 'Çamur', mu: 0.55, rolling: 1.60, sink: 0.35 },
   wet:     { id: 'wet',     name: 'Islak kaya / tahta', mu: 0.50, rolling: 0.15, sink: 0 },
@@ -49,7 +49,7 @@ export const VEHICLES = {
     id: 'tosun', name: 'Tosun', kind: 'Pikap', implemented: true,
     unlock: { stars: 0, coins: 0 },
     stats: { speed: 3, traction: 3, balance: 3, capacity: 3, air: 3 },
-    mass: 1100, comY: -0.12,              // comY: kütle merkezinin kutu merkezine göre alçaltılması
+    mass: 1100, comY: 0.25,               // comY: kütle merkezinin kutu merkezine göre kayması. Yüksek KM (≈1 m) = gerçek ağırlık aktarımı: gazda ~3°, frende ~6° eğim
     inertia: 1350,                        // kg·m² (TASARIM §4.2 hava torku kontrolü)
     // Şasi parçaları (fizik fikstürü + çizim ipucu). role: body | cab | roof | rail
     parts: [
@@ -59,13 +59,13 @@ export const VEHICLES = {
       { part: 'chassis', x: -1.75, y: 0.68, w: 0.1, h: 0.46 },  // arka kapak (kenarlık)
     ],
     wheels: [
-      { id: 'rear',  x: -1.25, y: -0.35, driven: true },
-      { id: 'front', x: 1.25,  y: -0.35, driven: false },
+      { id: 'rear',  x: -1.25, y: -0.50, driven: true },   // y: yumuşak yay (1,0 Hz) daha çok çöker; dingil, çökme sonrası eski konumda dursun diye 15 cm aşağıda
+      { id: 'front', x: 1.25,  y: -0.50, driven: false },
     ],
     wheelR: 0.38, wheelMass: 35,
-    freqHz: 1.7, zeta: 0.55, travel: [-0.14, 0.14],
-    motorTorque: 1300, maxWheelSpeed: 52, brakeTorque: 3600,
-    airTorque: 5500, airMaxW: 7, grip: 1.0, drag: 0.55, pitchGain: 3.0,
+    freqHz: 1.0, zeta: 0.42, travel: [-0.20, 0.20],
+    motorTorque: 1500, maxWheelSpeed: 52, brakeTorque: 3500, brakeFront: 0.6,
+    airTorque: 9000, airMaxW: 9, grip: 1.0, drag: 0.55,
     capacity: 6,
     bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.46 },          // kargo bölmesi (şasi yerel)
     seat: { x: 1.15, y: 0.8 },                                     // sürücü gövdesi merkezi (şasi yerel)
@@ -89,7 +89,7 @@ export const VEHICLES = {
     wheelR: 0.42, wheelMass: 25,
     freqHz: 2.6, zeta: 0.35, travel: [-0.22, 0.22],
     motorTorque: 1100, maxWheelSpeed: 62, brakeTorque: 2400,
-    airTorque: 3200, airMaxW: 9, grip: 0.95, drag: 0.35, pitchGain: 1.5,
+    airTorque: 3200, airMaxW: 9, grip: 0.95, drag: 0.35,
     capacity: 3,
     bay: { x0: -1.22, x1: 0.08, floorY: 0.35, rail: 0.5 },
     seat: { x: 0.65, y: 0.7 },
@@ -110,8 +110,8 @@ export const VEHICLES = {
       { id: 'front', x: 1.2,   y: -0.30, r: 0.38, mass: 30, driven: false },
     ],
     wheelR: 0.38, wheelMass: 30,
-    freqHz: 1.5, zeta: 0.70, travel: [-0.10, 0.10], motorTorque: 3400, maxWheelSpeed: 18, brakeTorque: 5000,
-    airTorque: 6500, airMaxW: 3, grip: 1.2, drag: 0.45, pitchGain: 2.0, capacity: 10,
+    freqHz: 1.5, zeta: 0.70, travel: [-0.10, 0.10], motorTorque: 4300, maxWheelSpeed: 18, brakeTorque: 7000,
+    airTorque: 6500, airMaxW: 3, grip: 1.5, drag: 0.45, capacity: 10,
     seat: { x: 0.1, y: 0.95 },
     trailer: {                      // eklemli römork (kargo burada). Yerel orijin = bağlantı (kanca) noktası
       mass: 300, inertia: 500, comX: -1.9, comY: 0, hitch: { x: -1.5, y: 0.08 }, hitchLimit: 0.9,
@@ -143,8 +143,8 @@ export const VEHICLES = {
       { id: 'rear2', x: -2.8, y: -0.50, driven: true },
     ],
     wheelR: 0.55, wheelMass: 80,
-    freqHz: 1.3, zeta: 0.80, travel: [-0.12, 0.14], motorTorque: 5200, maxWheelSpeed: 27, brakeTorque: 9000,
-    airTorque: 12000, airMaxW: 2.5, grip: 1.05, drag: 0.90, pitchGain: 3.0, capacity: 10,
+    freqHz: 1.3, zeta: 0.80, travel: [-0.12, 0.14], motorTorque: 4300, maxWheelSpeed: 27, brakeTorque: 12500,
+    airTorque: 12000, airMaxW: 2.5, grip: 1.05, drag: 0.90, capacity: 10,
     bay: { x0: -2.9, x1: 1.2, floorY: 0.65, rail: 0.7 },
     seat: { x: 2.1, y: 1.15 },
   },
@@ -156,20 +156,26 @@ export const DRIVER = {
   torso: { w: 0.35, h: 0.55, mass: 45 },
   head: { r: 0.17, mass: 5, offsetY: 0.40 },   // gövde merkezine göre
   seatLimit: 0.35, neckLimit: 0.6,
-  headHitSpeed: 6,                              // m/s (TASARIM §9)
+  headHitSpeed: 6,                              // m/s (TASARIM §9): kafa doğrudan yere/nesneye bu hızla değerse
+  // Kafa vuruşu (TASARIM §9) kafa kabin tavanının 3–8 cm altında olduğundan doğrudan nadiren olur; iki ek, okunur kural:
+  roofInvertedAngle: 1.9,                       // rad (~110°): araç bu kadar ters sayılır
+  roofCrushSpeed: 5.5,                          // m/s: ters araçta tavan/kabin yere bu hızla vurursa kafa vuruşu (Zıpır'da `cage` çarpanı)
+  roofHold: 0.8,                                // sn: ters + tavan zeminde bu kadar kalırsa kafa vuruşu
   failDelay: 0.6,                               // kafa vuruşundan başarısızlığa kadar (sn, oyun zamanı)
 };
 
-/** Kargo türleri (TASARIM §4.4). shape: 'box' (w,h) | 'circle' (r). */
+/** Kargo türleri (TASARIM §4.4). `bayMu` = kargo–araç (kasa tabanı/duvar) etkin sürtünmesi; gerçekçi tahta/metal ≈ 0,3–0,45 → kargo sert frende kayar (sim pre-solve'da uygulanır). shape: 'box' (w,h) | 'circle' (r). */
 export const CARGO = {
-  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, hp: 1, hitSpeed: Infinity, value: { base: 20, perHp: 0 } },
-  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, hp: 1, hitSpeed: 9, value: { base: 25, perHp: 0 } },
-  eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 1.5, restitution: 0.1, friction: 0.5, hp: 6, hitSpeed: 3.5, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
-  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, hp: 1, hitSpeed: Infinity, value: { base: 22, perHp: 0 } },
-  piano:      { id: 'piano',      name: 'Piyano',        shape: 'box', w: 1.5, h: 1.1, mass: 180, restitution: 0.1,  friction: 0.6, hp: 2, hitSpeed: 8, value: { base: 0, perHp: 75 } }, // hp 1 = "kırık" (%50)
-  bale:       { id: 'bale',       name: 'Balya',         shape: 'circle', r: 0.45,  mass: 40,  restitution: 0.05, friction: 0.9, hp: 1, hitSpeed: Infinity, value: { base: 18, perHp: 0 } },
+  crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.40, hp: 1, hitSpeed: Infinity, value: { base: 20, perHp: 0 } },
+  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 9, value: { base: 25, perHp: 0 } },
+  eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 3, restitution: 0.1, friction: 0.5, bayMu: 0.26, hp: 6, hitSpeed: 4.0, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
+  milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.36, hp: 1, hitSpeed: Infinity, value: { base: 22, perHp: 0 } },
+  piano:      { id: 'piano',      name: 'Piyano',        shape: 'box', w: 1.5, h: 1.1, mass: 180, restitution: 0.1,  friction: 0.6, bayMu: 0.45, hp: 2, hitSpeed: 8, value: { base: 0, perHp: 75 } }, // hp 1 = "kırık" (%50)
+  bale:       { id: 'bale',       name: 'Balya',         shape: 'circle', r: 0.45,  mass: 40,  restitution: 0.05, friction: 0.9, bayMu: 0.7, hp: 1, hitSpeed: Infinity, value: { base: 18, perHp: 0 } },
 };
 /** Kargo kaybı kuralları (TASARIM §4.4). */
+/** cargoSlide olayı (ses): kasa tabanında kayma hızı eşiği (m/s) ve en sık yayma aralığı (sn, kargo başına). */
+export const CARGO_SLIDE = { speed: 0.8, every: 0.15 };
 export const CARGO_LOSS = { behindDist: 8, restTime: 2, restDist: 4, deliverRadius: 6 };
 
 /** Engel/nesne türleri (TASARIM §4.4). */
@@ -202,7 +208,8 @@ export const RULES = {
   wheelieAngle: 0.25,     // rad
   badLandingSpeed: 6,     // şasi çarpması > bu ⇒ kombo yanar
   slowmo: { headHit: { scale: 0.35, duration: 1.0 }, finish: { scale: 0.5, duration: 0.5 } },
-  stuckTime: 5,           // sn: gaz/fren basılıyken kıpırdamama ⇒ 'stuck' başarısızlığı
+  stuckTime: 6,           // sn: gaz/fren basılıyken kıpırdamama ⇒ 'stuck' başarısızlığı
+  stuckWarn: 2.5,         // sn: bu kadar kıpırdamayınca 'geri vites' ipucu toast'ı
   finishHold: 1.0,        // bitişten sonra sim'in "won" durumda bile adımlamaya devam edeceği süre ipucu (sn)
 };
 

@@ -17,7 +17,7 @@ import { createHud } from './hud.js';
  */
 export function createUI({ root, input, save, flow, levels }) {
   root.innerHTML = '';
-  const hud = createHud({ flow });
+  const hud = createHud({ flow, save });
   root.appendChild(hud.el);
   const touch = createTouchControls(root, input);
   const layer = document.createElement('div');

@@ -44,6 +44,7 @@ function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null, endles
   sim = createSim({
     level: endless ? undefined : level, endless, vehicleId: runVehicle, upgrades: rec.up, checkpoint,
     settings: { assistLanding: save.data.settings.assistLanding },
+    bestDistance: endless ? save.data.endless.bestDistance : 0,
     bestScore: endless ? save.data.endless.bestScore : save.data.levels[levelId]?.best ?? 0,
   });
   if (sim.warnings.length) console.warn('[sim]', ...sim.warnings);

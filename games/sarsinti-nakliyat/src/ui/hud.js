@@ -133,7 +133,6 @@ export function createHud(ctx) {
     onEvent(e) {
       switch (e.name) {
         case 'toast': showToast(e.text, e.icon); break;
-        case 'delivery': pop(`Teslimat +${e.pay} kuruş`, 'gold', true); break;
         case 'biomeChange': pop(BIOME_NAMES[e.biome] ?? e.biome, 'blue', true); break;
         case 'flip': pop(`TAKLA${e.count > 1 ? ' ×' + e.count : ''}!`, 'gold', true); break;
         case 'land': if (e.airTime >= SCORING.airMin) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
