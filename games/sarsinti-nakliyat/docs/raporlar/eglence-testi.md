@@ -129,3 +129,108 @@ Kanıt: `m02-select.png`: kartların orta kısmı boş, kilitli kartlarda yalnı
 8. **Küçük, kullanıcıya dönük olmayan:** `flow.startLevel(id, kilitliAraç)` kilitli araçta sessizce Tosun'a düşüyor (Paşa testinde x=3'te başladı; araç sahipliği açılınca düzeldi).
 
 Not: `?debug` modu fizik şekillerini çiziyor (`a11-03.png`); mağaza görünümü için `renderer.setOptions({debug:false})`.
+
+---
+
+# 2. tur
+
+Yöntem aynı (Playwright 740×360 + başsız sim; ölçüm betikleri scratchpad'de: `ev2.mjs`, `intact.mjs`, `flips4-6.mjs`, `head*.mjs`, `fa.mjs`, `c23.mjs`). Yeni ekran görüntüleri: `eglence/h11-02.png` (1-1, 7 sn), `g-end-01.png` / `g-end-03.png` (Uzun Yol, 28 sn / 84 sn). Konsol hatası yok. Ses yine dinlenemedi.
+
+## 2.1 Puanlar
+
+| | 1. tur | 2. tur |
+|---|---|---|
+| Eğlence | 6,5 | **7,5** |
+| Gerçekçilik hissi | 7 | **8** |
+
+Gerekçe: Araç artık telefonda ekranın ≈%20'si (önce %14), pedallar küçük/saydam, Paşa/1-4/1-2 haksız kayıpları gitmiş, takla mümkün (Tosun 360° ≈1,4 sn), yükseltmeler hissediliyor (motor T4: 0→8 m/s 2,6→1,9 sn, tepe hız 18,1→21,6 m/s), Uzun Yol güçlü bir ek mod. Eksi: kolay bölümlerde tam gaz hâlâ ★3 ve **kargo kayması görünüyor ama hiçbir sonuç doğurmuyor**; takla+temiz iniş+kargo üçlüsü ödül vermiyor.
+
+## 2.2 1. tur maddelerinin durumu
+
+| # | Madde | Durum | Not (ölçüm) |
+|---|---|---|---|
+| 1 | Paşa bekleyince kargo kaybı | **Çözüldü** | `idle.mjs`: 8 bölüm × 4 araç, 4 sn boşta, kayıp yok |
+| 2 | 1-4/2-4 arka kasa kaçması | **Çözüldü** | `launch.mjs`: gaz %30/50/100'de kayıp yok; 1-4 artık 3 kargo |
+| 3 | 1-2 çukuru/stuck | **Çözüldü** | 5–22 m/s hepsi 6/6 teslim, dikkatli sürüş ★2 |
+| 4 | Takla yapılamıyor | **Kısmen** | Gaz ile 360° ≈1,41 sn, fren ile ≈1,3 sn: mümkün. Ama bkz. madde N1 |
+| 5 | Kolay bölümde tam gaz ★3 | **Çözülmedi** | tam gaz: 1-1 23,0 sn ★3, 1-2 28,0 sn ★3, 2-1 40,6 sn ★3 (1-3 ve 2-2'de ★2'ye düştü: iyi) |
+| 6 | Kargo kayması hissedilmiyor | **Kısmen** | `cargoSlide` her koşuda 10–50 kez; Tosun frende 0,39 m, Koca 1,97, Zıpır 5,5 m. Ama kasa/süt/karpuz kaybı ve hasar hâlâ 0 (aşağıda N2) |
+| 7 | Ekonomi bol | **Çözüldü** | ilk 8 bölüm ≈2057 kuruş (önce 4208); Tosun 3 hat tam = 4110, Zıpır 1300. Uzun Yol dışında dengeli (N6) |
+| 8 | Araç küçük/pedallar örtüyor | **Çözüldü** | `h11-02.png`: araç ≈%20, pedal alçak ve saydam |
+| 9 | Zıpır kapasite/savrulma | **Kısmen** | kargo kapasiteye göre kısılıyor; frende kargo 5,5 m öne kayıyor (kayıp 0), Uzun Yol'da 213 sn'de ölüyor (Tosun 300+ sn) |
+| 10 | `stuck` soğuk başarısızlık | **Ölçülmedi** | `stuckTime` 5→6 sn yapılmış; ipucu/ checkpoint teklifi kontrol edilmedi |
+| 11 | 2-3 dar hız penceresi | **Kısmen** | sabit hız: 9–11 m/s ✓, 5–7 `stuck@175`, 15 `stuck@174`; pencere 5 m/s'den 3 m/s'e daralmış gibi. Yeni yumuşak kilit: N4 |
+| 12 | İlk "vay" geç | **Çözülmedi** | 1-1 tam gaz: ilk kargo kayması t=11,5 sn, ilk havalanma t=15,4 sn |
+| 13 | Koca baskın | **Büyük ölçüde çözüldü** | 0→8 m/s 3,3→4,0 sn; Uzun Yol'da 121 sn'de ölüyor |
+| 14 | 2-2 köprü okunmuyor | **Ölçülmedi (görsel)** | 2-2 dikkatli ★3, tam gaz ★2: davranış iyi |
+| 15–16 | HUD çakışma, sürücü başı | **Ölçülmedi** | Uzun Yol'da 3 haneli kuruş pili `g-end-01.png`'de duraklat düğmesine değiyor |
+| 17 | Yükseltme etkisi | **Çözüldü** | yukarıdaki sayılar |
+| 18 | 4-4 uzun | **Çözülmedi** | bot 92,1 sn (önce 95) |
+| 19–20 | Bölüm kartı, ses | **Ölçülmedi** | |
+
+## 2.3 Özel sorular
+
+**(a) Kargo kayması merkezde mi, "neden düştü" anlaşılıyor mu?** Fizik doğru yönde (kayma var, ön duvara çarpma olayı var) ama **sonuç yok**: 1-1…2-2'de dört stratejinin hiçbirinde tek kargo kaybı/hasar yok (tam gazda kasa duvara 8,4 m/s ile çarpıyor ve "sağlam" — `intact.mjs`; kasa/süt `hitSpeed: Infinity`). Kargo yalnız atlayış/takla/uçurumda kayboluyor (1-4/2-4/3-2/4-2). Yani "kayma" bir görsel; oyunun merkezi atlayışlar. "Neden düştü" cargoLost nedeni (`fell/left/broke`) ile veriliyor ama kayıp çoğunlukla hiç olmadığı için sınanamadı.
+**(b) Takla/kombo:** Takla yapılabilir, ancak ödül yok: tam takla sonrası inişte (T1 taraması, 1-4/2-4) 2–4 kargo savruluyor, sürücü çoğunlukla `headHit` ile gidiyor; takla yapıp sağlam teslim eden tek bir koşu üretemedim (kaba kontrol: insan doğrulaması gerekir). Takla çok sayıda sert iniş yoksa tek `comboBank` ≈58 puan; 1-4 ★3 "takla + ×3 kombo + 3/3 kargo" birbiriyle çelişiyor.
+**(c) Kafa vuruşu adil mi?** Büyük ölçüde evet: havada kontrol yoksa çatı üstü iniş (Zıpır 2-4, 12 m/s çatı çarpması; Tosun 47–60° eğimli iniş) → `headHit`; havada dengeleyince hepsi bitiyor (`head.mjs`: "level" modu 8/8 sağ). Kusur: bazı vuruşlarda `headSpeed 0.0` raporlanıyor (nedeni belirsiz, N8) ve 1,3 sn'lik sert kararlar tek hatadan başarısızlık getiriyor.
+**(d) Tam gaz ★3:** 1-1, 1-2, 2-1'de duruyor (yukarıdaki tablo). Sebep: ★3 ölçütü yalnız süre ve kargo kırılmıyor. Somut öneri N1.
+**(e) İlk 30 sn:** 1-1'de hemen gaza basıp 3,8 sn'de 21 m, 7 sn'de 61 m (hız 15 m/s'ye kadar çıkıyor); ilk kayma 11,5 sn, ilk hava 15,4 sn. Okunaklı ve güzel (`h11-02.png`) ama "vay" anı 15 sn'ye kadar yok.
+**(f) Ekonomi:** Bölüm içi tempo iyi (ilk 8 bölüm ≈2057 kuruş, ★20). Uzun Yol bu dengeyi bozuyor (N6).
+**Uzun Yol:** (tarayıcı 112 sn + bot 300–900 sn) teslim döngüsü ("Teslim 4, Yük: 117 kuruş", "bayrağa 80 m", `g-end-03.png`) net ve motive edici; biyom geçişi (elma→kanyon ≈400 m) görsel olarak belirgin; varil yığınları ve kaya tepede güzel çeşitlilik. Bot (Tosun) 4 tohumun hepsinde 300 sn hayatta (13–17 teslim, 826–1299 kuruş, 2333–3126 m), 900 sn'de 638 sn/5153 m'de `stuck`. Diğer araçlar: Zıpır 213 sn/1796 m, Paşa 149 sn/1259 m, Koca 121 sn/978 m (`stuck`). İnsan benzeri `hum12` sürücü 84. sn'de varil yığınında 3,4 m/s'ye düşüp 112. sn'de tıkandı: zorluk artışı var ama "tıkanma" ölüm nedeni olarak sinir bozucu.
+
+## 2.4 2. tur öncelikli liste (≤12 madde)
+
+**N1. [P0] Bölüm/Çekirdek — Tam gaz ★3 (1-1, 1-2, 2-1) ve kargo "sonuçsuz".**
+Kanıt: tam gaz 23,0 / 28,0 / 40,6 sn ile ★3; kasa 8,4 m/s duvar çarpmasında bile sağlam (`intact.mjs`).
+Öneri: `CARGO.crate.hitSpeed` ∞→6,5, `milk` ∞→5,5, `watermelon` 9→6,0 (bot normal hızda en çok 2,3–5,6 m/s; tam gaz 8,4 m/s'e çıkıyor) ve ★3'lere `intact`/`deliveredAll` ekle; süre eşikleri 1-1 32→29 sn, 1-2 45→36 sn, 2-1 50→44 sn (tam gaz sayılarının üstü, bot normali 30,7/42,6/49,3 sn'nin altı kalır: böylece ★3 hızlı AMA kontrollü sürüş ister).
+
+**N2. [P0] Çekirdek — Kargo kaymasına sonuç ver (merkez mekanik).**
+Kanıt: `cargoSlide` 10–50/koşu, ama kayıp/hasar 0 (1-1…2-2). Zıpır frende kargo 5,5 m kayıyor ama kayıp 0.
+Öneri: Arka kapak yüksekliğini `bay.rail` Tosun 0,46→0,34 / Koca ve Zıpır orantılı; kasa `bayMu` 0,44→0,36; kutu kargoda ön duvara çarpma `cargoHit.wall` ≥4 m/s ise `damage` (kasa hp 1→2). Hedef: sert fren+tümsek kombinasyonu bir kasa kaybettirsin, normal sürüş etmesin.
+
+**N3. [P1] Çekirdek/Bölüm — Takla ödülsüz ve riskli: ★ çelişkisi.**
+Kanıt: 1-4 ★3 = takla + ×3 kombo + 3/3 kargo; takla koşularında 2–4 kargo kayıp, `headHit`. Büyük atlayış havası ≈2,0 sn; 360° + durdurma 3 sn ister (w ≈ 8 rad/s'de 1,4 sn'de).
+Öneri: Atlayış havasını +0,6 sn yap (1-4 3. rampa `dy` 3,0→3,8), `airMaxW` Tosun 9,5→8 (daha kolay durdurma), takla `SCORING.flip` 150→260, ★3'ten `deliveredAll` kaldır (ya da ≥2/3 yap), iniş yardımı `assistLanding` takla sonrası ilk 0,4 sn güçlensin.
+
+**N4. [P1] Bölüm/Çekirdek — 2-3'te yavaş sürüş yumuşak kilit.**
+Kanıt: `c23.mjs`: %60 hızla 3. kayaya (x≈607) takılıp tekrar tekrar `bodyHit` (2–4 m/s), 150 sn zaman aşımı, kasalar 91. sn'de `fell`. `stuck` tetiklenmiyor (araç hafif geri sekiyor).
+Öneri: Kaya tek sefer `hazardTrigger` sonrası 6 sn'de yok olsun ya da `stuck` eşiği "hızı <1 m/s ve 6 sn" yerine "x ilerlemesi <1 m ve 6 sn"; hız penceresi 9–11 → 8–12 için çukur 1 m daralt.
+
+**N5. [P1] Bölüm — İlk "vay" anı 15 sn'de.**
+Kanıt: `fa.mjs` ilk havalanma 15,4 sn, ilk kayma 11,5 sn.
+Öneri: 1-1'e x≈38'de `{type:'ramp', len:8, dy:1.0}`+iniş (≈4. sn'de ilk hava) ve ilk tümsek `h` 0,3→0,45 (kargo ≈6. sn'de kayar); ipucu "kasalar kayıyor" bunun hemen ardından.
+
+**N6. [P1] Çekirdek (ekonomi) — Uzun Yol kuruş musluğu.**
+Kanıt: Tosun botu 5 dakikada 826–1299 kuruş (13–17 teslim) kazanıyor; 1-1 ilk bitirme ≈228. Bu, hat başı 4. kademe (620) ve Zıpır'ı (1300) 5–10 dk'da bitirir.
+Öneri: `ENDLESS.payFactor` 1→0,35, günlük/koşu başı üst sınır 400 kuruş ya da biyom başına çarpan; en iyi mesafe/skor için ayrı (kuruşsuz) ödül (kozmetik).
+
+**N7. [P1] Çekirdek — Uzun Yol'da tıkanma ölümü ve araç dengesi.**
+Kanıt: Koca 121 sn, Paşa 149 sn, Zıpır 213 sn'de `stuck`; Tosun 638 sn; insan benzeri sürücü varil yığınında 3,4 m/s'de tıkandı (`g-end-03.png` varillerin üstünde tırmanma).
+Öneri: Varil yığını 3×3→2×3 ve kütle 30→20 kg; `stuck` ölümünü Uzun Yol'da "bayrağa 5 sn sonra yeniden doğ (kargo −1)" yap; Koca/Paşa için yavaş araç şablonu (köprü/çukur genişliği ≤0,6 zorluk).
+
+**N8. [P2] Çekirdek — `headSpeed 0.0` ile başarısızlık.**
+Kanıt: `head.mjs`: Tosun 1-4 (x1,3, 7/−60° iniş) ve 2-4 (47° iniş) `headHit eject headSpeed 0.0`.
+Öneri: Ejeksiyon nedenini (`cause`) toast ve sonuç ekranında yaz ("Çatı yere çarptı"); `headHitSpeed` 6→7 ve 0,3 sn "kurtarma" penceresi.
+
+**N9. [P2] Çekirdek — Zıpır frende kargo savurma (5,5 m).**
+Kanıt: `veh.mjs` 10 m/s fren: Zıpır 5,53 m, Koca 1,97, Tosun 0,39.
+Öneri: Zıpır `brakeTorque` 2400→1900 ve bölme `rail` 0,5→0,7 (ya da kargo `bayMu` Zıpır'da +0,1); Koca'da ön duvar çarpması hasara dönmesin.
+
+**N10. [P2] Bölüm — 3-2 ve 4-2 iyi ayarlı, 4-4 uzun.**
+Kanıt: 3-2: dikkatli 79,5 sn ★2 6/6, tam gaz 27 sn ★1 4/6 (doğru ceza); 4-2: dikkatli `chased`, hızlı ★3, tam gaz ★1. 4-4 bot 92,1 sn, 3-3 52,4 sn.
+Öneri: 4-4'e ortada `checkpoint` ve `parTime` 70 sn; 4-2'de "dikkatli" sürüş için kar topu v0 6→5,2 m/s (yoksa yavaş sürenin tek yolu başarısızlık).
+
+**N11. [P2] Arayüz — HUD.**
+Kanıt: `g-end-01.png`: 3 haneli kuruş pili duraklat düğmesine değiyor; Uzun Yol'da üç bilgi satırı (kargo, süre, "Teslim/Yük") + mesafe etiketi sol üstte ağır.
+Öneri: Kuruş pili sağ kenardan 12 px içeri; "Teslim/Yük" satırını mesafe çubuğunun altına al.
+
+**N12. [P2] Çekirdek — Ekonomi doğrulama sonrası yıldız kapıları.**
+Kanıt: bot ilk 8 bölümde ★20 (kapılar: Zıpır 12, Paşa 22, Koca 34).
+Öneri: N1 ile ★3'ler zorlaşacağı için kapılar bir tur daha ölçülmeli; hedef ilk 8 bölümde ≈14–16★.
+
+## 2.5 Yeni/açık hatalar
+
+1. 2-3, %60 hızla 3. kayaya takılma (sürekli `bodyHit`, `stuck` tetiklenmiyor, zaman aşımı) — N4.
+2. Uzun Yol: Koca/Paşa/Zıpır erken `stuck` ölümü — N7.
+3. `headHit` ile `headSpeed 0.0` raporu — N8.
+4. Kuruş pili–duraklat çakışması (3 hane, Uzun Yol) — N11.
