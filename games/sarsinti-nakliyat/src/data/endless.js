@@ -72,9 +72,9 @@ const TEMPLATES = {
   rampGap: {  // küçük rampa + dar çukur: hızla atla
     minD: 0.14, w: 2.5, biomes: ['elma', 'kanyon', 'zirve'],
     build(c) {
-      const w = lerp(3.4, 7.0, c.d) * c.r(0.95, 1.05);
+      const w = lerp(3.4, 6.4, c.d) * c.r(0.95, 1.05), dy = lerp(0.8, 1.7, c.d);
       return {
-        pieces: [{ type: 'flat', len: 16, surface: c.S.road }, { type: 'ramp', len: 6, dy: 0.8, surface: c.S.rough }, { type: 'gap', len: w, depth: 6 }, { type: 'flat', len: 18, surface: c.S.road }],
+        pieces: [{ type: 'flat', len: 16, surface: c.S.road }, { type: 'ramp', len: lerp(6, 8, c.d), dy, surface: c.S.rough }, { type: 'gap', len: w, depth: 6 }, { type: 'flat', len: 18, surface: c.S.road }],
         objects: [{ type: 'coins', x: 18, n: 4, spacing: 1.5, h: 2.6 }],
         heavy: true,
       };

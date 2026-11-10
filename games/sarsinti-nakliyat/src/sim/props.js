@@ -70,7 +70,7 @@ export function createProps(ctx) {
       const n = o.n ?? 3, w = o.w ?? PROPS.log.w, h = o.h ?? PROPS.log.h, sp = o.spacing ?? (w + 1.0);
       const wy = (o.y ?? waters.find((q) => o.x >= q.x0 && o.x <= q.x1)?.y ?? heightAt(terr, o.x));
       for (let i = 0; i < n; i++) {
-        const ob = addBody({ type: 'dynamic', position: V(o.x + i * sp, wy), linearDamping: 0.3, angularDamping: 1.5, bullet: true },
+        const ob = addBody({ type: 'dynamic', position: V(o.x + i * sp, wy), linearDamping: 0.3, angularDamping: PROPS.log.angDamp, bullet: true },
           pl.Box(w / 2, h / 2), { density: PROPS.log.mass / (w * h), friction: 0.9, restitution: 0.05, filterMaskBits: CAT.wheel | CAT.chassis | CAT.cargo | CAT.driver | CAT.object },
           'log', { w, h, x0: o.x + i * sp });
         logs.push(ob);
@@ -97,7 +97,7 @@ export function createProps(ctx) {
         if (!w) continue;
         const a = lg.body.getAngle(), ca = Math.cos(a), N = 5;
         const lv = lg.body.getLinearVelocity();
-        lg.body.applyForceToCenter(V(-lv.x * 80 - PROPS.log.tether * (lg.body.getPosition().x - lg.x0), -lv.y * 500), true);
+        lg.body.applyForceToCenter(V(-lv.x * PROPS.log.dragX - PROPS.log.tether * (lg.body.getPosition().x - lg.x0), -lv.y * PROPS.log.dragY), true);
         for (let k = 0; k < N; k++) {
           const pt = lg.body.getWorldPoint(V((k - (N - 1) / 2) * lg.pose.w / N, 0));
           const sub = Math.max(0, Math.min(lg.pose.h, w.y - (pt.y - lg.pose.h / 2 * ca)));
@@ -166,7 +166,7 @@ export function createProps(ctx) {
         const inW = waters.find((w) => cp.x >= w.x0 && cp.x <= w.x1 && cp.y < w.y);
         if (inW) {
           S.waterT = (S.waterT ?? 0) + dt;
-          chassis.applyForceToCenter(V(-v.x * 800, -v.y * 800), true);
+          chassis.applyForceToCenter(V(-v.x * PROPS.water.bodyDrag, -v.y * PROPS.water.bodyDrag), true);
           if (S.waterT > PROPS.water.deadly) return { fail: 'water', pos: { x: cp.x, y: cp.y } };
         } else S.waterT = 0;
         for (const c of cargo) {

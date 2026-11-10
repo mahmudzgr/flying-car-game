@@ -55,7 +55,7 @@ function senseZones(snap, st, x) {
   const zones = [];
   for (const p of st.props ?? []) {
     if (p.type === 'bridge' && x > p.x - 18 && x < p.x + p.len + 4) zones.push({ x0: p.x - 15, x1: p.x + p.len + 3, speed: 5.5 });
-    if (p.type === 'seesaw' && x > p.x - 18 && x < p.x + p.len + 6) zones.push({ x0: p.x - 6, x1: p.x + p.len + 4, speed: 7.5 });
+    if (p.type === 'seesaw' && x > p.x - 18 && x < p.x + p.len + 6) zones.push({ x0: p.x - 12, x1: p.x + p.len + 4, speed: 8 });
   }
   for (const w of st.water ?? []) if (x > w.x0 - 18 && x < w.x1 + 4) zones.push({ x0: w.x0 - 7, x1: w.x1 + 3, speed: 5 });
   for (const o of snap.objects) if (o.type === 'barrel' && o.x > x && o.x < x + 30) { zones.push({ x0: o.x - 14, x1: o.x + 6, speed: 8 }); break; }
@@ -82,7 +82,7 @@ export function autopilot(snap, st, plan) {
     if (sf === 'ice') target = Math.min(target, 9);
     else if (sf === 'sand' || sf === 'mud') target = Math.max(target, plan.speed + 2);
   } else if (!gaps) gaps = plan.gaps = findGaps(st);
-  for (const g of gaps) if (x < g.x && x > g.x - 45) target = Math.max(target, Math.min(plan.jumpSpeed, 6 + 1.1 * g.w));   // çukura tam hızla gir
+  for (const g of gaps) if (x < g.x && x > g.x - 45) target = Math.max(target, Math.min(plan.jumpSpeed, 6 + (plan.endless ? 1.3 : 1.1) * g.w));   // çukura tam hızla gir
   const fwd = v.vx;
   let throttle = fwd < target ? 1 : 0, brake = fwd > target + 1.5 ? 1 : 0;
   if (v.airborne) {
