@@ -56,7 +56,7 @@ export const VEHICLES = {
       { part: 'chassis', x: 0,     y: 0,    w: 3.6, h: 0.9 },
       { part: 'cab',     x: 1.2,   y: 0.9,  w: 1.0, h: 0.9 },
       { part: 'roof',    x: 1.2,   y: 1.4,  w: 0.9, h: 0.1 },
-      { part: 'chassis', x: -1.75, y: 0.62, w: 0.1, h: 0.34 },  // arka kapak (kenarlık); 0,46 → 0,70 → 0,34 (2. tur: alçak kapak = sert fren/tümsek+gazda kargo kaçabilir)
+      { part: 'chassis', x: -1.75, y: 0.65, w: 0.1, h: 0.40 },  // arka kapak (kenarlık); 0,46 → 0,70 → 0,40 (2. tur: alçak kapak = sert fren/tümsek+gazda kargo kaçabilir; 0,34'te karpuz (Ø0,40) dikkatli sürüşte de taşıyordu)
     ],
     wheels: [
       { id: 'rear',  x: -1.25, y: -0.59, driven: true },   // y: yumuşak yay (0,95 Hz) daha çok çöker; çökme sonrası dingil eski yerinde (≈-0,25) dursun diye 24 cm aşağıda
@@ -65,9 +65,9 @@ export const VEHICLES = {
     wheelR: 0.38, wheelMass: 35,
     freqHz: 0.95, zeta: 0.5, travel: [-0.24, 0.24],
     motorTorque: 1550, maxWheelSpeed: 52, brakeTorque: 3500, brakeFront: 0.6,
-    airTorque: 11000, airMaxW: 9.5, grip: 1.0, drag: 0.55,
+    airTorque: 11000, airMaxW: 8, grip: 1.0, drag: 0.55,
     capacity: 6,
-    bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.34 },          // kargo bölmesi (şasi yerel)
+    bay: { x0: -1.68, x1: 0.68, floorY: 0.45, rail: 0.40 },          // kargo bölmesi (şasi yerel)
     seat: { x: 1.15, y: 0.8 },                                     // sürücü gövdesi merkezi (şasi yerel)
   },
   zipir: {
@@ -167,7 +167,7 @@ export const DRIVER = {
 /** Kargo türleri (TASARIM §4.4). `bayMu` = kargo–araç (kasa tabanı/duvar) etkin sürtünmesi; gerçekçi tahta/metal ≈ 0,3–0,45 → kargo sert frende kayar (sim pre-solve'da uygulanır). shape: 'box' (w,h) | 'circle' (r). */
 export const CARGO = {
   crate:      { id: 'crate',      name: 'Kasa',          shape: 'box', w: 0.7, h: 0.7, mass: 25,  restitution: 0.1,  friction: 0.6, bayMu: 0.36, hp: 2, hitSpeed: 6.5, maxHitDamage: 1, survive: true, value: { base: 0, perHp: 10 } },   // ağır darbe (>6,5 m/s) = hasar (hp 2→1, değer %50); ikinci darbe yok etmez (survive)
-  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 6.0, value: { base: 25, perHp: 0 } },
+  watermelon: { id: 'watermelon', name: 'Karpuz',        shape: 'circle', r: 0.20,  mass: 6,   restitution: 0.25, friction: 0.5, bayMu: 0.5, hp: 1, hitSpeed: 7.0, value: { base: 25, perHp: 0 } },
   eggs:       { id: 'eggs',       name: 'Yumurta kolisi', shape: 'box', w: 0.6, h: 0.3, mass: 3, restitution: 0.1, friction: 0.5, bayMu: 0.34, hp: 6, hitSpeed: 3.6, maxHitDamage: 2, value: { base: 15, perHp: 10 } },
   milk:       { id: 'milk',       name: 'Süt bidonu',    shape: 'box', w: 0.4, h: 0.7, mass: 20,  restitution: 0.1,  friction: 0.5, bayMu: 0.36, hp: 2, hitSpeed: 5.5, maxHitDamage: 1, survive: true, value: { base: 0, perHp: 11 } },   // bidon: >5,5 m/s hasar (ezik), yok olmaz
   piano:      { id: 'piano',      name: 'Piyano',        shape: 'box', w: 1.5, h: 1.1, mass: 180, restitution: 0.1,  friction: 0.6, bayMu: 0.45, hp: 2, hitSpeed: 8, value: { base: 0, perHp: 75 } }, // hp 1 = "kırık" (%50)
@@ -182,8 +182,8 @@ export const CARGO_LOSS = { behindDist: 8, restTime: 2, restDist: 4, deliverRadi
 
 /** Engel/nesne türleri (TASARIM §4.4). */
 export const OBJECTS = {
-  barrel: { w: 0.6, h: 0.9, mass: 12, friction: 0.3, restitution: 0.1 },
-  rock:   { mass: 600, friction: 0.8, restitution: 0.1 },        // r bölüm verisinden
+  barrel: { w: 0.6, h: 0.9, mass: 12, friction: 0.3, restitution: 0.1, life: 3.5 },   // life: ilk çarpmadan sonra bu kadar sn içinde yok olur (tıkanma önleme)
+  rock:   { mass: 600, friction: 0.8, restitution: 0.1, life: 14, behind: 10 },   // life: tetiklenince bu kadar sn sonra yok olur; behind: araçtan bu kadar m geride kalınca yok olur       
   coin:   { r: 0.25, value: 2 },
   plank:  { w: 1.0, h: 0.2, mass: 30 },                          // köprü tahtası
   seesaw: { len: 8.0, h: 0.3, mass: 200, limit: 0.45, rest: 0.12, damping: 2.0 },   // rest: sol uç yerdeyken eğim (rad); zemin teması gerçek aralığı belirler
@@ -211,6 +211,7 @@ export const RULES = {
   badLandingSpeed: 6,     // şasi çarpması > bu ⇒ kombo yanar
   slowmo: { headHit: { scale: 0.35, duration: 1.0 }, finish: { scale: 0.5, duration: 0.5 } },
   stuckTime: 6,           // sn: gaz/fren basılıyken kıpırdamama ⇒ 'stuck' başarısızlığı
+  stuckProgress: 1,       // m: gaz/fren basılıyken stuckTime içinde bundan az ilerlerse (hızdan bağımsız) 'stuck'
   stuckWarn: 2.5,         // sn: bu kadar kıpırdamayınca 'geri vites' ipucu toast'ı
   finishHold: 1.0,        // bitişten sonra sim'in "won" durumda bile adımlamaya devam edeceği süre ipucu (sn)
 };
@@ -218,7 +219,7 @@ export const RULES = {
 /** Puanlama (TASARIM §8.1–8.2). */
 export const SCORING = {
   perMeter: 1, cargoMult: 10, intactBonus: 0.25, timeBonusPerSec: 10,
-  airPerSec: 20, airMin: 0.6, flip: 150, wheeliePerSec: 40, wheelieMin: 1.0,
+  airPerSec: 20, airMin: 0.6, flip: 260, wheeliePerSec: 40, wheelieMin: 1.0,
   cargoAir: 100, cargoAirMin: 0.8, nearMiss: 60,
   comboWindow: 3, comboMaxMult: 5,       // çarpan = 1 + floor(sayaç/2), en çok 5
 };
@@ -226,7 +227,8 @@ export const SCORING = {
 /** Ekonomi (TASARIM §8.3–8.4, §5). */
 export const ECONOMY = {
   starBonus: [15, 30, 55],        // ★1/★2/★3 ilk kazanış (ölçüm: bot Tosun, 16 bölüm ≈5300 kuruş; ilk 8 bölüm ≈2100)
-  repeatFactor: 0.5,
+  repeatFactor: 0.5,              // tekrar oynanan (daha önce ★ alınmış) bölümde taban ödül ve yolda toplanan kuruş çarpanı
+  repeatScore: 0.6,               // tekrarda skor kuruşu çarpanı
   scoreToCoins: 60, coinsCap: 300,
   pickupCoin: 2,                  // (bilgi; gerçek değer OBJECTS.coin.value)
   startCoins: 0,
@@ -273,7 +275,7 @@ export const ENDLESS = {
   difficultyScale: 1500,  // zorluk = 1 − e^(−mesafe/ölçek)
   cargoStart: 3,          // ilk yükte kargo sayısı; her `cargoStep` teslimde +1 (araç kapasitesine kadar)
   cargoStep: 2,
-  payFactor: 0.55,        // teslim kuruşu = sağlam kargo değeri × payFactor (5 dk Tosun botu: 1650–2360 → ~900–1300; kampanya saat başı gelirinin altında)
+  payFactor: 0.35,        // teslim kuruşu = sağlam kargo değeri × payFactor (2. tur: 0,55 → 0,35; 5 dk Tosun botu ≈600–900 kuruş)
   deliveredLinger: 1.5,     // teslim edilen kargo gövdesi bu kadar sn sonra yok edilir
   lostLinger: 3,          // kaybedilen kargo gövdesi bu kadar sn sonra (ya da arkada kalınca) yok edilir
   goneDelay: 0.8,         // son kargo kaybından 'cargoGone' bitişine (sn)

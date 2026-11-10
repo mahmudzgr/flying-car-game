@@ -86,7 +86,7 @@ function finishLevel(e) {
   if (e.mode === 'endless') return finishEndless(e);
   const prev = save.data.levels[level.id] ?? { stars: 0, best: 0, bestTime: 0, tries: 0 };
   const win = e.result === 'win';
-  const reward = win ? levelReward(level.reward ?? { base: 60 }, e, prev.stars) : { total: e.pickups };
+  const reward = win ? levelReward(level.reward ?? { base: 60 }, e, prev.stars) : { total: 0, pickups: 0 };   // yolda toplanan kuruş yalnız bölüm BİTİNCE hesaba geçer (QA #11)
   save.update((d) => {
     const r = (d.levels[level.id] ??= { stars: 0, best: 0, bestTime: 0, tries: 0 });
     r.tries++;

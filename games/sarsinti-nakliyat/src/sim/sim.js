@@ -20,7 +20,7 @@ const DT = SIM.step;
  *   endless verilirse Uzun Yol (sonsuz mod): level üreteçten gelir, zemin akar (docs/MIMARI.md §14).
  */
 export function createSim(opts) {
-  const egen = opts.endless ? createEndlessGen(opts.endless.seed ?? 1) : null;
+  const egen = opts.endless ? createEndlessGen(opts.endless.seed ?? 1, { vehicleId: opts.vehicleId ?? 'tosun' }) : null;
   const level = egen ? egen.level : opts.level;
   const vehicleId = opts.vehicleId ?? 'tosun';
   if (!VEHICLES[vehicleId]?.implemented) throw new Error(`Araç henüz uygulanmadı: ${vehicleId}`);
@@ -358,7 +358,7 @@ export function createSim(opts) {
     if ((thr > 0.5) !== S.throttleOn) { S.throttleOn = thr > 0.5; emit('throttle', { on: S.throttleOn }); }
     if ((brk > 0.5) !== S.brakeOn) { S.brakeOn = brk > 0.5; emit('brake', { on: S.brakeOn }); }
     const cp = veh.chassis.getPosition();
-    const onGround = driveVehicle(veh, { throttle: thr, brake: brk }, { dt: DT, assistLanding: assist, groundDist: cp.y - heightAt(terr, cp.x) });
+    const onGround = driveVehicle(veh, { throttle: thr, brake: brk }, { dt: DT, assistLanding: assist, assistBoost: assist && S.air.on && S.air.flips > 0, groundDist: cp.y - heightAt(terr, cp.x) });
     if (veh.reversing) S.stats.reversed = true;
     props.forces();
     world.step(DT, SIM.velocityIterations, SIM.positionIterations);
@@ -460,10 +460,18 @@ export function createSim(opts) {
     }
     for (const h of hints) if (!h.shown && p.x >= h.x) { h.shown = true; emit('toast', { text: h.text, icon: h.icon ?? 'info' }); }
     for (const o of objects) {
-      if (o.type !== 'rock') continue;
+      if (o.type === 'barrel' && o.hit && !o.gone) {   // çarpılan varil kısa süre sonra yok olur (yığını önünde sürüklemek aracı tıkamasın)
+        o.hitT = (o.hitT ?? 0) + DT;
+        if (o.hitT > OBJECTS.barrel.life) { o.gone = true; o.body.setActive(false); o.body.setTransform(V(o.body.getPosition().x, -500), 0); }
+      }
+      if (o.type !== 'rock' || o.gone) continue;
       if (!o.triggered && p.x >= o.trig) {
         o.triggered = true; o.body.setType('dynamic'); o.body.setLinearVelocity(V(o.vx, 0)); o.body.setAwake(true);
         emit('hazardTrigger', { id: o.id, type: 'rock', pos: { x: o.body.getPosition().x, y: o.body.getPosition().y } });
+      }
+      if (o.triggered) {   // geçilen/çukura düşen kaya bir süre sonra yok olur (yolu tıkamasın)
+        o.age = (o.age ?? 0) + DT;
+        if (o.age > OBJECTS.rock.life || o.body.getPosition().x < p.x - OBJECTS.rock.behind) { o.gone = true; o.triggered = false; o.body.setActive(false); o.body.setTransform(V(o.body.getPosition().x, -500), 0); }
       }
       if (o.triggered && !o.near) {
         const d = Math.hypot(o.body.getPosition().x - p.x, o.body.getPosition().y - p.y) - o.pose.r;
@@ -487,7 +495,9 @@ export function createSim(opts) {
     if (S.pendingFail) return;
 
     // takılma: gaz/fren basılıyken 5 sn kıpırdamama (çukura/kayaya sıkışma) → yeniden denemeye izin ver
-    S.stuckT = S.inputHeld && speed < 0.3 ? (S.stuckT ?? 0) + DT : 0;
+    // (hızdan değil İLERLEMEDEN: yavaşça geri sekip duran / kayaya vura vura kıpırdayan araç da takılmış sayılır)
+    if (S.stuckX === undefined || Math.abs(p.x - S.stuckX) >= RULES.stuckProgress || !S.inputHeld) { S.stuckX = p.x; S.stuckT = 0; }
+    else S.stuckT += DT;
     if (S.stuckT > RULES.stuckWarn && !S.stuckWarned) { S.stuckWarned = true; emit('toast', { text: 'Sıkıştın mı? Geri gitmek için freni basılı tut.', icon: 'info' }); }
     if (!S.stuckT) S.stuckWarned = false;
     if (S.stuckT > RULES.stuckTime) { emit('crash', { reason: 'stuck', pos: { x: p.x, y: p.y } }); endLevel('fail', 'stuck'); return; }

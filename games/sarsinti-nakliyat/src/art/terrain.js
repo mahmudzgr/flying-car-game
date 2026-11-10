@@ -247,8 +247,10 @@ export function drawTerrain(ctx, st, range, px) {
     if (s === 'water') { ctx.globalAlpha = 0.85; }
     runPath(ctx, xs, ys, a, e, -bw / 2); ctx.lineWidth = bw; ctx.strokeStyle = SURFACE_TOP[s] ?? '#888'; ctx.stroke();
     ctx.globalAlpha = 1;
-    runPath(ctx, xs, ys, a, e, -bw - 0.025); ctx.lineWidth = 0.06; ctx.strokeStyle = SURFACE_DARK[s] ?? '#000'; ctx.stroke();
-    runPath(ctx, xs, ys, a, e, -0.06); ctx.lineWidth = 0.05; ctx.strokeStyle = SURFACE_LIGHT[s] ?? '#fff'; ctx.stroke();
+    if (!(ART.tier >= 2)) {
+      runPath(ctx, xs, ys, a, e, -bw - 0.025); ctx.lineWidth = 0.06; ctx.strokeStyle = SURFACE_DARK[s] ?? '#000'; ctx.stroke();
+      runPath(ctx, xs, ys, a, e, -0.06); ctx.lineWidth = 0.05; ctx.strokeStyle = SURFACE_LIGHT[s] ?? '#fff'; ctx.stroke();
+    }
     // geçiş işareti: yüzey değişen noktada koyu dikey çizgi
     if (a > i0) { ctx.beginPath(); ctx.moveTo(xs[a], ys[a]); ctx.lineTo(xs[a], ys[a] - bw - 0.18); ctx.lineWidth = 2.2 * px; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt'; }
     a = e + 1;

@@ -56,7 +56,7 @@ export default {
   ],
   stars: {
     2: [{ kind: 'flips', min: 1, label: 'Bir takla at' }],
-    3: [{ kind: 'flips', min: 1, label: 'Taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }, { kind: 'deliveredAll', label: '3 kargonun hepsi' }],
+    3: [{ kind: 'flips', min: 1, label: 'Bir takla at' }, { kind: 'combo', min: 2, label: 'Kombo ×2' }, { kind: 'delivered', min: 2, label: '2+ kargo teslim' }],
   },
   reward: { base: 90 },
   bot: { speed: 12 },

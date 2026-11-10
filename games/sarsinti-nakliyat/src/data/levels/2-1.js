@@ -53,8 +53,8 @@ export default {
   ],
   stars: {
     2: [{ kind: 'deliveredAll', label: '5 bidonun hepsi teslim' }],
-    3: [{ kind: 'time', max: 50, label: '50 sn içinde' }, { kind: 'noReverse', label: 'Geri vites kullanma' }],
+    3: [{ kind: 'intact', label: 'Bidonlar ezilmeden' }, { kind: 'time', max: 46, label: '46 sn içinde' }, { kind: 'noReverse', label: 'Geri vites kullanma' }],
   },
   reward: { base: 110 },
-  bot: { speed: 12 },
+  bot: { speed: 16, zones: [{ x0: 370, x1: 415, speed: 11 }] },   // hızlı ama kontrollü: tümsekte yavaşla
 };

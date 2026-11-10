@@ -100,7 +100,7 @@ const TEMPLATES = {
     build(c) {
       return {
         pieces: [{ type: 'flat', len: 20, surface: c.S.road }, { type: 'flat', len: 22, surface: c.S.road }],
-        objects: [{ type: 'barrels', x: 24, cols: c.d > 0.5 ? 3 : 2, rows: c.d > 0.35 ? 3 : 2 }, coinsAt(c, 8, 1.1, 3)],
+        objects: [{ type: 'barrels', x: 24, cols: 2, rows: c.d > 0.35 ? 3 : 2 }, coinsAt(c, 8, 1.1, 3)],
         zones: [{ x0: 14, x1: 36, speed: 8 }],
       };
     },
@@ -175,12 +175,16 @@ export function buildTemplate(name, d = 0.5, biome = 'kanyon', seed = 1) {
   return { template: name, biome, d, ...b, len: sumLen(b.pieces) };
 }
 
+// Yavaş/ağır araçlar için geçilemeyen şablonlar (Paşa tepe hızı 11 m/s: geniş çukur/su atlayışı yok; Koca köprü/kütükte takılıyordu).
+const SLOW_BANNED = { pasa: ['rampGap', 'waterLogs'], koca: ['rampGap', 'waterLogs', 'bridge', 'seesaw'] };
+
 /**
  * @param {number} seed
  * @returns {{seed:number, level:object, next(x:number):object, loadFor(k:number, cfg:{capacity:number, vehicleId:string}):Array<{type:string,count:number}>}}
  */
-export function createEndlessGen(seed) {
+export function createEndlessGen(seed, { vehicleId } = {}) {
   seed = seed >>> 0;
+  const banned = SLOW_BANNED[vehicleId] ?? [];
   const rng = mulberry32(hash2(seed, 0x5eed));
   let idx = 0, nextPadAt = ENDLESS.deliveryEvery, lastTpl = '', lastHeavy = false, lastBiome = 'elma';
 
@@ -219,7 +223,7 @@ export function createEndlessGen(seed) {
         const pool = [];
         for (const [name, t] of Object.entries(TEMPLATES)) {
           const minD = t.minDByBiome?.[biome] ?? t.minD;
-          if (d < minD || (t.biomes && !t.biomes.includes(biome)) || name === lastTpl) continue;
+          if (d < minD || (t.biomes && !t.biomes.includes(biome)) || name === lastTpl || banned.includes(name)) continue;
           if (lastHeavy && t.build.length >= 0 && ['rampGap', 'bridge', 'seesaw', 'waterLogs'].includes(name)) continue;
           pool.push([name, t.w]);
         }

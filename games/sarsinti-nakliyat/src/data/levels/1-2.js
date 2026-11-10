@@ -51,8 +51,8 @@ export default {
   ],
   stars: {
     2: [{ kind: 'delivered', min: 5, label: 'En az 5 karpuz teslim' }],
-    3: [{ kind: 'deliveredAll', label: '6 karpuzun hepsi' }, { kind: 'time', max: 45, label: '45 sn içinde' }],
+    3: [{ kind: 'deliveredAll', label: '6 karpuzun hepsi' }, { kind: 'time', max: 40, label: '40 sn içinde' }],
   },
   reward: { base: 75 },
-  bot: { speed: 11 },
+  bot: { speed: 15, zones: [{ x0: 12, x1: 50, speed: 10 }, { x0: 156, x1: 222, speed: 10 }, { x0: 250, x1: 320, speed: 11 }] },   // hızlı ama kontrollü: tümsek/tepelerde yavaşla
 };

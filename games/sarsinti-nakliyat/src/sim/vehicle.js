@@ -179,6 +179,11 @@ export function driveVehicle(veh, input, opt) {
       const a = wrapAngle(chassis.getAngle());
       if (Math.abs(a) > 2.6 && opt.groundDist < 1.2) tq = -Math.sign(a) * cfg.airTorque * 0.2;
     }
+    // takla sonrası iniş yardımı (ayar açıksa): tam takla bitince inişe kadar PD tork açıyı 0'a çeker, dönüşü sönümler
+    if (opt.assistBoost && onGround === 0) {
+      const a = wrapAngle(chassis.getAngle());
+      tq += Math.max(-0.6 * cfg.airTorque, Math.min(0.6 * cfg.airTorque, -cfg.airTorque * (4 * a + 0.7 * w)));
+    }
     if (tq) chassis.applyTorque(tq, true);
   }
   return onGround;

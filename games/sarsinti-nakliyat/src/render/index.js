@@ -31,8 +31,8 @@ export function createRenderer(canvas, opts = {}) {
   const wheelAcc = [0, 0, 0, 0, 0, 0]; let exhAcc = 0; const lastContact = [null, null, null, null, null, null];
   const o = { debug: !!opts.debug, quality: opts.quality ?? 'high', shake: opts.shake ?? 2 };
   // Otomatik kalite: 'high'/'auto' = uyarlamalı (kademe 0..2), 'low' = sabit en düşük kademe
-  const DPR_CAP = [2, 1.5, 1], PART_CAP = [320, 220, 110];
-  let tier = o.quality === 'low' ? 2 : 0, ftSum = 0, ftN = 0, ftT = 0, coolT = 6, goodT = 0, upWait = 14;
+  const DPR_CAP = [2, 1.5, 1, 1], PART_CAP = [320, 220, 110, 70];
+  let tier = o.quality === 'low' ? 2 : 0, ftSum = 0, ftN = 0, ftT = 0, coolT = 0, goodT = 0, upWait = 14;
   function setTier(n) {
     if (n === tier) return;
     tier = n; applyQuality(); clearBackdropCache(); if (st) { clearTerrainCache(st); try { prewarmBackdrop(st.biome, view, view.dpr); } catch (e) { /* */ } }
@@ -44,7 +44,7 @@ export function createRenderer(canvas, opts = {}) {
     if (ftT < 3) return;
     const avg = ftSum / ftN; ftSum = 0; ftN = 0; ftT = 0;
     if (coolT > 0) return;
-    if (avg > 0.022 && tier < 2) { setTier(tier + 1); coolT = 4; goodT = 0; upWait = Math.min(120, upWait * 1.6); }
+    if (avg > 0.022 && tier < 3) { setTier(Math.min(3, tier + (avg > 0.035 ? 2 : 1))); coolT = 3; goodT = 0; upWait = Math.min(120, upWait * 1.6); }
     else if (avg < 0.0185 && tier > 0) { goodT += 3; if (goodT >= upWait) { setTier(tier - 1); coolT = 6; goodT = 0; } }
     else if (avg >= 0.0185) goodT = 0;
   }
@@ -58,7 +58,7 @@ export function createRenderer(canvas, opts = {}) {
     particles.setCap(PART_CAP[tier]);
   }
   function resize() {
-    const dpr = Math.min(globalThis.devicePixelRatio || 1, CAMERA.maxDpr, DPR_CAP[tier]);
+    const dpr = Math.min(globalThis.devicePixelRatio || 1, CAMERA.maxDpr, DPR_CAP[tier]) * (tier >= 3 ? 0.7 : 1);
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
     const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
     if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
@@ -82,7 +82,8 @@ export function createRenderer(canvas, opts = {}) {
   function drawBackdrop(biome, cam, scale) {
     drawSky(ctx, biome, view);
     drawParallax(ctx, biome, 3, cam.x, view, scale, cam.y);
-    for (let l = 0; l < 3; l++) drawParallax(ctx, biome, l, cam.x, view, scale, cam.y);
+    if (tier >= 1) { drawParallax(ctx, biome, 10, cam.x, view, scale, cam.y); drawParallax(ctx, biome, 2, cam.x, view, scale, cam.y); }
+    else for (let l = 0; l < 3; l++) drawParallax(ctx, biome, l, cam.x, view, scale, cam.y);
   }
   // ------------------------------------------------------------ yardımcılar
   const sc = () => (o.shake / 2);

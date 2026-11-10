@@ -109,8 +109,8 @@ function strut(ctx, ax, ay, hx, hy, px, spring, thick = 0.075, coils = 5) {
   line(ctx, mx, my, hx, hy); ctx.lineWidth = thick * 0.55 + 3 * px; ctx.strokeStyle = INK; ctx.stroke();
   line(ctx, mx, my, hx, hy); ctx.lineWidth = thick * 0.55; ctx.strokeStyle = CHROME; ctx.stroke();
   // yay
-  coil(ctx, ax, ay, hx, hy, coils, thick * 1.05);
-  ctx.lineWidth = 0.05 + 3.2 * px; ctx.strokeStyle = INK; ctx.stroke();
+  if (ART.tier < 1 || ART.tier === undefined) { coil(ctx, ax, ay, hx, hy, coils, thick * 1.05);
+  ctx.lineWidth = 0.05 + 3.2 * px; ctx.strokeStyle = INK; ctx.stroke(); }
   coil(ctx, ax, ay, hx, hy, coils, thick * 1.05);
   ctx.lineWidth = 0.05; ctx.strokeStyle = spring; ctx.stroke();
   circle(ctx, hx, hy, 0.05); fs(ctx, px, CHROME, 1.4);
