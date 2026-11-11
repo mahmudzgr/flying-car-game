@@ -3,12 +3,12 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Tarayıcıda oynanan, mobil uyumlu oyunlar: oyun seçim ekranı + Uçan Roadster + Paldır Küldür + Sarsıntı Nakliyat.",
+  "description": "Tarayıcıda oynanan, mobil uyumlu oyunlar: oyun seçim ekranı + Uçan Roadster + Paldır Küldür + Sarsıntı Nakliyat + Milimetrik Park.",
   "scripts": {
     "start": "python3 -m http.server 8080",
     "check": "node tools/check-games.mjs",
     "cover": "node tools/capture-cover.mjs",
-    "test": "node tools/check-games.mjs && node games/ucan-roadster/tools/bot.mjs && node games/ucan-roadster/tools/endless-test.mjs && node games/sarsinti-nakliyat/tools/bot.mjs --strict"
+    "test": "node tools/check-games.mjs && node games/ucan-roadster/tools/bot.mjs && node games/ucan-roadster/tools/endless-test.mjs && node games/sarsinti-nakliyat/tools/bot.mjs --strict && node games/milimetrik-park/tools/bot.mjs"
   },
   "license": "MIT"
 }

@@ -10,6 +10,7 @@ hesap ya da derleme adımı yok. Site GitHub Pages ile yayınlanacak şekilde d�
 | **Uçan Roadster** | 2.5D fizik: dönen rampadan fırla, havada takla at, iticilerle platforma kon. 16 bölüm, sonsuz mod. | [`games/ucan-roadster/`](games/ucan-roadster/) |
 | **Paldır Küldür** | Fizik yıkım: sapanla gülle fırlat, kuleleri yık, jöleleri patlat. 40 bölüm, Sonsuz Kuşatma, Oyun Alanı. | [`games/paldir-kuldur/`](games/paldir-kuldur/) |
 | **Sarsıntı Nakliyat** | Yan görünüşlü fizik nakliyesi: yaylı süspansiyonlu araçla bozuk yollarda, çamurda, buzda ve sallanan köprülerde kargonu devirmeden teslim et. 16 bölüm, 4 araç, Uzun Yol (sonsuz) modu. | [`games/sarsinti-nakliyat/`](games/sarsinti-nakliyat/) |
+| **Milimetrik Park** | Kuş bakışı park: gerçekçi direksiyon (Ackermann), rölantide sürünen otomatik vites, kademeli fren, park sensörü ve yörünge çizgileri. 7 bölüm + antrenman alanı. *Konsept sürüm.* | [`games/milimetrik-park/`](games/milimetrik-park/) |
 
 Her oyunun ayrıntıları kendi klasöründeki `README.md` dosyasında.
 
@@ -26,7 +27,7 @@ Jekyll işlemesini kapatır. Seçtiğin dala her push'ta site kendiliğinden gü
 
 ## Yerelde çalıştırma
 
-Ana ekran, Uçan Roadster ve Sarsıntı Nakliyat ES modülleri kullandığı için dosyayı çift tıklayarak açmak yerine bir HTTP sunucusu gerekir:
+Ana ekran, Uçan Roadster, Sarsıntı Nakliyat ve Milimetrik Park ES modülleri kullandığı için dosyayı çift tıklayarak açmak yerine bir HTTP sunucusu gerekir:
 
 ```bash
 npm start                 # = python3 -m http.server 8080
@@ -65,7 +66,8 @@ tools/capture-cover.mjs   Oyunun ekran görüntüsünden kapak üretme yardımc�
    ```
 5. **Kayıt anahtarı:** Bütün oyunlar aynı alan adında (`mahmudzgr.github.io`) çalıştığı için `localStorage`
    ortaktır. Her oyun kendine özgü bir önek kullansın (ör. `uzay-macerasi.save.v1`). Kullanımdaki anahtarlar:
-   `roadster-flip-save-v1…` (Uçan Roadster), `paldirkuldur.v1` (Paldır Küldür), `sarsinti.v1` (Sarsıntı Nakliyat).
+   `roadster-flip-save-v1…` (Uçan Roadster), `paldirkuldur.v1` (Paldır Küldür), `sarsinti.v1` (Sarsıntı Nakliyat),
+   `milimetrik.v1` (Milimetrik Park).
 6. **Kapak:** `games/<id>/cover.webp`, 16:9 (önerilen 1280×720). Elle koyabilir ya da oyunun ekran
    görüntüsünden üretebilirsin:
    ```bash
@@ -89,8 +91,9 @@ tools/capture-cover.mjs   Oyunun ekran görüntüsünden kapak üretme yardımc�
 
 ```bash
 npm run check     # oyun listesi ve klasör denetimi
-npm test          # denetim + Uçan Roadster otomatik pilot testleri + Sarsıntı Nakliyat botu (~1 dk)
+npm test          # denetim + Uçan Roadster otomatik pilot testleri + Sarsıntı Nakliyat botu + Milimetrik Park botu (~1 dk)
 node games/sarsinti-nakliyat/tools/bot.mjs --matrix --determinism   # Sarsıntı Nakliyat: tüm araçlar + determinizm
+node games/milimetrik-park/tools/bot.mjs --plan                     # Milimetrik Park: bölüm çözümlerini yeniden planla
 ```
 
 ## Üçüncü taraf bileşenler
@@ -101,3 +104,4 @@ node games/sarsinti-nakliyat/tools/bot.mjs --matrix --determinism   # Sarsıntı
   dosyasının içine gömülüdür.
 - **Sarsıntı Nakliyat:** planck.js 1.4.2 fizik motoru, MIT lisansı (`games/sarsinti-nakliyat/vendor/planck.mjs`,
   lisans metni `vendor/planck.LICENSE`); ayrı dosya olarak sunulur.
+- **Milimetrik Park:** üçüncü taraf bileşen yok (fizik, çizim ve ses oyunun kendi kodu).
