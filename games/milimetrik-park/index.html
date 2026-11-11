@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#14181e">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Kuş bakışı, gerçekçi sürüş dinamikli park oyunu: direksiyon simidi, analog pedallar, P-R-N-D vites, park sensörü. Çizgilerin içine milimetrik park et.">
+  <title>Milimetrik Park</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-screen="home">
+  <canvas id="game" aria-label="Oyun alanı"></canvas>
+  <div id="ui"></div>
+  <a class="back" href="../../" data-hub-back aria-label="Oyunlar: oyun seçim ekranına dön">Oyunlar</a>
+  <noscript><p class="nojs">Milimetrik Park'ı oynamak için JavaScript gerekli.</p></noscript>
+  <script type="module" src="src/main.js"></script>
+  <script src="../../hub/back.js" defer></script>
+</body>
+</html>

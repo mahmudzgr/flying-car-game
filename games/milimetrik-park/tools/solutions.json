@@ -1,0 +1,492 @@
+{
+ "ilk-park": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 5.4
+   }
+  ]
+ },
+ "capraz": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.4
+   }
+  ]
+ },
+ "paralel": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 9
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 4.8
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.2
+   }
+  ]
+ },
+ "dar-garaj": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   }
+  ]
+ },
+ "sikisik": {
+  "moves": 3,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 12.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.4
+   }
+  ]
+ },
+ "geri-geri": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   }
+  ]
+ },
+ "avm": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 7.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   }
+  ]
+ }
+}

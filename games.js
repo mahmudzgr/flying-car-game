@@ -41,4 +41,12 @@ export const GAMES = [
     accent: '#19b5a5',
     orientation: 'landscape',
   },
+  {
+    id: 'milimetrik-park',
+    title: 'Milimetrik Park',
+    tagline: 'Kuş bakışı park: gerçekçi direksiyon, rölantide sürünen otomatik vites, park sensörü ve yörünge çizgileri. Çizgilerin içine milimetrik park et.',
+    tags: ['Park', 'Gerçekçi sürüş', 'Kuş bakışı', 'Konsept'],
+    accent: '#2f7bff',
+    orientation: 'landscape',
+  },
 ];
