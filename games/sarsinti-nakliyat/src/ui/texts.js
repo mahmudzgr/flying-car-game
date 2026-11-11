@@ -25,10 +25,15 @@ export const FAIL = {
     lines: ['Müşteri boş kasaya bakakaldı.', 'Yükün yarısı yolda kaldı, makbuz kesilemez.', 'Teslimat noktasında "bu kadar mı?" sesleri yankılandı.'],
     tips: ['Frene erken bas, yükün öne kaymasına izin verme.', 'Tümseklerde gazı bırak; kargo havalanmasın.'],
   },
+  cargoGone: {
+    title: 'Kargon bitti!',
+    lines: ['Kasa yok, karpuz yok; elinde sadece direksiyon kaldı.', 'Yük yolda dağıldı, müşteri "bir şey gelmedi" diyor.'],
+    tips: ['Tümseklerde gazı bırak, ani frenden kaçın.', 'Teslimat bayrağına yaklaşırken yükünü sağlam tut.'],
+  },
   stuck: {
     title: 'Saplandın!',
-    lines: ['Beş saniyedir yerinde sayıyorsun; araba "emekli oldum" dedi.', 'Tekerlekler dönüyor, dünya dönmüyor.', 'Park etmek için güzel yer, ama teslimat yarım kaldı.'],
-    tips: ['Gazı kısıp geri vites dene, sonra hızlan.', 'Kumda ve çamurda gazı yumuşak ver; tekerlek kazımasın.'],
+    lines: ['Birkaç saniyedir yerinde sayıyorsun; araba "emekli oldum" dedi.', 'Tekerlekler dönüyor, dünya dönmüyor.', 'Park etmek için güzel yer, ama teslimat yarım kaldı.'],
+    tips: ['Geri vites için ← tuşunu (ya da FREN düğmesini) basılı tut, sonra yeniden hızlan.', 'Kumda ve çamurda gazı yumuşak ver; tekerlek kazımasın.'],
   },
   water: {
     title: 'Suya düştün!',
@@ -46,8 +51,13 @@ export const FAIL = {
     tips: ['Yavaş ve düzgün sürmek de bir taktiktir.'],
   },
 };
-export const failInfo = (reason, n = 0) => {
-  const f = FAIL[reason] ?? FAIL.crash;
+const HEAD_CAUSE = {
+  roof: { title: 'Çatı yere çarptı!', lines: ['Çatı yere değdi, Fındık\'ın kaskı kıpkırmızı.', 'Tavan zeminle tanıştı, sürücü de ona eşlik etti.'], tips: ['Havadayken tekerlekleri aşağı bakacak şekilde indir; ters inişte gazı bırak.'] },
+  upsideDown: { title: 'Ters kaldın!', lines: ['Araba sırtüstü yattı, Fındık da onunla.', 'Tekerlekler havada, kafa yerde; sıkışıp kaldın.'], tips: ['Takla sonrası inişte gaz/frenle burnu çevir; ters kalırsan hemen yeniden dene.'] },
+};
+HEAD_CAUSE.roofImpact = HEAD_CAUSE.roof; HEAD_CAUSE.roofHold = HEAD_CAUSE.upsideDown;
+export const failInfo = (reason, n = 0, cause) => {
+  const f = (reason === 'headHit' && HEAD_CAUSE[cause]) || FAIL[reason] || FAIL.crash;
   return { title: f.title, line: f.lines[n % f.lines.length], tip: f.tips[n % f.tips.length] };
 };
 

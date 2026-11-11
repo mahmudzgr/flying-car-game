@@ -13,9 +13,11 @@ export function levelReward(levelReward, r, prevStars) {
   const completion = Math.round(levelReward.base * (first ? 1 : ECONOMY.repeatFactor));
   let starBonus = 0;
   for (let s = prevStars + 1; s <= r.stars; s++) starBonus += ECONOMY.starBonus[s - 1];
-  const scoreCoins = Math.min(ECONOMY.coinsCap, Math.floor(r.score / ECONOMY.scoreToCoins));
-  const total = completion + starBonus + scoreCoins + (r.pickups | 0);
-  return { total, completion, starBonus, scoreCoins, pickups: r.pickups | 0 };
+  const k = first ? 1 : ECONOMY.repeatFactor;   // tekrar: taban ödül ve yolda toplanan kuruş yarıya, skor kuruşu ×repeatScore (kuruş çiftçiliği azalsın)
+  const scoreCoins = Math.floor(Math.min(ECONOMY.coinsCap, Math.floor(r.score / ECONOMY.scoreToCoins)) * (first ? 1 : ECONOMY.repeatScore));
+  const pickups = Math.round((r.pickups | 0) * k);
+  const total = completion + starBonus + scoreCoins + pickups;
+  return { total, completion, starBonus, scoreCoins, pickups };
 }
 
 /** Yükseltme kademesi maliyeti; level = mevcut kademe (0..3) → bir sonrakinin fiyatı. null = azami. */

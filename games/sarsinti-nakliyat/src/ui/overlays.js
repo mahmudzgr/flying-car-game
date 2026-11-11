@@ -1,5 +1,6 @@
 // Duraklatma, sonuç ve onay ekranları. Sahip: Arayüz.
-import { esc, stars, star, coin, check, cross, bulb, arrowRight, clock } from './icons.js';
+import { esc, lock, stars, star, coin, check, cross, bulb, arrowRight, clock } from './icons.js';
+import { levelLock } from './progress.js';
 import { failInfo, WIN_TITLES, fmtTime, fmtNum, CARGO_PLURAL } from './texts.js';
 
 export function createPause(ctx) {
@@ -10,7 +11,7 @@ export function createPause(ctx) {
     const l = ctx.currentLevel();
     ctx.nav.render(el, `
       <div class="panel pause-panel">
-        <small>${l ? `${esc(l.id)} · ${esc(l.name)}` : 'Oyun'}</small>
+        <small>${l ? `${esc(l.id)} · ${esc(l.name)}` : ctx.isEndless() ? 'Uzun Yol' : 'Oyun'}</small>
         <h2>Duraklatıldı</h2>
         <div class="menu-col">
           <button class="btn btn-primary btn-lg" data-act="resume" data-autofocus data-key="resume"><span>Devam</span>${arrowRight()}</button>
@@ -52,10 +53,15 @@ export function createResult(ctx) {
   function draw() {
     clear();
     const { result: r, reward, level } = params;
+    if (params.mode === 'endless') return drawEndless();
     const win = r.result === 'win';
     const d = ctx.save.data, rec = d.levels[level?.id] ?? {};
-    const nextExists = win && level && ctx.levels.findIndex((l) => l.id === level.id) >= 0 && ctx.levels[ctx.levels.findIndex((l) => l.id === level.id) + 1];
-    el.classList.toggle('win', win); el.classList.toggle('fail', !win);
+    const li = level ? ctx.levels.findIndex((l) => l.id === level.id) : -1;
+    const nextLevel = win && li >= 0 ? ctx.levels[li + 1] : null;
+    const nlock = nextLevel ? levelLock(d, ctx.levels, nextLevel) : null;
+    const nextExists = nextLevel && !nlock.locked;
+    const lockNote = nextLevel && nlock.locked ? `<p class="lock-note">${lock()} ${esc(nextLevel.id)} henüz kilitli: ${esc(nlock.text)}</p>` : '';
+    el.classList.toggle('win', win); el.classList.toggle('fail', !win); el.classList.remove('endless-res');
     if (win) {
       const goals = [2, 3].map((n) => `<li class="${r.stars >= n ? 'done' : 'miss'}"><span class="gstars">${stars(n, n)}</span><span class="gtext">${esc((level?.stars?.[n] ?? []).map((c) => c.label).join(' + ') || '—')}</span>${r.stars >= n ? check('gtick') : cross('gx')}</li>`).join('');
       const best = rec.bestTime && Math.abs(rec.bestTime - r.time) < 0.001;
@@ -84,10 +90,11 @@ export function createResult(ctx) {
               <div class="total">${coin()}<b id="res-total">+0</b></div>
             </div>
           </div>
+          ${lockNote}
           <footer class="res-actions">
-            <button class="btn btn-ghost" data-act="retry" data-key="retry" ${nextExists ? '' : 'data-autofocus'}>Tekrar</button>
+            <button class="btn btn-ghost" data-act="retry" data-key="retry" ${nextExists || lockNote ? '' : 'data-autofocus'}>Tekrar</button>
             <button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button>
-            <button class="btn btn-ghost" data-act="levels" data-key="levels">Bölümler</button>
+            <button class="btn ${lockNote ? 'btn-primary' : 'btn-ghost'}" data-act="levels" data-key="levels" ${lockNote ? 'data-autofocus' : ''}>Bölümler</button>
             ${nextExists ? `<button class="btn btn-primary" data-act="next" data-key="next" data-autofocus><span>Sonraki</span>${arrowRight()}</button>` : ''}
           </footer>
         </div>`);
@@ -96,14 +103,15 @@ export function createResult(ctx) {
         el.querySelector(`.rs[data-i="${i}"]`)?.classList.add('lit'); ctx.emit('ui:star', { index: i });
       }, 350 + (i - 1) * 520));
     } else {
-      const info = failInfo(r.reason, (rec.tries | 0) + (r.reason?.length | 0));
+      const info = failInfo(r.reason, (rec.tries | 0) + (r.reason?.length | 0), r.cause ?? r.headCause);
       const lostCoins = reward?.total | 0;
       ctx.nav.render(el, `
         <div class="panel result-panel fail-panel">
           <div class="fail-head"><span class="fail-badge" aria-hidden="true">!</span><div><small>${esc(level?.id ?? '')} · ${esc(level?.name ?? '')}${rec.tries ? ` · deneme ${rec.tries}` : ''}</small><h2>${esc(info.title)}</h2></div></div>
           <p class="fail-line">${esc(info.line)}</p>
           <p class="fail-tip">${bulb()}<span><b>İpucu:</b> ${esc(info.tip)}</span></p>
-          ${r.cargoTotal ? `<p class="fail-meta">Kargo: ${r.cargoDelivered}/${r.cargoTotal} teslim${lostCoins ? ` · yoldan ${coin()} +${fmtNum(lostCoins)}` : ''}</p>` : ''}
+          ${r.cargoTotal ? `<p class="fail-meta">Kargo: ${r.cargoDelivered}/${r.cargoTotal} teslim</p>` : ''}
+          <p class="fail-meta">${coin()} Yolda toplanan kuruşlar bölümü bitirince hesaba geçer.</p>
           <footer class="res-actions">
             <button class="btn btn-primary btn-xl" data-act="retry" data-key="retry" data-autofocus><span>Tekrar dene</span>${arrowRight()}</button>
             ${ctx.flow.hasCheckpoint?.() ? '<button class="btn btn-sun" data-act="cp" data-key="cp">Kontrol noktasından</button>' : ''}
@@ -112,6 +120,44 @@ export function createResult(ctx) {
           </footer>
         </div>`);
     }
+  }
+
+  function drawEndless() {
+    const { result: r, reward, endless: en } = params;
+    el.classList.remove('win'); el.classList.add('fail', 'endless-res');
+    const info = failInfo(r.reason, r.runs | 0);
+    const rec = en?.newBestDistance || en?.newBestScore || r.newBest;
+    ctx.nav.render(el, `
+      <div class="panel result-panel ${rec ? 'record' : ''}">
+        <header class="res-head"><div><small>Uzun Yol · ${esc(info.title)}</small><h2>${rec ? 'Yeni rekor!' : esc(info.line)}</h2></div>
+          <div class="big-dist"><b>${fmtNum(r.distance)}</b><small>metre</small></div></header>
+        <div class="res-body">
+          <div class="res-col">
+            <dl class="dl">
+              <div><dt>Teslimat</dt><dd><b>${r.deliveries | 0}</b></dd></div>
+              <div><dt>Teslim edilen kargo</dt><dd>${r.cargoDelivered | 0}</dd></div>
+              <div><dt>Skor</dt><dd>${fmtNum(r.score)}${en?.newBestScore ? ' <em class="rec">rekor!</em>' : ''}</dd></div>
+              <div><dt>Mesafe rekoru</dt><dd>${fmtNum(Math.max(en?.prev?.bestDistance | 0, Math.round(r.distance)))} m${en?.newBestDistance ? ' <em class="rec">yeni!</em>' : ''}</dd></div>
+              ${r.flips ? `<div><dt>Takla</dt><dd>${r.flips}</dd></div>` : ''}
+            </dl>
+            <p class="fail-tip">${bulb()}<span><b>İpucu:</b> ${esc(info.tip)}</span></p>
+          </div>
+          <div class="res-col reward">
+            <ul class="dl rew">
+              <li><span>Teslimat ücreti</span><b>+${fmtNum(reward?.deliveryPay ?? 0)}</b></li>
+              <li><span>Yolda toplanan</span><b>+${fmtNum(reward?.pickups ?? 0)}</b></li>
+            </ul>
+            <div class="total">${coin()}<b id="res-total">+0</b></div>
+          </div>
+        </div>
+        <footer class="res-actions">
+          <button class="btn btn-ghost" data-act="home" data-key="home">Menü</button>
+          <button class="btn btn-ghost" data-act="garage" data-key="garage">Garaj</button>
+          <button class="btn btn-primary btn-xl" data-act="retry" data-key="retry" data-autofocus><span>Tekrar</span>${arrowRight()}</button>
+        </footer>
+      </div>`);
+    countTo(el.querySelector('#res-total'), reward?.total ?? 0);
+    if (rec) ctx.emit('ui:star', { index: 3 });
   }
 
   el.addEventListener('click', (e) => {
@@ -127,6 +173,7 @@ export function createResult(ctx) {
       case 'cp': ctx.flow.retryFromCheckpoint(); break;
       case 'next': ctx.flow.nextLevel(); break;
       case 'garage': ctx.goMenu('garage'); break;
+      case 'home': ctx.goMenu('home'); break;
       case 'levels': ctx.goMenu('levels', params?.level?.region); break;
     }
   });

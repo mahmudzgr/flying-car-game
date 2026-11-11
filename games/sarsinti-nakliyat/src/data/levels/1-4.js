@@ -6,6 +6,7 @@ export default {
   region: 1, order: 4,
   biome: 'elma', music: 'elma', difficulty: 2,
   teaches: 'Hava kontrolü, kombo',
+  recommended: { vehicle: 'tosun', tier: 1 },   // 16 m vadi: Paşa atlayamaz
 
   terrain: {
     surface: 'dirt',
@@ -27,17 +28,17 @@ export default {
       { type: 'bumps', len: 30, h: 0.3, n: 5 },
       { type: 'flat', len: 24, surface: 'grass' },
       // 3. rampa: büyük vadi atlayışı
-      { type: 'ramp', len: 16, dy: 3.0 },
-      { type: 'pts', pts: [[0, -8], [7.5, 0], [0, 5.5]] },        // 7,5 m vadi; karşı yaka 2,5 m aşağıda
-      { type: 'slope', len: 22, dy: -3.0 },
+      { type: 'ramp', len: 16, dy: 5.0 },                              // dik fırlatma: ≥1,5 sn havada (takla fırsatı)
+      { type: 'pts', pts: [[0, -17], [16, 0], [0, 9]] },          // 16 m vadi; karşı yaka 8 m aşağıda (iniş yamacı affeder)
+      { type: 'slope', len: 24, dy: -8.0 },                       // ~19° iniş rampası: takla sonrası iniş yönüne eğimli
       { type: 'flat', len: 20, surface: 'dirt' },
       { type: 'hills', len: 60, amp: 0.8, waves: 2, surface: 'grass' },
       { type: 'flat', len: 30, surface: 'asphalt' },
     ],
   },
   spawn: { x: 3 }, finish: { x: 'end' },
-  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 4 }],
-  minDelivered: 1,
+  cargo: [{ type: 'crate', count: 2 }, { type: 'bale', count: 1 }],
+  minDelivered: 0,                     // takla rotası kargoyu savurur (risk–ödül); güvenli rota kargoyu taşır
   parTime: 46, timeLimit: null,
   objects: [
     { type: 'coins', x: 22, n: 5, spacing: 1.7, h: 1.2 },
@@ -51,11 +52,11 @@ export default {
     { x: 4, text: 'Bu bölümde rampalar var: havada uç, kombo yap', icon: 'jump' },
     { x: 62, text: 'Rampa: hızını koru. Havada gaz = burun yukarı, fren = aşağı', icon: 'jump' },
     { x: 160, text: 'Çukurlu rampa! Yeterli hız şart', icon: 'warn' },
-    { x: 272, text: 'Büyük vadi atlayışı: takla atmak ister misin?', icon: 'jump' },
+    { x: 272, text: 'Büyük vadi: hız şart (≥36 km/sa). Havada gaza basılı tut: takla!', icon: 'jump' },
   ],
   stars: {
-    2: [{ kind: 'flips', min: 1, label: 'Bir takla at ve bitir' }],
-    3: [{ kind: 'flips', min: 2, label: '2 taklayla ×3 kombo' }, { kind: 'combo', min: 3, label: 'Kombo ×3' }],
+    2: [{ kind: 'flips', min: 1, label: 'Bir takla at' }],
+    3: [{ kind: 'flips', min: 1, label: 'Bir takla at' }, { kind: 'combo', min: 2, label: 'Kombo ×2' }, { kind: 'delivered', min: 2, label: '2+ kargo teslim' }],
   },
   reward: { base: 90 },
   bot: { speed: 12 },

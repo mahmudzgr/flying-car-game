@@ -97,12 +97,12 @@ const payload = (n) => {
   const s = +$('p_s').value, c = +$('p_n').value, type = $('p_type').value;
   return { name: n, t: 0, surface: $('surf').value, type, id: 'x', speed: s, impactSpeed: s, headSpeed: s, wheel: 'rear', slip: s, count: c, multiplier: c, on: true, index: Math.min(3, c), tilt: 0, wheels: 2,
     clean: $('p_clean').checked, airTime: 1, reason: $('p_reason').value, result: $('p_res').value, stress: s / 16, hpLeft: s > 12 ? 0 : 0.5, damage: s / 10, bottomOut: true, compression: 1, duration: 2, scale: 0.35,
-    from: 'dirt', to: $('surf').value, direction: 'back', part: ['roof', 'cab', 'chassis'][c % 3], value: 5, points: 800, lostPoints: 400, distance: 0.4, pos: { x: 0, y: 0 }, text: 'ipucu', icon: 'info', started: true, vehicleId: $('veh').value, normal: { x: 0, y: 1 }, startT: 0, rpm: +$('rpm').value, load: +$('load').value, timeLeft: 2 };
+    from: 'dirt', to: $('surf').value, direction: 'back', part: ['roof', 'cab', 'chassis'][c % 3], value: 5, points: 800, lostPoints: 400, distance: 0.4, pos: { x: 0, y: 0 }, text: 'ipucu', icon: 'info', started: true, vehicleId: $('veh').value, normal: { x: 0, y: 1 }, startT: 0, pay: s * 40, intact: true, biome: 'kanyon', rpm: +$('rpm').value, load: +$('load').value, timeLeft: 2 };
 };
 const groups = [['Arayüz', ['ui:click', 'ui:back', 'ui:star', 'ui:hover', 'toast', 'purchase', 'upgrade']], ['Akış', ['levelStart', 'levelEnd', 'starEarned', 'checkpoint', 'pause', 'resume']],
   ['Sürüş', ['throttle', 'brake', 'engine', 'wheelContact', 'surfaceChange', 'wheelspin', 'suspension', 'airborne', 'land', 'flip', 'wheelie']],
   ['Çarpma/kargo', ['bodyHit', 'cargoHit', 'cargoDamage', 'cargoLost', 'cargoDelivered', 'driverEject', 'crash']], ['Puan', ['comboChange', 'comboBank', 'comboBurn', 'coin']],
-  ['Dünya', ['bridgeStress', 'bridgeBreak', 'hazardTrigger', 'nearMiss', 'slowmo', 'seesaw']]];
+  ['Dünya', ['bridgeStress', 'bridgeBreak', 'hazardTrigger', 'nearMiss', 'slowmo', 'seesaw', 'delivery', 'biomeChange', 'cargoSlide', 'newRecord']]];
 const known = new Set(EVENT_NAMES);
 for (const [title, names] of groups) {
   const h = document.createElement('div'); h.className = 'grp'; h.textContent = title; $('ev').append(h);

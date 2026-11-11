@@ -1,7 +1,8 @@
 // Oyun içi HUD: ilerleme, kargo, süre, hız, kombo, kuruş, bildirimler, ipucu. Sahip: Arayüz.
 // hudUpdate her karede çağrılır → DOM yalnızca değer değişince güncellenir.
-import { esc, coin, pauseIcon, cargoIcon, hintIcon, flag } from './icons.js';
-import { fmtClock, failInfo, CARGO_PLURAL } from './texts.js';
+import { esc, cross, coin, pauseIcon, cargoIcon, hintIcon, flag } from './icons.js';
+import { SCORING } from '../config.js';
+import { fmtClock, failInfo, CARGO_PLURAL, BIOME_NAMES, fmtNum } from './texts.js';
 
 const RING = 2 * Math.PI * 17;
 
@@ -14,8 +15,8 @@ export function createHud(ctx) {
     <div class="hud-tc"><div class="progress" role="progressbar" aria-label="Bitişe ilerleme" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="h-prog">
       <div class="ptrack"><i class="pfill" id="h-pfill"></i><span class="ptick-wrap" id="h-ticks"></span></div>
       <div class="prange"><span class="pcar" id="h-pcar"></span></div><span class="pflag">${flag()}</span></div>
-      <div class="pdist" id="h-dist">0 m</div></div>
-    <div class="hud-tr"><span class="chip coins" id="h-coinchip">${coin()}<b id="h-coins">0</b></span>
+      <div class="pdist" id="h-dist">0 m</div><div class="hud-end" id="h-end" hidden><span id="h-del">Teslim 0</span><span id="h-carry"></span><span id="h-rec"></span></div></div>
+    <div class="hud-tr"><span class="chip coins" id="h-coinchip" title="Bu bölümde toplanan kuruş" aria-label="Bu bölümde toplanan kuruş">${coin()}<b id="h-coins">0</b></span>
       <button class="pausebtn" id="h-pause" aria-label="Duraklat" title="Duraklat (Esc)">${pauseIcon()}</button></div>
     <div class="hud-bc">
       <div class="combo" id="h-combo" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring-bg" cx="20" cy="20" r="17"/><circle class="ring" id="h-ring" cx="20" cy="20" r="17" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="0" transform="rotate(-90 20 20)"/></svg><b id="h-mult">×1</b><small id="h-count"></small></div>
@@ -28,10 +29,11 @@ export function createHud(ctx) {
   const $ = (id) => el.querySelector('#' + id);
   const n = { cargo: $('h-cargo'), time: $('h-time'), pfill: $('h-pfill'), pcar: $('h-pcar'), prog: $('h-prog'), dist: $('h-dist'), ticks: $('h-ticks'),
     coins: $('h-coins'), coinchip: $('h-coinchip'), combo: $('h-combo'), ring: $('h-ring'), mult: $('h-mult'), count: $('h-count'),
-    speed: $('h-speed'), dl: $('h-dl'), dr: $('h-dr'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
+    speed: $('h-speed'), end: $('h-end'), del: $('h-del'), carry: $('h-carry'), rec: $('h-rec'), dl: $('h-dl'), dr: $('h-dr'), pops: $('h-pops'), toast: $('h-toast'), flash: $('h-flash') };
   $('h-pause').onclick = () => ctx.flow.pause();
 
-  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' };
+  const cache = { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '', del: '', carry: '', rec: '', dtext: '' };
+  let isEndless = false, recState = 0, stuckT = 0, stuckHinted = false;
   const hp = new Map(); // kargo id → son hp (hasar farkı için)
   let lastProgress = 0, toastTimer = 0;
 
@@ -50,13 +52,17 @@ export function createHud(ctx) {
     p.addEventListener('animationend', () => p.remove());
     setTimeout(() => p.remove(), 2600);
   }
+  function showToast(text, icon) {
+    n.toast.innerHTML = `${hintIcon(icon)}<span>${esc(text)}</span>`; n.toast.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { n.toast.hidden = true; }, 2500);
+  }
   function flash() { n.flash.classList.remove('go'); void n.flash.offsetWidth; n.flash.classList.add('go'); }
   function bump(node) { node.classList.remove('bump'); void node.offsetWidth; node.classList.add('bump'); }
 
   return {
     el,
     reset() {
-      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '' }); n.dl.hidden = n.dr.hidden = true;
+      Object.assign(cache, { sig: '', cargoSig: '', time: '', prog: -1, dist: -1, coins: -1, mult: 0, count: -1, ring: -1, speed: -1, timeLow: null, dl: '', dr: '', del: '', carry: '', rec: '', dtext: '' }); n.dl.hidden = n.dr.hidden = true; n.end.hidden = true; recState = 0; stuckT = 0; stuckHinted = false;
       hp.clear(); n.pops.innerHTML = ''; n.toast.hidden = true; n.ticks.innerHTML = ''; n.cargo.innerHTML = ''; n.combo.hidden = true; lastProgress = 0;
     },
     update(s) {
@@ -65,7 +71,11 @@ export function createHud(ctx) {
       const st = s.cargo.map((c) => c.state[0] + c.hp).join('');
       if (sig !== cache.sig || st !== cache.cargoSig) {
         cache.sig = sig; cache.cargoSig = st;
-        n.cargo.innerHTML = s.cargo.map(cargoHtml).join('');
+        if (s.cargo.length > 6) {
+          const g = new Map(); let lostN = 0;
+          for (const c of s.cargo) { if (c.state === 'onboard') g.set(c.type, (g.get(c.type) ?? 0) + 1); else if (c.state === 'lost') lostN++; }
+          n.cargo.innerHTML = [...g].map(([t, k]) => `<span class="ci cnt" title="${esc(CARGO_PLURAL[t] ?? t)}">${cargoIcon(t, 'ok')}<b>×${k}</b></span>`).join('') + (lostN ? `<span class="ci cnt lostc">${cross()}<b>${lostN}</b></span>` : '');
+        } else n.cargo.innerHTML = s.cargo.map(cargoHtml).join('');
         for (const c of s.cargo) hp.set(c.id, c.hp);
       }
       // süre
@@ -79,8 +89,20 @@ export function createHud(ctx) {
       lastProgress = p;
       const pr = Math.round(p * 500);
       if (pr !== cache.prog) { cache.prog = pr; const pc = pr / 5; n.pfill.style.transform = `scaleX(${p.toFixed(4)})`; n.pcar.style.left = `${pc}%`; n.prog.setAttribute('aria-valuenow', String(Math.round(pc))); }
-      const dm = Math.round(s.run.distance);
-      if (dm !== cache.dist) { cache.dist = dm; n.dist.textContent = `${dm} m`; }
+      const en = s.endless; isEndless = !!en;
+      const dm = Math.round(en ? en.distance : s.run.distance);
+      const dtext = en ? `${dm} m · bayrağa ${Math.max(0, Math.round(en.toNext))} m` : `${dm} m`;
+      if (dtext !== cache.dtext) { cache.dtext = dtext; n.dist.textContent = dtext; }
+      if (en) {
+        if (n.end.hidden) n.end.hidden = false;
+        const dv = `Teslim ${en.deliveries}`; if (dv !== cache.del) { cache.del = dv; n.del.textContent = dv; }
+        const cy = en.carried ? `Yük: ${Math.round(en.carried)} kuruş` : ''; if (cy !== cache.carry) { cache.carry = cy; n.carry.textContent = cy; }
+        const best = ctx.save.data.endless?.bestDistance | 0;
+        let rt = '';
+        if (best > 0) rt = dm > best ? 'REKOR!' : `Rekor ${fmtNum(best)} m`;
+        if (rt !== cache.rec) { cache.rec = rt; n.rec.textContent = rt; n.rec.classList.toggle('hit', dm > best); }
+        if (best > 0 && recState === 0 && dm >= best - 50 && dm < best) { recState = 1; pop(`Rekora ${best - dm} m kaldı!`, 'blue'); }
+              }
       // kuruş
       if (s.pickups !== cache.coins) { if (cache.coins >= 0 && s.pickups > cache.coins) bump(n.coinchip); cache.coins = s.pickups; n.coins.textContent = s.pickups; }
       // hız
@@ -110,13 +132,12 @@ export function createHud(ctx) {
     },
     onEvent(e) {
       switch (e.name) {
-        case 'toast': {
-          n.toast.innerHTML = `${hintIcon(e.icon)}<span>${esc(e.text)}</span>`; n.toast.hidden = false;
-          clearTimeout(toastTimer); toastTimer = setTimeout(() => { n.toast.hidden = true; }, 2600);
-          break;
-        }
+        case 'toast': if (!(isEndless && /^Teslim/.test(e.text))) showToast(e.text, e.icon); break;
+        case 'delivery': pop(`Teslimat +${e.pay} kuruş`, 'gold', true); break;
+        case 'newRecord': recState = 2; pop('Yeni rekor!', 'gold', true); break;
+        case 'biomeChange': pop(BIOME_NAMES[e.biome] ?? e.biome, 'blue', true); break;
         case 'flip': pop(`TAKLA${e.count > 1 ? ' ×' + e.count : ''}!`, 'gold', true); break;
-        case 'land': if (e.airTime >= 0.6) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
+        case 'land': if (e.airTime >= SCORING.airMin) pop(`Havada ${e.airTime.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
         case 'wheelie': pop(`Tek teker ${e.duration.toFixed(1).replace('.', ',')} sn`, 'blue'); break;
         case 'nearMiss': pop('Kıl payı!', 'gold'); break;
         case 'comboBank': pop(`Kombo +${Math.round(e.points)}`, 'gold'); break;

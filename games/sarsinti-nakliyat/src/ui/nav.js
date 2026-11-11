@@ -51,6 +51,7 @@ export function createNav(host) {
         if (show && n === under) { scr.el.setAttribute('inert', ''); scr.el.classList.add('under'); }
         else { scr.el.removeAttribute('inert'); scr.el.classList.remove('under'); }
       }
+      document.body.toggleAttribute('data-home', top === 'home');
       if (focus) api.focusDefault();
     },
     focusDefault() {
@@ -67,8 +68,9 @@ export function createNav(host) {
     /** Yön tuşu: en yakın odaklanabilir elemana geç. */
     move(dir) {
       const scr = api.top(); if (!scr) return;
-      const list = [...scr.el.querySelectorAll(FOCUSABLE)].filter(visible);
-      const cur = document.activeElement && scr.el.contains(document.activeElement) ? document.activeElement : null;
+      const list = [...scr.el.querySelectorAll(FOCUSABLE), ...(api.topName() === 'home' ? document.querySelectorAll('a[data-hub-back]') : [])].filter(visible);
+      const ae = document.activeElement;
+      const cur = ae && (scr.el.contains(ae) || ae.matches?.('a[data-hub-back]')) ? ae : null;
       if (!cur) { list[0]?.focus(); return; }
       const c = cur.getBoundingClientRect();
       const cx = c.left + c.width / 2, cy = c.top + c.height / 2;

@@ -33,7 +33,7 @@ const TRACKS = {
 const ALIAS = { 'bataklık': 'bataklik', swamp: 'bataklik', apple: 'elma', canyon: 'kanyon', summit: 'zirve' };
 const BARS = 32, STEPS = 16;
 
-function compose(cfg) {
+function compose(cfg, vs = 0) {
   const sc = cfg.scale, nS = sc.length;
   const dc = (d) => sc[((d % nS) + nS) % nS] + 1200 * Math.floor(d / nS);
   const ev = Array.from({ length: BARS * STEPS }, () => []);
@@ -48,7 +48,7 @@ function compose(cfg) {
   }
   // melodi: A A' B A / C A' B' A''
   const seedOf = ['A', 'A', 'B', 'A', 'C', 'A', 'B', 'A'], variant = [0, 1, 0, 2, 0, 1, 1, 2];
-  const seeds = { A: cfg.seed, B: cfg.seed + 11, C: cfg.seed + 23 };
+  const seeds = { A: cfg.seed + vs, B: cfg.seed + 11 + vs, C: cfg.seed + 23 + vs };
   let cur = cfg.mel.start;
   for (let ph = 0; ph < 8; ph++) {
     const r = mulberry32(seeds[seedOf[ph]] * 31 + (variant[ph] === 1 ? 5 : 0) * (seedOf[ph] === 'A' ? 0 : 1));
@@ -88,6 +88,7 @@ function compose(cfg) {
 
 export function createMusic(env, bus) {
   const { ctx } = env, S = env.synth;
+  const olds = [];
   let inst = null, curId = null, tempoScale = 1, tempoTarget = 1, intensity = 0.5, paused = false, timer = null;
   const LOOK = 0.22, TICK = IS_LOW ? 60 : 40;
   const plans = {};
@@ -137,35 +138,58 @@ export function createMusic(env, bus) {
     else if (k === 's') S.noise({ at, ft: 'bandpass', f: 7000, q: 2, dur: 0.05, g: 0.06 * g, a: 0.002, dest: d, pm: false });
   }
 
+  const TRANS = [0, 0, 200, -200, 300, 0, -300, 200]; // döngü başına aktarım (sent): uzun oturumda yorgunluk önleme
   function pump(until) {
-    const m = inst; if (!m) return;
+    for (const m of olds) run(m, until);
+    if (inst) run(inst, until);
+  }
+  function run(m, until) {
     if (m.next < ctx.currentTime - 0.3) m.next = ctx.currentTime + 0.05; // uzun donmadan sonra geçmişi doldurma
-    while (m.next < until) {
-      const bpm = m.cfg.bpm, stepDur = 60 / bpm / 4 / tempoScale, si = m.step % (BARS * STEPS), sw = si % 2 ? m.cfg.swing * stepDur : 0;
+    while (m.next < until && !(m.endAt && m.next >= m.endAt)) {
+      const total = BARS * STEPS, si = m.step % total;
+      if (si === 0 && m.step > 0) { // döngü başı: yeni melodi tohumu, aktarım ve hafif tempo oynaması
+        m.loop++; const v = m.loop % 8;
+        m.plan = v === 0 ? plans[m.id] : compose(m.cfg, v * 17);
+        m.shift = TRANS[v]; m.tempoMul = 1 + ((v * 37) % 7 - 3) * 0.01;
+      }
+      const stepDur = 60 / m.cfg.bpm / 4 / (tempoScale * m.tempoMul), sw = si % 2 ? m.cfg.swing * stepDur : 0;
       const at = m.next + sw;
-      if (!paused) for (const e of m.plan[si]) { try { playEvent(e, m.cfg, m.v, at, stepDur); } catch { /* */ } }
+      if (!paused) for (const e of m.plan[si]) { try { playEvent(m.shift && (e.v === 'mel' || e.v === 'arp') ? { ...e, c: e.c + m.shift } : e, m.cfg, m.v, at, stepDur); } catch { /* */ } }
       m.next += stepDur; m.step++;
     }
   }
   function tick() {
     tempoScale += (tempoTarget - tempoScale) * 0.15;
-    if (inst && ctx.state === 'running') pump(ctx.currentTime + LOOK);
+    if (ctx.state === 'running') pump(ctx.currentTime + LOOK);
   }
 
+  function retire(m, at, fade) { // m, 'at' anında yumuşakça kapanır
+    m.endAt = at; olds.push(m);
+    const t = Math.max(ctx.currentTime, at - 0.02);
+    m.tg.gain.setValueAtTime(1, t); m.tg.gain.linearRampToValueAtTime(0, t + fade);
+    setTimeout(() => { const i = olds.indexOf(m); if (i >= 0) olds.splice(i, 1); try { m.tg.disconnect(); } catch { /* */ } }, (t + fade - ctx.currentTime) * 1000 + 500);
+  }
   function stopCur(fade = 0.6) {
     if (!inst) return; const m = inst; inst = null;
     const t = ctx.currentTime; m.tg.gain.cancelScheduledValues(t); m.tg.gain.setValueAtTime(m.tg.gain.value, t); m.tg.gain.linearRampToValueAtTime(0, t + fade);
     setTimeout(() => { try { m.tg.disconnect(); } catch { /* */ } }, fade * 1000 + 400);
   }
-  function play(id) {
+  function play(id, smooth = false) {
     id = id ? (ALIAS[id] || id) : null;
     if (id && !TRACKS[id]) id = null;
     if (id === curId) return;
-    stopCur(); curId = id;
+    let startAt = ctx.currentTime + 0.12, step0 = 0;
+    const prev = inst;
+    if (smooth && prev && id && ctx.state === 'running') {
+      // ritim kopmasın: eski parça bir sonraki ölçü başına kadar çalar, yeni parça tam orada başlar; ikisi 1.2 sn çapraz solar
+      const left = (STEPS - (prev.step % STEPS)) % STEPS, sd = 60 / prev.cfg.bpm / 4 / (tempoScale * prev.tempoMul);
+      startAt = Math.max(startAt, prev.next + left * sd); inst = null; retire(prev, startAt + 1.0, 1.2);
+    } else stopCur();
+    curId = id;
     if (!id) { if (timer) { clearInterval(timer); timer = null; } return; }
     const cfg = TRACKS[id]; plans[id] ??= compose(cfg);
-    const tg = ctx.createGain(); tg.gain.setValueAtTime(0, ctx.currentTime); tg.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.9); tg.connect(bus);
-    inst = { cfg, plan: plans[id], tg, v: voices(cfg, tg), step: 0, next: ctx.currentTime + 0.12 };
+    const tg = ctx.createGain(); tg.gain.setValueAtTime(0, ctx.currentTime); tg.gain.setValueAtTime(0, startAt - 0.01); tg.gain.linearRampToValueAtTime(1, startAt + (smooth ? 1.2 : 0.9)); tg.connect(bus);
+    inst = { id, cfg, plan: plans[id], tg, v: voices(cfg, tg), step: step0, next: startAt, loop: 0, shift: 0, tempoMul: 1 };
     if (!timer && typeof setInterval === 'function') timer = setInterval(tick, TICK);
   }
 
@@ -174,7 +198,7 @@ export function createMusic(env, bus) {
     setTempo(s) { tempoTarget = clamp(s, 0.4, 1.2); },
     setIntensity(x) { intensity += (clamp(x) - intensity) * 0.1; },
     setPaused(p) { paused = p; },
-    destroy() { stopCur(0.05); if (timer) clearInterval(timer); timer = null; },
+    destroy() { stopCur(0.05); olds.length = 0; if (timer) clearInterval(timer); timer = null; },
     _plan: (id) => (plans[id] ??= compose(TRACKS[id])),
   };
 }

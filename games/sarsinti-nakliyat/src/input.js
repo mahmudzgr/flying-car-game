@@ -23,12 +23,32 @@ export function createInput(target = window) {
   };
   const onKeyUp = (e) => down.delete(e.code);
   const reset = () => { down.clear(); virt.throttle = virt.brake = false; };
+  // Gamepad: sağ tetik (buton 7) gaz, sol tetik (buton 6) fren, Start (buton 9) duraklat. A (0) onay. Yoklama read() içinde.
+  const pad = { throttle: false, brake: false, start: false, a: false };
+  const pollPad = () => {
+    pad.throttle = pad.brake = false;
+    let gp = null;
+    try { const l = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : []; for (const g of l) if (g && g.connected) { gp = g; break; } } catch { gp = null; }
+    if (!gp) { pad.start = pad.a = false; return; }
+    const val = (i) => { const b = gp.buttons[i]; return b ? (typeof b === 'number' ? b : b.value ?? (b.pressed ? 1 : 0)) : 0; };
+    const ax = gp.axes?.[0] ?? 0;
+    pad.throttle = val(7) > 0.3;
+    pad.brake = val(6) > 0.3 || ax < -0.6;
+    if (ax > 0.6) pad.throttle = true;
+    const st = !!gp.buttons[9]?.pressed, a = !!gp.buttons[0]?.pressed;
+    if (st && !pad.start) for (const fn of listeners) fn('pause');
+    if (a && !pad.a) for (const fn of listeners) fn('confirm');
+    pad.start = st; pad.a = a;
+  };
   target.addEventListener('keydown', onKeyDown);
   target.addEventListener('keyup', onKeyUp);
   target.addEventListener('blur', reset);
   return {
+    /** Gamepad yoklaması (main.js her karede çağırır; duraklatmada da Start ile devam). */
+    poll: pollPad,
     read() {
-      const on = (n) => virt[n] || KEYS[n].some((k) => down.has(k));
+      pollPad();
+      const on = (n) => virt[n] || pad[n] || KEYS[n].some((k) => down.has(k));
       return { throttle: on('throttle') ? 1 : 0, brake: on('brake') ? 1 : 0 };
     },
     setVirtual(name, on) { virt[name] = !!on; },

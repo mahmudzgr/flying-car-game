@@ -10,7 +10,7 @@ const TEX = { // yüzey dokusu (iniş/temas): [gürültü, merkez Hz, Q, kazanç
   sand: ['pink', 900, 0.5, 0.8], mud: ['brown', 320, 1, 1.4], wet: ['white', 1200, 0.8, 0.9], snow: ['pink', 1600, 0.5, 0.8], ice: ['white', 3600, 2, 0.9], water: ['white', 900, 0.6, 1.2],
 };
 const PRI = { crash: 3, land: 3, bodyHit: 3, levelEnd: 3, starEarned: 3, comboBank: 3, bridgeBreak: 3, cargoLost: 3, driverEject: 3, cargoDelivered: 2, cargoHit: 2, cargoDamage: 2, flip: 2, hazardTrigger: 2, 'ui:click': 3, 'ui:back': 3, 'ui:star': 3, purchase: 3, upgrade: 3 };
-const COOL = { coin: 0.03, cargoHit: 0.045, bodyHit: 0.07, land: 0.1, suspension: 0.09, wheelContact: 0.09, surfaceChange: 0.15, bridgeStress: 0.45, nearMiss: 0.25, throttle: 0.12, brake: 0.15, airborne: 0.2, flip: 0.15, toast: 0.3, 'ui:hover': 0.04 };
+const COOL = { cargoSlide: 0.1, coin: 0.03, cargoHit: 0.045, bodyHit: 0.07, land: 0.1, suspension: 0.09, wheelContact: 0.09, surfaceChange: 0.15, bridgeStress: 0.45, nearMiss: 0.25, throttle: 0.12, brake: 0.15, airborne: 0.2, flip: 0.15, toast: 0.3, 'ui:hover': 0.04 };
 
 export function createSfx(env, hooks) {
   const { ctx } = env;
@@ -89,6 +89,17 @@ export function createSfx(env, hooks) {
     [392, 349.2, 311.1].forEach((f, i) => tone({ type: 'sawtooth', f, f2: f * 0.97, dur: 0.3, g: 0.09, t: t + i * 0.3, lp: 900, lp2: 500, a: 0.02, rev: 0.2 }));
     tone({ type: 'sawtooth', f: 261.6, f2: 196, dur: 0.9, g: 0.1, t: t + 0.9, lp: 800, lp2: 300, a: 0.03, sweep: 1, rev: 0.25 });
   }
+  // Uzun Yol: koşu bitişi (ölüm değil "mola"): teslim sayısına göre uzayan yumuşak inen-çıkan motif
+  function endJingle(d) {
+    const k = clamp(d / 8); [4, 2, 0].forEach((deg, i) => pluck({ f: lad(deg, 330), dur: 0.5, g: 0.16, t: 0.3 + i * 0.16, rev: 0.3, type: 'triangle', bright: 2600 }));
+    ding(lad(7, 330), 0.12 + 0.1 * k, 1.4, 0.85, 0.4); if (d >= 3) sparkle(0.9, 0.04, 3 + Math.floor(k * 4));
+  }
+  function record(t) { // rekor: parlak yükselen arpej + alkış benzeri kısa kıvılcım + darbuka
+    [0, 2, 4, 7, 9, 12].forEach((d, i) => { pluck({ f: lad(d, 523.25), dur: 0.45, g: 0.17, t: t + i * 0.085, bright: 4200, rev: 0.3, type: 'triangle' }); });
+    ding(lad(14, 523.25), 0.2, 1.8, t + 0.55, 0.45); ding(lad(11, 523.25), 0.12, 1.8, t + 0.55, 0.45); sparkle(t + 0.5, 0.05, 8, 3000);
+    for (let i = 0; i < 12; i++) noise({ ft: 'highpass', f: 3500, dur: 0.03, g: 0.05, t: t + 0.55 + i * rnd(0.03, 0.07), a: 0.001 });
+    darbuka(t, 0.18, 'D'); darbuka(t + 0.17, 0.12, 'T'); darbuka(t + 0.34, 0.16, 'D'); hooks.duck(0.3, 2.2);
+  }
   function cash(g = 0.15, t = 0) { noise({ ft: 'highpass', f: 5000, dur: 0.03, g: g * 0.7, t, a: 0.001 }); ding(1568, g, 0.5, t + 0.04, 0.2); ding(2093, g * 0.8, 0.8, t + 0.12, 0.25); }
 
   // ---------- olay çözücü ----------
@@ -105,8 +116,26 @@ export function createSfx(env, hooks) {
 
       case 'levelStart': if (reserve(n, 1.2)) { ignition(); pluck({ f: 392, dur: 0.5, g: 0.14, t: 0.35, rev: 0.25, type: 'triangle', bright: 3000 }); pluck({ f: 587.3, dur: 0.7, g: 0.15, t: 0.5, rev: 0.3, type: 'triangle', bright: 3000 }); } break;
       case 'levelEnd':
-        if (reserve(n, 2.5)) { hooks.duck(0.25, 2.6); if (e.result === 'win') winJingle(); else failJingle(0.35); } break;
+        if (reserve(n, 2.5)) { hooks.duck(0.25, 2.6); if (e.result === 'win') winJingle(); else if (e.result === 'end') { endJingle(e.deliveries || 0); if (e.newBest) record(1.6); } else failJingle(0.35); } break;
+      case 'newRecord': if (reserve(n, 2)) record(0); break;
       case 'starEarned': if (reserve(n, 1.2)) { const i = clamp((e.index || 1) - 1, 0, 2), f = lad(i * 2 + 7, 523.25); ding(f, 0.2, 1.1, 0, 0.35); ding(f * 2, 0.08, 0.9, 0.02, 0.35); sparkle(0.02, 0.05, 4 + i * 2, 3200); if (i === 2) { ding(lad(2, 523.25), 0.12, 1.5, 0.05, 0.4); ding(lad(4, 523.25), 0.1, 1.5, 0.08, 0.4); darbuka(0, 0.18, 'D'); } } break;
+      case 'delivery': if (reserve(n, 2.2)) {
+        const pay = e.pay || 0, k = clamp(Math.log10(pay + 1) / 3), coins = Math.min(9, 2 + Math.floor(k * 8));
+        cash(0.14 + 0.06 * k);
+        for (let i = 0; i < coins; i++) { const f = lad(i + 8, 392); tone({ type: 'square', f, dur: 0.05, g: 0.03, t: 0.15 + i * 0.065, a: 0.002, lp: 5000 }); tone({ type: 'square', f: f * 1.5, dur: 0.2, g: 0.028, t: 0.2 + i * 0.065, a: 0.002, lp: 5000, rev: 0.15 }); }
+        [0, 2, 4, 7].slice(0, 2 + Math.round(k * 2)).forEach((d, i) => pluck({ f: lad(d, 392), dur: 0.45, g: 0.15, t: i * 0.09, rev: 0.3, type: 'triangle', bright: 3500 }));
+        ding(lad(9 + Math.round(k * 3), 392), 0.14 + 0.08 * k, 1.3, 0.2 + coins * 0.065, 0.4);
+        if (e.intact !== false) { sparkle(0.25, 0.045, 4 + Math.round(k * 4)); darbuka(0, 0.14, 'D'); darbuka(0.2, 0.1, 'T'); }
+        hooks.duck(0.55, 1.2);
+      } break;
+      case 'biomeChange': if (reserve(n, 1.2)) { noise({ src: 'pink', f: 300, f2: 2200, q: 0.8, dur: 0.9, g: 0.06, a: 0.4 }); ding(lad(7, 392), 0.07, 1.2, 0.5, 0.5); ding(lad(9, 392), 0.06, 1.2, 0.6, 0.5); } break;
+      case 'cargoSlide': if (reserve(n, 0.25)) { // sürtünerek kayma: tahta tabanda kısa sürtme (hız ve türe göre)
+        const sp = clamp((e.speed ?? 3) / 8, 0.15, 1), ty = e.type, g = 0.07 + 0.1 * sp;
+        if (ty === 'watermelon' || ty === 'bale') noise({ src: 'pink', ft: 'lowpass', f: 500, f2: 300, dur: 0.2, g: g * 0.8, a: 0.04 });
+        else if (ty === 'milk') { noise({ f: 1500, f2: 900, q: 3, dur: 0.2, g: g * 0.6, a: 0.03 }); tone({ type: 'triangle', f: 280, f2: 250, dur: 0.15, g: 0.02, a: 0.03 }); }
+        else if (ty === 'eggs') noise({ ft: 'highpass', f: 3000, dur: 0.12, g: g * 0.4, a: 0.02 });
+        else { noise({ src: 'brown', f: rnd(450, 650), f2: rnd(300, 500), q: 1.5, dur: 0.2, g: g * 1.2, a: 0.03 }); noise({ ft: 'highpass', f: 2500, dur: 0.08, g: g * 0.3, t: rnd(0, 0.1), a: 0.01 }); }
+      } break;
       case 'checkpoint': if (reserve(n, 0.8)) { ding(1046.5, 0.12, 0.6, 0, 0.3); ding(1568, 0.12, 0.9, 0.12, 0.3); } break;
 
       case 'throttle': if (!e.on && st.rpm() > 0.55 && Math.random() < 0.3 && reserve(n, 0.1)) { noise({ f: 450, q: 1, dur: 0.05, g: 0.09, a: 0.001 }); tone({ f: 120, f2: 60, dur: 0.07, g: 0.1, a: 0.001 }); } break;
@@ -135,7 +164,7 @@ export function createSfx(env, hooks) {
         else { clank(0.18 * g, rnd(190, 250)); thump(0.4 * g, 110, 45, 0.14); noise({ f: 2200, q: 0.8, dur: 0.1, g: 0.14 * g, t: 0.01 }); }
         hooks.duck(0.7, 0.2); hooks.engineDip(g * 0.6);
       } break;
-      case 'cargoHit': if (reserve(n, 0.3)) cargoHit(e.type, e.speed || 2, e.damage || 0); break;
+      case 'cargoHit': if (reserve(n, 0.3)) { cargoHit(e.type, e.speed || 2, e.damage || 0); if (e.wall || (e.surface === 'wall' && (e.speed || 0) > 3)) { thump(0.3 * clamp((e.speed || 3) / 9), 105, 50, 0.14); woodSnap(0.01, 0.1); } } break;
       case 'cargoDamage': if (reserve(n, 0.4)) { if ((e.hpLeft ?? 1) <= 0) { if (!last.__brk || ctx.currentTime - last.__brk > 0.25) { last.__brk = ctx.currentTime; cargoBreak(e.type); } } else if (e.type === 'eggs') noise({ ft: 'highpass', f: 4200, dur: 0.015, g: 0.14 }); else if (e.type === 'crate') woodSnap(0, 0.12); else tone({ f: 600, f2: 300, dur: 0.05, g: 0.05 }); } break;
       case 'cargoLost': if (reserve(n, 0.8)) {
         if (e.reason === 'broke') { if (!last.__brk || ctx.currentTime - last.__brk > 0.25) { last.__brk = ctx.currentTime; cargoBreak(e.type); } }

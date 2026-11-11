@@ -1,6 +1,7 @@
 // İlerleme hesapları (yıldız toplamı, kilitler, araç satın alma). Saf; UI ve dev sayfası kullanır. Sahip: Arayüz.
 import { VEHICLES, VEHICLE_ORDER, ECONOMY, UPGRADE_LINES, REGIONS } from '../config.js';
 import { upgradeCost } from '../sim/economy.js';
+import { planCargo } from '../sim/cargoPlan.js';
 
 export const totalStars = (d) => Object.values(d.levels ?? {}).reduce((a, l) => a + (l?.stars | 0), 0);
 export const regionOf = (id) => REGIONS.find((r) => r.id === id) ?? REGIONS[0];
@@ -61,3 +62,7 @@ export function resetUpgrades(save, id) {
   return refund;
 }
 export const ownedVehicles = (d) => VEHICLE_ORDER.filter((id) => d.vehicles[id]?.owned && VEHICLES[id].implemented);
+
+// --- Araca göre etkin kargo/teslim gereksinimi: sim ile AYNI kaynak (sim/cargoPlan.js) ---
+export const cargoPlan = (level, vehicleId) => planCargo(level, vehicleId);
+export const cargoTotal = (level) => (level.cargo ?? []).reduce((a, c) => a + (c.count ?? 1), 0);

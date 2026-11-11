@@ -5,11 +5,13 @@ import { SIM, VEHICLES } from './config.js';
 import { createSim } from './sim/sim.js';
 import { levelReward } from './sim/economy.js';
 import { CAMPAIGN, getLevel } from './data/levels/index.js';
+import { createEndlessGen } from './data/endless.js';
 import { createInput } from './input.js';
 import { createSave } from './save.js';
 import { createRenderer } from './render/index.js';
 import { createAudio } from './audio/index.js';
 import { createUI } from './ui/index.js';
+import { levelLock } from './ui/progress.js';
 
 const params = new URLSearchParams(location.search);
 const canvas = document.getElementById('game');
@@ -20,6 +22,7 @@ const renderer = createRenderer(canvas, { debug: params.has('debug'), shake: sav
 
 let state = 'boot';
 let sim = null, level = null, snap = null;
+let runEndless = null;          // {seed} — Uzun Yol koşusu (null = bölüm)
 let runVehicle = null;          // bu bölümde kullanılan araç (retry aynı aracı kullanır)
 let lastCheckpoint = null;      // {x, time} — sim 'checkpoint' olayından
 let acc = 0, last = performance.now(), resultTimer = 0, pendingEnd = null;
@@ -30,20 +33,23 @@ function emitLocal(name, data = {}) {      // sim dışı olaylar: pause/resume/
 }
 
 /** Bölümü (ya da menü arka planı için boş bir sim'i) kurar. Eski sim yok edilir. */
-function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null } = {}) {
+function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null, endless = null } = {}) {
   sim?.destroy();
-  level = getLevel(levelId);
+  runEndless = endless;
+  level = endless ? createEndlessGen(endless.seed).level : getLevel(levelId);
   const owned = (id) => id && save.data.vehicles[id]?.owned && VEHICLES[id]?.implemented;
   runVehicle = owned(vehicleId) ? vehicleId : owned(runVehicle) && !idle && !vehicleId ? runVehicle : owned(save.data.vehicle) ? save.data.vehicle : 'tosun';
   if (idle) runVehicle = owned(save.data.vehicle) ? save.data.vehicle : 'tosun';
   const rec = save.data.vehicles[runVehicle];
   if (!checkpoint) lastCheckpoint = null;
   sim = createSim({
-    level, vehicleId: runVehicle, upgrades: rec.up, checkpoint,
+    level: endless ? undefined : level, endless, vehicleId: runVehicle, upgrades: rec.up,
+    checkpoint: checkpoint ?? (idle ? { x: 30, time: 0 } : null),   // menü arka planı: başlangıç duvarı kadraja girmesin (QA #12)
     settings: { assistLanding: save.data.settings.assistLanding },
-    bestScore: save.data.levels[levelId]?.best ?? 0,
+    bestDistance: endless ? save.data.endless.bestDistance : 0,
+    bestScore: endless ? save.data.endless.bestScore : save.data.levels[levelId]?.best ?? 0,
   });
-  if (sim.warnings.length) console.warn('[sim]', ...sim.warnings);
+  if (sim.warnings.length && params.has('debug')) console.warn('[sim]', ...sim.warnings);
   renderer.setLevel(sim.static);
   acc = 0; pendingEnd = null; resultTimer = 0;
   if (!idle) sim.on('*', onSimEvent);
@@ -54,16 +60,33 @@ function loadLevel(levelId, { idle = false, vehicleId, checkpoint = null } = {})
 function onSimEvent(e) {
   renderer.onEvent(e); audio.onEvent(e); ui.onEvent(e);
   if (e.name === 'levelEnd') pendingEnd = e;
+  if (e.name === 'biomeChange') audio.music(e.biome);
   if (e.name === 'checkpoint') lastCheckpoint = { x: e.x ?? e.pos.x, time: e.t };
   if (e.name === 'cargoDamage' || e.name === 'driverEject' || e.name === 'bodyHit') {
     if (save.data.settings.haptics && navigator.vibrate) navigator.vibrate(e.name === 'driverEject' ? 60 : 15);
   }
 }
 
+function finishEndless(e) {
+  const reward = { total: (e.pay | 0) + (e.pickups | 0), completion: 0, starBonus: 0, scoreCoins: 0, pickups: e.pickups | 0, deliveryPay: e.pay | 0 };
+  const prev = { bestDistance: save.data.endless.bestDistance, bestScore: save.data.endless.bestScore };
+  save.update((d) => {
+    const r = d.endless;
+    r.runs++; r.bestDistance = Math.max(r.bestDistance, Math.round(e.distance)); r.bestScore = Math.max(r.bestScore, e.score);
+    d.coins += reward.total;
+    d.stats.distance += e.distance; d.stats.flips += e.flips; d.stats.cargoDelivered += e.cargoDelivered;
+    d.stats.cargoLost += e.cargoLost; d.stats.crashes += 1; d.stats.playTime += e.time;
+  });
+  save.flush();
+  state = 'result';
+  ui.show('result', { result: e, reward, level, mode: 'endless', endless: { seed: e.seed, newBestDistance: Math.round(e.distance) > prev.bestDistance, newBestScore: e.score > prev.bestScore, prev } });
+}
+
 function finishLevel(e) {
+  if (e.mode === 'endless') return finishEndless(e);
   const prev = save.data.levels[level.id] ?? { stars: 0, best: 0, bestTime: 0, tries: 0 };
   const win = e.result === 'win';
-  const reward = win ? levelReward(level.reward ?? { base: 60 }, e, prev.stars) : { total: e.pickups };
+  const reward = win ? levelReward(level.reward ?? { base: 60 }, e, prev.stars) : { total: 0, pickups: 0 };   // yolda toplanan kuruş yalnız bölüm BİTİNCE hesaba geçer (QA #11)
   save.update((d) => {
     const r = (d.levels[level.id] ??= { stars: 0, best: 0, bestTime: 0, tries: 0 });
     r.tries++;
@@ -80,14 +103,20 @@ function finishLevel(e) {
 const flow = {
   /** vehicleId verilmezse kayıttaki seçili araç (retry: aynı araç). */
   startLevel(levelId, vehicleId) { state = 'loading'; loadLevel(levelId, { vehicleId }); state = 'playing'; ui.show('hud'); audio.unlock(); },
-  retry() { if (level) flow.startLevel(level.id, runVehicle); },
+  /** Uzun Yol (sonsuz mod). seed verilmezse rastgele (aynı tohum = aynı yol). */
+  startEndless(vehicleId, seed) {
+    state = 'loading'; loadLevel('endless', { vehicleId, endless: { seed: seed ?? ((Math.random() * 0x7fffffff) | 0) } }); state = 'playing'; ui.show('hud'); audio.unlock();
+  },
+  /** 'level' | 'endless' */
+  get mode() { return runEndless ? 'endless' : 'level'; },
+  retry() { if (runEndless) return flow.startEndless(runVehicle); if (level) flow.startLevel(level.id, runVehicle); },
   /** Kontrol noktasından yeniden doğ (★3 kaybolur). Nokta yoksa baştan. */
   retryFromCheckpoint() {
     if (!level) return;
-    if (!lastCheckpoint) return flow.retry();
+    if (runEndless || !lastCheckpoint) return flow.retry();
     const cp = lastCheckpoint; state = 'loading'; loadLevel(level.id, { vehicleId: runVehicle, checkpoint: cp }); state = 'playing'; ui.show('hud');
   },
-  hasCheckpoint() { return !!lastCheckpoint; },
+  hasCheckpoint() { return !runEndless && !!lastCheckpoint; },
   /** UI: purchase/upgrade/ui:* olaylarını ses/grafik/arayüze dağıtır. */
   emit(name, data) { emitLocal(name, data); },
   /** UI: ayarlar değişince. */
@@ -96,9 +125,19 @@ const flow = {
     renderer.setOptions({ shake: st.shake, quality: st.quality });
     sim?.setSettings({ assistLanding: st.assistLanding });
   },
+  /** Sonraki bölümün durumu: { exists, locked, lock } — arayüz "Sonraki" düğmesini `locked` ise gizler (levelLock: ui/progress.js). */
+  nextInfo() {
+    const i = CAMPAIGN.findIndex((l) => l.id === level?.id), next = i >= 0 ? CAMPAIGN[i + 1] : null;
+    if (!next) return { exists: false, locked: false, lock: null };
+    const lock = levelLock(save.data, CAMPAIGN, next);
+    return { exists: true, locked: lock.locked, lock, next };
+  },
+  /** Sonraki bölümü başlatır; yoksa ya da kilitliyse (bölge yıldız şartı) bölüm seçimine/menüye döner ve false verir. */
   nextLevel() {
-    const i = CAMPAIGN.findIndex((l) => l.id === level?.id);
-    if (i >= 0 && CAMPAIGN[i + 1]) flow.startLevel(CAMPAIGN[i + 1].id); else flow.toMenu();
+    if (runEndless) { flow.startEndless(runVehicle); return true; }
+    const info = flow.nextInfo();
+    if (info.exists && !info.locked) { flow.startLevel(info.next.id); return true; }
+    flow.toMenu(); return false;
   },
   pause() { if (state !== 'playing') return; state = 'paused'; input.reset(); audio.suspend(); emitLocal('pause'); ui.show('pause'); },
   resume() { if (state !== 'paused') return; state = 'playing'; last = performance.now(); audio.resume(); emitLocal('resume'); ui.show('hud'); },
@@ -120,6 +159,7 @@ window.addEventListener('orientationchange', () => renderer.resize());
 audio.setVolumes({ sfx: save.data.settings.sfx, music: save.data.settings.music });
 
 function frame(now) {
+  input.poll?.();
   const raw = Math.min((now - last) / 1000, SIM.maxFrameDt); last = now;
   if (sim && (state === 'playing' || state === 'result' || state === 'menu')) {
     if (state !== 'menu') {

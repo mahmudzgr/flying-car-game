@@ -1,10 +1,9 @@
 // Bölge/bölüm seçimi + bölüm ön ekranı (brifing). Sahip: Arayüz.
 import { REGIONS, VEHICLES } from '../config.js';
 import { esc, stars, star, lock, coin, check, cargoIcon, vehicleArt, arrowRight, clock } from './icons.js';
-import { levelLock, totalStars, ownedVehicles, regionOf } from './progress.js';
+import { levelLock, totalStars, ownedVehicles, regionOf, cargoPlan } from './progress.js';
 import { fmtTime, fmtNum, CARGO_NAMES, diffName, BIOME_NAMES } from './texts.js';
 
-const MAX_PER_REGION = 4;
 
 export function createLevels(ctx) {
   const el = document.createElement('section');
@@ -28,7 +27,8 @@ export function createLevels(ctx) {
     const regLocked = stars_ < reg.unlockStars;
     const cards = [];
     const focusId = (list.find((x) => !levelLock(d, ctx.levels, x).locked && !((d.levels[x.id]?.stars | 0) >= 1)) ?? list.find((x) => !levelLock(d, ctx.levels, x).locked))?.id;
-    for (let i = 0; i < Math.max(MAX_PER_REGION, list.length); i++) {
+    const perRegion = Math.max(4, ...REGIONS.map((r) => regionLevels(r.id).length));
+    for (let i = 0; i < Math.max(perRegion, list.length); i++) {
       const l = list[i];
       if (!l) { cards.push(`<div class="lcard soon" aria-hidden="true"><div class="lnum">${region}-${i + 1}</div><div class="lsoon">${lock()}<span>Yakında</span></div></div>`); continue; }
       const rec = d.levels[l.id] ?? {};
@@ -37,6 +37,7 @@ export function createLevels(ctx) {
       cards.push(`<button class="lcard ${lk.locked ? 'locked' : ''} ${(rec.stars | 0) >= 3 ? 'gold' : ''}" data-act="level" data-id="${esc(l.id)}" data-key="l${esc(l.id)}" ${l.id === focusId ? 'data-autofocus' : ''} aria-label="${esc(l.id)} ${esc(l.name)}${lk.locked ? ', kilitli: ' + esc(lk.text) : ', ' + (rec.stars | 0) + ' yıldız'}">
         <div class="lnum">${esc(l.id)}</div>
         <div class="lname">${esc(l.name)}</div>
+        ${l.teaches ? `<div class="lteach">${esc(l.teaches)}</div>` : ''}
         <div class="lstars">${stars(rec.stars | 0)}</div>
         ${lk.locked ? `<div class="llock">${lock()}<span>${esc(lk.text)}</span></div>`
           : `<div class="lmeta"><span>${cargoTotal} kargo</span><span>${rec.bestTime ? clock() + fmtTime(rec.bestTime) : diffName(l.difficulty)}</span></div>`}
@@ -91,6 +92,18 @@ export function createBrief(ctx) {
 
   function draw() {
     const d = ctx.save.data, rec = d.levels[level.id] ?? {};
+    const vid = d.vehicle, vname = VEHICLES[vid]?.name ?? '';
+    const plan = cargoPlan(level, vid), total = plan.total, loaded = plan.loaded;
+    const scaled = loaded < total;
+    const noteFor = (n) => {
+      if (!scaled) return '';
+      const parts = [];
+      for (const c of level.stars?.[n] ?? []) {
+        if (c.kind === 'delivered') parts.push(`en az ${plan.need(c)}/${loaded} teslim`);
+        else if (c.kind === 'deliveredAll') parts.push(`${loaded}/${loaded} teslim`);
+      }
+      return parts.length ? `${vname} ile: ${parts.join(', ')}` : '';
+    };
     const goals = [
       { n: 1, text: 'Bitiş bayrağına ulaş' },
       { n: 2, text: (level.stars?.[2] ?? []).map((c) => c.label).join(' + ') || '—' },
@@ -104,6 +117,8 @@ export function createBrief(ctx) {
       const sel = d.vehicle === v.id;
       return `<button class="vchip ${sel ? 'sel' : ''} ${own ? '' : 'off'}" data-act="veh" data-id="${v.id}" data-key="v${v.id}" ${own ? '' : 'disabled'} aria-pressed="${sel}">${vehicleArt(v.id, !own)}<b>${esc(v.name)}</b>${own ? (recm.vehicle === v.id ? '<small class="rec">önerilen</small>' : `<small>${esc(v.kind)}</small>`) : `<small>${lock()} Kilitli</small>`}</button>`;
     }).join('');
+    const recVeh = level.recommended?.vehicle;
+    const recWarn = recVeh && d.vehicle !== recVeh ? `<p class="note warnnote">${esc(VEHICLES[d.vehicle]?.name ?? '')} bu bölümde zorlanabilir — önerilen: ${esc(VEHICLES[recVeh]?.name ?? '')}.</p>` : '';
     const tierTxt = recm.tier > 0 ? ` · yükseltme: toplam ~${recm.tier} kademe` : '';
     ctx.nav.render(el, `
       <div class="panel brief-panel">
@@ -117,14 +132,16 @@ export function createBrief(ctx) {
           <div class="brief-col">
             <h3>Kargo</h3>
             <ul class="cargo-list">${cargo || '<li>—</li>'}</ul>
+            ${scaled ? `<p class="note warnnote">${vname} yalnızca ${loaded} parça taşıyabilir (${total} yerine); gereken teslim: ${plan.minDelivered}.</p>` : ''}
             <h3>Hedefler</h3>
-            <ol class="goals">${goals.map((g) => `<li class="${(rec.stars | 0) >= g.n ? 'done' : ''}"><span class="gstars">${stars(g.n, g.n)}</span><span class="gtext">${esc(g.text)}</span>${(rec.stars | 0) >= g.n ? check('gtick') : ''}</li>`).join('')}</ol>
+            <ol class="goals">${goals.map((g) => `<li class="${(rec.stars | 0) >= g.n ? 'done' : ''}"><span class="gstars">${stars(g.n, g.n)}</span><span class="gtext">${esc(g.text)}${noteFor(g.n) ? `<small class="gnote">${esc(noteFor(g.n))}</small>` : ''}</span>${(rec.stars | 0) >= g.n ? check('gtick') : ''}</li>`).join('')}</ol>
             ${level.timeLimit ? `<p class="note">${clock()} Süre sınırı: <b>${level.timeLimit} sn</b></p>` : ''}
             ${rec.best ? `<p class="note">En iyi: <b>${fmtNum(rec.best)}</b> puan · ${fmtTime(rec.bestTime)}</p>` : ''}
           </div>
           <div class="brief-col">
             <h3>Araç <small class="rec-hint">Önerilen: ${esc(VEHICLES[recm.vehicle]?.name ?? '')}${tierTxt}</small></h3>
             <div class="vchips">${vehicles}</div>
+            ${recWarn}
             <button class="btn btn-primary btn-xl go" data-act="go" data-autofocus data-key="go" ${owned.length ? '' : 'disabled'}><span>Başla</span>${arrowRight()}</button>
           </div>
         </div>

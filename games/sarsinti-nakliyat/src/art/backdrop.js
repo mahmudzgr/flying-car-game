@@ -8,57 +8,64 @@ const BASE = [0.62, 0.72, 0.84, 0.0];         // katman taban çizgisi (ekran y�
 const SPAN = [0.34, 0.3, 0.26, 0.5];          // katmanın üstte kapladığı alan
 
 // ---------------------------------------------------------------- gökyüzü
-let skyKey = '', skyGrad = null, sunGrad = null;
-/** Gökyüzü: ekranı kaplar; dünya dönüşünden BAĞIMSIZ. @param {{w:number,h:number}} view css px */
+let skyKey = '', skyCv = null;
+function mk(w, h) { return Object.assign(document.createElement('canvas'), { width: w, height: h }); }
+/** Gökyüzü: ekranı kaplar; dünya dönüşünden BAĞIMSIZ. Gradyan + güneş bir kez bitmap'e çizilir, kare başına tek drawImage. @param {{w:number,h:number}} view css px */
 export function drawSky(ctx, biome, view) {
-  const b = BIOMES[biome] ?? BIOMES.elma;
-  const key = biome + view.h;
-  if (key !== skyKey) {
+  const key = biome + '|' + view.w + 'x' + view.h;
+  if (key !== skyKey || !skyCv) {
+    const b = BIOMES[biome] ?? BIOMES.elma;
     skyKey = key;
-    skyGrad = ctx.createLinearGradient(0, 0, 0, view.h);
-    skyGrad.addColorStop(0, b.sky[0]); skyGrad.addColorStop(0.62, b.sky[1]); skyGrad.addColorStop(1, b.haze);
-    const r = Math.max(60, view.h * 0.3), sx = 0, sy = 0;
-    sunGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
-    sunGrad.addColorStop(0, rgba(b.sun, 0.9)); sunGrad.addColorStop(0.22, rgba(b.sun, 0.55)); sunGrad.addColorStop(1, rgba(b.sun, 0));
+    const bs = 0.5;                                    // gökyüzü yumuşak: yarım çözünürlük yeter
+    skyCv = mk(Math.max(1, Math.ceil(view.w * bs)), Math.max(1, Math.ceil(view.h * bs)));
+    const g = skyCv.getContext('2d'); g.scale(bs, bs);
+    const gr = g.createLinearGradient(0, 0, 0, view.h);
+    gr.addColorStop(0, b.sky[0]); gr.addColorStop(0.62, b.sky[1]); gr.addColorStop(1, b.haze);
+    g.fillStyle = gr; g.fillRect(0, 0, view.w, view.h);
+    const sx = view.w * 0.8, sy = view.h * (biome === 'kanyon' ? 0.26 : 0.2), r = Math.max(60, view.h * 0.3);
+    g.save(); g.translate(sx, sy);
+    const sg = g.createRadialGradient(0, 0, 0, 0, 0, r);
+    sg.addColorStop(0, rgba(b.sun, 0.9)); sg.addColorStop(0.22, rgba(b.sun, 0.55)); sg.addColorStop(1, rgba(b.sun, 0));
+    g.fillStyle = sg; g.fillRect(-r, -r, r * 2, r * 2);
+    g.beginPath(); g.arc(0, 0, view.h * (biome === 'kanyon' ? 0.07 : 0.045), 0, TAU); g.fillStyle = biome === 'bataklik' ? 'rgba(255,255,230,.55)' : '#fffbe0'; g.fill();
+    g.restore();
   }
-  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, view.w, view.h);
-  // güneş (sabit, ekranın sağ üstü)
-  const sx = view.w * 0.8, sy = view.h * (biome === 'kanyon' ? 0.26 : 0.2);
-  ctx.save(); ctx.translate(sx, sy); ctx.fillStyle = sunGrad; const r = Math.max(60, view.h * 0.3); ctx.fillRect(-r, -r, r * 2, r * 2);
-  ctx.beginPath(); ctx.arc(0, 0, view.h * (biome === 'kanyon' ? 0.07 : 0.045), 0, TAU); ctx.fillStyle = biome === 'bataklik' ? 'rgba(255,255,230,.55)' : '#fffbe0'; ctx.fill();
-  ctx.restore();
+  ctx.drawImage(skyCv, 0, 0, view.w, view.h);
 }
 
 // ---------------------------------------------------------------- şerit önbelleği
 const strips = new Map();
 function getStrip(biome, layer, view, dpr) {
-  const bs = Math.min(dpr, 1.25);
+  const bs = ART.tier >= 1 ? 1 : Math.min(dpr, 1.25);
   const key = `${biome}|${layer}|${view.w}|${view.h}|${bs}|${ART.quality}`;
   let s = strips.get(key);
   if (s) return s;
   if (strips.size > 10) strips.clear();
   const P = Math.ceil(view.w), H = view.h;
-  const top = Math.max(0, H * (BASE[layer] - SPAN[layer]));
+  const top = Math.max(0, H * (BASE[layer === 10 ? 0 : layer] - SPAN[layer === 10 ? 0 : layer]));
   const sh = layer === 3 ? H * 0.55 : H + 170 - top;     // bulut şeridi üstte, diğerleri alta kadar
   const w = Math.ceil(P * bs), h = Math.ceil(sh * bs);
-  const cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const cv = mk(w, h);
   const g = cv.getContext('2d');
   g.scale(bs, bs);
-  const baseY = layer === 3 ? 0 : H * BASE[layer] - top;
-  PAINT[biome]?.[layer]?.(g, P, sh, baseY, H, BIOMES[biome] ?? BIOMES.elma);
+  const baseY = layer === 3 ? 0 : H * BASE[layer === 10 ? 0 : layer] - top;
+  if (layer === 10) { for (const l of [0, 1]) PAINT[biome]?.[l]?.(g, P, sh, H * BASE[l] - top, H, BIOMES[biome] ?? BIOMES.elma); }
+  else PAINT[biome]?.[layer]?.(g, P, sh, baseY, H, BIOMES[biome] ?? BIOMES.elma);
   s = { cv, P, top, sh };
   strips.set(key, s);
   return s;
 }
 /** Bölüm başında şeritleri önceden çiz (ilk karelerde takılma olmasın). */
-export function prewarmBackdrop(biome, view, dpr) { ART.dpr = dpr; for (let l = 0; l < 4; l++) getStrip(biome, l, view, dpr); }
+export function prewarmBackdrop(biome, view, dpr) { ART.dpr = dpr; for (const l of (ART.tier >= 1 ? [10, 2, 3] : [0, 1, 2, 3])) getStrip(biome, l, view, dpr); }
 export function clearBackdropCache() { strips.clear(); skyKey = ''; }
 
 /** Parallax katmanı (ekran pikselleri). layer: 0 uzak, 1 orta, 2 yakın, 3 bulut. camX/camY metre. */
 export function drawParallax(ctx, biome, layer, camX, view, scale, camY = 0) {
   const dpr = ART.dpr || 1;
   const s = getStrip(biome, layer, view, dpr);
-  const f = FACT[layer];
+  if (layer === 3 && ART.tier >= 2) return;
+  if (layer === 2 && ART.tier >= 2) return;
+  const f = FACT[layer === 10 ? 1 : layer];
   let off = camX * scale * f + (layer === 3 ? ART.t * 7 : 0);
   off = ((off % s.P) + s.P) % s.P;
   const dy = layer === 3 ? -camY * scale * 0.02 : Math.max(-90, Math.min(90, camY * scale * f * 0.45));

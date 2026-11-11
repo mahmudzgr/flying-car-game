@@ -43,9 +43,11 @@ export function createEndless(ctx) {
     E.physB = last - 1;
   }
 
-  function onTerrainChanged() {
+  function onTerrainChanged(ev) {
     const st = ctx.st();
     if (st) {
+      st.terrainRev = (st.terrainRev ?? 0) + 1;
+      if (ev) emit(ev.name, { ...ev.data, rev: st.terrainRev });
       st.bounds.minX = terr.xs[0]; st.bounds.maxX = terr.xs[terr.xs.length - 1]; st.bounds.minY = terr.minY;
       let mx = -Infinity; for (const y of terr.ys) if (y > mx) mx = y;
       st.bounds.maxY = mx;
@@ -65,9 +67,9 @@ export function createEndless(ctx) {
   }
 
   function fill(carX) {
-    let n = 0;
+    let n = 0; const lastEnd = terr.endX;
     while (terr.endX < carX + ENDLESS.genAhead && n++ < 8) generateOne();
-    if (n) { onTerrainChanged(); refreshFinish(); }
+    if (n) { onTerrainChanged({ name: 'terrainExtended', data: { from: lastEnd, to: terr.endX } }); refreshFinish(); }
   }
 
   function refreshFinish() {
@@ -116,7 +118,7 @@ export function createEndless(ctx) {
     if (dead.size) removeTracked(dead);
     // görsel zemin dizisi (yerinde kırpılır)
     const trimTo = carX - ENDLESS.trimBehind;
-    if (terr.xs[0] < trimTo - 40) { if (terr.trim(trimTo)) onTerrainChanged(); }
+    if (terr.xs[0] < trimTo - 40) { if (terr.trim(trimTo)) onTerrainChanged({ name: 'terrainTrimmed', data: { to: terr.xs[0] } }); }
     // eski biyom kayıtları
     while (E.biomes.length > 3 && E.biomes[1].x0 < cullX) E.biomes.shift();
     while (E.pads.length && E.pads[0].x < cullX && E.pads.length > 1) E.pads.shift();

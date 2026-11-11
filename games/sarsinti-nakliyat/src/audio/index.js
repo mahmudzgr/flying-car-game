@@ -179,9 +179,9 @@ export function createAudio(opts = {}) {
       } catch { /* */ }
     },
     /** trackId: 'menu' | 'elma' | 'kanyon' | 'bataklik' | 'zirve' | null (sustur). Kilit açılmadan çağrılırsa hatırlanır. */
-    music(id) {
+    music(id, smooth) {
       wantMusic = id || null;
-      if (ctx && parts) { try { parts.music.play(wantMusic); } catch { /* */ } }
+      if (ctx && parts) { try { parts.music.play(wantMusic, smooth ?? (!!wantMusic && parts.music.id && parts.music.id !== 'menu' && wantMusic !== 'menu')); } catch { /* */ } }
     },
     setVolumes(v) {
       if (!v) return;

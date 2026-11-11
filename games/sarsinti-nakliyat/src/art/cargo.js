@@ -1,6 +1,7 @@
 // Kargo: kasa, karpuz, yumurta kolisi, süt bidonu, piyano, balya (hasar durumlarıyla). Sahip: Grafik.
 import { INK, CARGO_COLORS, shade, rgba } from './palette.js';
 import { ART, TAU, rr, fs, circle, line, hash } from './util.js';
+import { warnTri } from './objects.js';
 
 /** id → hasar flaşı bitiş zamanı (ART.t). Renderer `cargoDamage` olayında çağırır. */
 export const cargoFlash = new Map();
@@ -8,7 +9,8 @@ export function flashCargo(id, dur = 0.28) { cargoFlash.set(id, ART.t + dur); }
 export function resetCargoFx() { cargoFlash.clear(); }
 
 function crate(ctx, c, px) {
-  const w = c.w, h = c.h, W = '#d8a85c', Wd = shade(W, -0.2), Wl = shade(W, 0.3);
+  const dmg = c.hpMax > 1 && c.hp < c.hpMax;
+  const w = c.w, h = c.h, W = dmg ? '#b98a58' : '#d8a85c', Wd = shade(W, -0.2), Wl = shade(W, 0.3);
   ctx.beginPath(); rr(ctx, -w / 2, -h / 2, w, h, 0.05); fs(ctx, px, W, 2.3);
   ctx.save(); ctx.clip();
   ctx.strokeStyle = Wd; ctx.lineWidth = 1.5 * px; ctx.beginPath();
@@ -21,6 +23,12 @@ function crate(ctx, c, px) {
   // metal köşeler
   ctx.fillStyle = '#8d95a0';
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sx * w / 2, sy * h / 2); ctx.lineTo(sx * (w / 2 - 0.16), sy * h / 2); ctx.lineTo(sx * w / 2, sy * (h / 2 - 0.16)); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.3 * px; ctx.strokeStyle = INK; ctx.stroke(); }
+  if (dmg) { // çatlak + kırık tahta
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.035;
+    ctx.beginPath(); ctx.moveTo(-w * 0.1, h / 2); ctx.lineTo(-w * 0.02, h * 0.15); ctx.lineTo(-w * 0.2, -h * 0.05); ctx.lineTo(-w * 0.08, -h * 0.3); ctx.lineTo(w * 0.05, -h / 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w * 0.22, -h * 0.5); ctx.lineTo(w * 0.3, -h * 0.28); ctx.lineTo(w * 0.18, -h * 0.2); ctx.stroke();
+    ctx.fillStyle = '#d8a85c'; ctx.beginPath(); ctx.moveTo(w * 0.5, h * 0.3); ctx.lineTo(w * 0.62, h * 0.22); ctx.lineTo(w * 0.55, h * 0.1); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.4 * px; ctx.stroke();
+  }
   // "bu yüz yukarı" oku
   ctx.beginPath(); ctx.moveTo(0.02, 0.14); ctx.lineTo(0.02, -0.12); ctx.moveTo(-0.07, 0.04); ctx.lineTo(0.02, 0.15); ctx.lineTo(0.11, 0.04);
   ctx.lineWidth = 0.035; ctx.strokeStyle = '#e8453c'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
@@ -67,7 +75,8 @@ function eggs(ctx, c, px) {
 }
 
 function milk(ctx, c, px) {
-  const w = c.w, h = c.h, B = CARGO_COLORS.milk;
+  const dmg = c.hpMax > 1 && c.hp < c.hpMax;
+  const w = c.w, h = c.h, B = dmg ? '#5d7898' : CARGO_COLORS.milk;
   ctx.beginPath();
   ctx.moveTo(-w / 2, -h / 2 + 0.05); ctx.arcTo(-w / 2, -h / 2, -w / 2 + 0.06, -h / 2, 0.06); ctx.lineTo(w / 2 - 0.06, -h / 2); ctx.arcTo(w / 2, -h / 2, w / 2, -h / 2 + 0.06, 0.06);
   ctx.lineTo(w / 2, h * 0.16); ctx.quadraticCurveTo(w / 2, h * 0.28, w * 0.28, h * 0.32); ctx.lineTo(w * 0.22, h * 0.42); ctx.lineTo(w * 0.22, h * 0.46);
@@ -81,8 +90,12 @@ function milk(ctx, c, px) {
   // etiket
   ctx.beginPath(); rr(ctx, -w * 0.32, -h * 0.28, w * 0.64, h * 0.34, 0.04); fs(ctx, px, '#fffaf0', 1.6);
   ctx.beginPath(); ctx.moveTo(0, -0.0); ctx.quadraticCurveTo(0.07, -0.09, 0, -0.17); ctx.quadraticCurveTo(-0.07, -0.09, 0, 0); ctx.fillStyle = '#3d7fd6'; ctx.fill();
-  // kapak + kulplar
-  ctx.beginPath(); rr(ctx, -w * 0.27, h * 0.44, w * 0.54, 0.09, 0.04); fs(ctx, px, '#c9d1d8', 1.8);
+  if (dmg) { // ezik: koyu iç bükey leke + çizgi
+    ctx.save(); ctx.beginPath(); ctx.ellipse(w * 0.12, -h * 0.05, w * 0.22, h * 0.2, 0.4, 0, TAU); ctx.fillStyle = 'rgba(30,30,50,.35)'; ctx.fill(); ctx.lineWidth = 1.4 * px; ctx.strokeStyle = INK; ctx.stroke(); ctx.restore();
+  }
+  // kapak + kulplar (hasarda eğik)
+  ctx.save(); if (dmg) { ctx.translate(0, h * 0.44); ctx.rotate(-0.28); ctx.translate(0, -h * 0.44); }
+  ctx.beginPath(); rr(ctx, -w * 0.27, h * 0.44, w * 0.54, 0.09, 0.04); fs(ctx, px, '#c9d1d8', 1.8); ctx.restore();
   ctx.lineWidth = 0.04; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(-w / 2, h * 0.02, 0.07, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(w / 2, h * 0.02, 0.07, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
 }
 
@@ -140,6 +153,7 @@ export function drawCargo(ctx, c, px) {
   ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.a);
   if (c.state === 'lost') ctx.globalAlpha = c.reason === 'broke' ? 0.9 : 0.5;
   (DRAW[c.type] ?? generic)(ctx, c, px);
+  if (c.state === 'onboard' && c.hpMax > 1 && c.hp < c.hpMax && c.type !== 'eggs') { const bx = c.r > 0 ? c.r * 0.7 : c.w / 2 - 0.02, by = c.r > 0 ? c.r * 0.7 : c.h / 2 - 0.02; ctx.save(); ctx.rotate(-c.a); ctx.translate(Math.cos(c.a) * bx - Math.sin(c.a) * by, Math.sin(c.a) * bx + Math.cos(c.a) * by); warnTri(ctx, 0, 0.0, 0.7, px); ctx.restore(); }
   const f = cargoFlash.get(c.id);
   if (f !== undefined) {
     const k = (f - ART.t) / 0.28;

@@ -59,18 +59,20 @@ export function createProps(ctx) {
       const r = o.r ?? PROPS.snowball.r;
       const body = world.createBody({ type: 'kinematic', position: V(terr.startX - 14, terr.startY ?? 0) });
       body.createFixture(pl.Circle(V(0, 0), r), { friction: 0.5, filterCategoryBits: CAT.object, filterMaskBits: CAT.wheel | CAT.chassis | CAT.cargo | CAT.driver, userData: { k: 'obj' } });
-      const ob = { id: id('snowball'), type: 'snowball', body, r, trig: o.trigger?.x ?? ctx.spawnX + 2, behind: o.behind ?? PROPS.snowball.behind, v0: o.v0 ?? PROPS.snowball.v0, v1: o.v1 ?? PROPS.snowball.v1, ramp: o.ramp ?? PROPS.snowball.ramp, triggered: false, t: 0, x: 0, near: false };
+      const ob = { id: id('snowball'), type: 'snowball', body, r, trig: o.trigger?.x ?? ctx.spawnX + 2, behind: o.behind ?? PROPS.snowball.behind, v0: Math.min(o.v0 ?? PROPS.snowball.v0, ctx.topSpeed * PROPS.snowball.maxTopFrac), v1: Math.min(o.v1 ?? PROPS.snowball.v1, ctx.topSpeed * PROPS.snowball.maxTopFrac), ramp: o.ramp ?? PROPS.snowball.ramp, triggered: false, t: 0, x: 0, near: false };
       ob.pose = track(body, { w: 0, h: 0, r });
       objects.push(ob); snowballs.push(ob);
     },
     water(o) {
-      waters.push({ x0: o.x, x1: o.x + o.len, y: o.y ?? (heightAt(terr, o.x - 0.01) - (o.below ?? 0.5)) });
+      const bank = heightAt(terr, o.x - 0.01);
+      const y = typeof o.y === 'number' ? o.y : typeof o.y === 'string' && /^bank[-+]/.test(o.y) ? bank + parseFloat(o.y.slice(4)) : bank - (o.below ?? PROPS.water.below);   // y: mutlak sayı | 'bank-1.5' | boş (kıyı − below)
+      waters.push({ x0: o.x, x1: o.x + o.len, y });
     },
     logs(o) {
       const n = o.n ?? 3, w = o.w ?? PROPS.log.w, h = o.h ?? PROPS.log.h, sp = o.spacing ?? (w + 1.0);
       const wy = (o.y ?? waters.find((q) => o.x >= q.x0 && o.x <= q.x1)?.y ?? heightAt(terr, o.x));
       for (let i = 0; i < n; i++) {
-        const ob = addBody({ type: 'dynamic', position: V(o.x + i * sp, wy), linearDamping: 0.3, angularDamping: 1.5, bullet: true },
+        const ob = addBody({ type: 'dynamic', position: V(o.x + i * sp, wy), linearDamping: 0.3, angularDamping: PROPS.log.angDamp, bullet: true },
           pl.Box(w / 2, h / 2), { density: PROPS.log.mass / (w * h), friction: 0.9, restitution: 0.05, filterMaskBits: CAT.wheel | CAT.chassis | CAT.cargo | CAT.driver | CAT.object },
           'log', { w, h, x0: o.x + i * sp });
         logs.push(ob);
@@ -97,7 +99,7 @@ export function createProps(ctx) {
         if (!w) continue;
         const a = lg.body.getAngle(), ca = Math.cos(a), N = 5;
         const lv = lg.body.getLinearVelocity();
-        lg.body.applyForceToCenter(V(-lv.x * 80 - PROPS.log.tether * (lg.body.getPosition().x - lg.x0), -lv.y * 500), true);
+        lg.body.applyForceToCenter(V(-lv.x * PROPS.log.dragX - PROPS.log.tether * (lg.body.getPosition().x - lg.x0), -lv.y * PROPS.log.dragY), true);
         for (let k = 0; k < N; k++) {
           const pt = lg.body.getWorldPoint(V((k - (N - 1) / 2) * lg.pose.w / N, 0));
           const sub = Math.max(0, Math.min(lg.pose.h, w.y - (pt.y - lg.pose.h / 2 * ca)));
@@ -166,7 +168,7 @@ export function createProps(ctx) {
         const inW = waters.find((w) => cp.x >= w.x0 && cp.x <= w.x1 && cp.y < w.y);
         if (inW) {
           S.waterT = (S.waterT ?? 0) + dt;
-          chassis.applyForceToCenter(V(-v.x * 800, -v.y * 800), true);
+          chassis.applyForceToCenter(V(-v.x * PROPS.water.bodyDrag, -v.y * PROPS.water.bodyDrag), true);
           if (S.waterT > PROPS.water.deadly) return { fail: 'water', pos: { x: cp.x, y: cp.y } };
         } else S.waterT = 0;
         for (const c of cargo) {

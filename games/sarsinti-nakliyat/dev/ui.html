@@ -14,6 +14,7 @@
 </style></head>
 <body>
 <div id="ui"></div>
+<a class="back" href="../../" data-hub-back>Oyunlar</a>
 <details id="dock" open><summary>Arayüz laboratuvarı</summary><div id="btns"></div></details>
 <pre id="log"></pre>
 <script type="module">
@@ -47,6 +48,7 @@ levels.sort((a, b) => (a.region - b.region) || (a.order - b.order));
 const log = (t) => { document.getElementById('log').textContent = t; console.log(t); };
 let ui; const input = createInput(window);
 const flow = {
+  mode: 'level', startEndless: (v) => { log('flow.startEndless ' + v); flow.mode = 'endless'; ui.show('hud'); startSim(); },
   startLevel: (id, v) => { log(`flow.startLevel(${id}, ${v})`); ui.show('hud'); ui.onEvent({ name: 'levelStart', levelId: id }); startSim(); },
   retry: () => { log('flow.retry()'); flow.startLevel(lastLevel); },
   pause: () => { log('flow.pause()'); stopSim(); ui.show('pause'); },
@@ -93,6 +95,7 @@ const buttons = [
   ['duraklat', () => { ui.show('hud'); stopSim(); ui.show('pause'); }],
   ['sonuç ✓', () => ui.show('result', { result: fakeRes, reward, level: levels[0] })],
   ['sonuç ★3', () => ui.show('result', { result: { ...fakeRes, stars: 3 }, reward, level: levels[1] })],
+  ['uzun yol sonuç', () => ui.show('result', { mode: 'endless', result: { result: 'end', reason: 'cargoGone', distance: 1234, deliveries: 7, cargoDelivered: 19, score: 8800, flips: 3 }, reward: { total: 310, deliveryPay: 280, pickups: 30 }, endless: { newBestDistance: true, newBestScore: false, prev: { bestDistance: 900 } } })],
   ['✗ kafa', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'headHit' }, reward: { total: 15 }, level: levels[0] })],
   ['✗ devrildi', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'flipped' }, reward: { total: 0 }, level: levels[0] })],
   ['✗ düştü', () => ui.show('result', { result: { ...fakeRes, result: 'fail', reason: 'fell' }, reward: { total: 0 }, level: levels[0] })],

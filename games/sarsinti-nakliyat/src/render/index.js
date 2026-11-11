@@ -30,16 +30,35 @@ export function createRenderer(canvas, opts = {}) {
   let T = 0, shakeAmt = 0, shakePh = 0, flash = 0, flashCol = '#fff', vig = 0, vigRed = 0, lastMult = 1, lastCamX = 0, finishWon = false, finishT = 0;
   const wheelAcc = [0, 0, 0, 0, 0, 0]; let exhAcc = 0; const lastContact = [null, null, null, null, null, null];
   const o = { debug: !!opts.debug, quality: opts.quality ?? 'high', shake: opts.shake ?? 2 };
+  // Otomatik kalite: 'high'/'auto' = uyarlamalı (kademe 0..2), 'low' = sabit en düşük kademe
+  const DPR_CAP = [2, 1.5, 1, 1], PART_CAP = [320, 220, 110, 70];
+  let tier = o.quality === 'low' ? 2 : 0, ftSum = 0, ftN = 0, ftT = 0, coolT = 0, goodT = 0, upWait = 14;
+  function setTier(n) {
+    if (n === tier) return;
+    tier = n; applyQuality(); clearBackdropCache(); if (st) { clearTerrainCache(st); try { prewarmBackdrop(st.biome, view, view.dpr); } catch (e) { /* */ } }
+    resize();
+  }
+  function adapt(dt) {
+    if (o.quality === 'low' || dt > 0.12) return;      // duraklatma/sekme geçişi ölçüm dışı
+    ftSum += dt; ftN++; ftT += dt; coolT -= dt;
+    if (ftT < 3) return;
+    const avg = ftSum / ftN; ftSum = 0; ftN = 0; ftT = 0;
+    if (coolT > 0) return;
+    if (avg > 0.022 && tier < 3) { setTier(Math.min(3, tier + (avg > 0.035 ? 2 : 1))); coolT = 3; goodT = 0; upWait = Math.min(120, upWait * 1.6); }
+    else if (avg < 0.0185 && tier > 0) { goodT += 3; if (goodT >= upWait) { setTier(tier - 1); coolT = 6; goodT = 0; } }
+    else if (avg >= 0.0185) goodT = 0;
+  }
   const range = { x0: 0, x1: 0, y0: 0, y1: 0 };
   const bridgeGroups = [[], [], [], []], plain = [];
+  let lastFinishX = null, lastFinishY = 0; const gates = []; const seenCargo = new Map(); let firstCargo = true;
   let vigCv = null, vigKey = '', bgBiome = null, bgPrev = null, bgFade = 1;
 
   function applyQuality() {
-    ART.quality = o.quality;
-    particles.setCap(o.quality === 'low' ? 140 : 320);
+    ART.tier = tier; ART.quality = tier >= 2 ? 'low' : 'high';
+    particles.setCap(PART_CAP[tier]);
   }
   function resize() {
-    const dpr = Math.min(globalThis.devicePixelRatio || 1, o.quality === 'low' ? 1.25 : CAMERA.maxDpr);
+    const dpr = Math.min(globalThis.devicePixelRatio || 1, CAMERA.maxDpr, DPR_CAP[tier]) * (tier >= 3 ? 0.7 : 1);
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
     const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
     if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
@@ -63,7 +82,8 @@ export function createRenderer(canvas, opts = {}) {
   function drawBackdrop(biome, cam, scale) {
     drawSky(ctx, biome, view);
     drawParallax(ctx, biome, 3, cam.x, view, scale, cam.y);
-    for (let l = 0; l < 3; l++) drawParallax(ctx, biome, l, cam.x, view, scale, cam.y);
+    if (tier >= 1) { drawParallax(ctx, biome, 10, cam.x, view, scale, cam.y); drawParallax(ctx, biome, 2, cam.x, view, scale, cam.y); }
+    else for (let l = 0; l < 3; l++) drawParallax(ctx, biome, l, cam.x, view, scale, cam.y);
   }
   // ------------------------------------------------------------ yardımcılar
   const sc = () => (o.shake / 2);
@@ -74,7 +94,7 @@ export function createRenderer(canvas, opts = {}) {
   }
   const cp = { x: 0, y: 0 };
   function dustBurst(x, y, surf, n, spread = 3, up = 1.5) {
-    const c = DUST[surf] ?? DUST.dirt, q = o.quality === 'low' ? 0.6 : 1;
+    const c = DUST[surf] ?? DUST.dirt, q = tier >= 1 ? 0.6 : 1;
     n = Math.round(n * q);
     for (let i = 0; i < n; i++) {
       const dir = Math.random() < 0.5 ? -1 : 1;
@@ -105,7 +125,7 @@ export function createRenderer(canvas, opts = {}) {
 
   // ------------------------------------------------------------ sürekli efektler (kare başı)
   function continuousFx(s, dtP) {
-    const v = s.vehicle, q = o.quality === 'low' ? 0.5 : 1;
+    const v = s.vehicle, q = tier >= 1 ? 0.5 : 1;
     // tekerlek tozu / izler
     for (let i = 0; i < v.wheels.length && i < 6; i++) {
       const w = v.wheels[i];
@@ -149,13 +169,35 @@ export function createRenderer(canvas, opts = {}) {
     }
   }
 
+  // kargo: yeni yük gelişi, kayma/çarpma tozu
+  function cargoFx(s, dtP) {
+    let fresh = 0;
+    for (const c of s.cargo) {
+      let m = seenCargo.get(c.id);
+      if (!m) { m = { x: c.x, y: c.y, slide: 0 }; seenCargo.set(c.id, m); if (!firstCargo && c.state === 'onboard') { fresh++; stars(c.x, c.y + 0.3, 5, ['#ffd23c', '#fff'], 2.5); } continue; }
+      if (false && c.state === 'onboard') {
+        const vx = (c.x - m.x) / dtP - s.vehicle.vx, vy = (c.y - m.y) / dtP - s.vehicle.vy;
+        const rel = Math.hypot(vx, vy);
+        if (rel > 1.3 && rel < 12 && s.vehicle.speed > 0.5 || (rel > 1.3 && rel < 12 && s.vehicle.brake > 0.3)) {
+          m.slide += rel * dtP * 6;
+          while (m.slide >= 1) { m.slide -= 1; const hh = (c.h || c.r * 2) / 2; particles.spawn(1, c.x, c.y - hh, -Math.sign(vx || 1) * (0.3 + Math.random()), 0.3 + Math.random() * 0.6, 0.35, 0.05 + Math.random() * 0.04, '#d9c9a4', 0.2, 2, 0.2, 0, 0.5); }
+        }
+      }
+      m.x = c.x; m.y = c.y;
+    }
+    if (fresh) texts.add('YENİ YÜK!', s.vehicle.x, s.vehicle.y + 3.4, 0.5, '#ffd23c', 1.2, 1.4);
+    if (s.cargo.length) firstCargo = false;
+    if (seenCargo.size > 80) { const ids = new Set(); for (const c of s.cargo) ids.add(c.id); for (const k of seenCargo.keys()) if (!ids.has(k)) seenCargo.delete(k); }
+  }
+
   // ------------------------------------------------------------ ana çizim
   function render(snap, alpha, dt) {
     if (!st) return;
+    adapt(dt);
     T += dt; ART.t = T; ART.biome = st.biome; ART.dpr = view.dpr;
     const s = out = interpolateSnapshot(snap, alpha, out); cur = s;
     const ts = clamp(snap.timeScale ?? 1, 0.1, 1), dtP = dt * ts;
-    const cam = camera.update(s.vehicle, dt, view.w / view.h, snap.timeScale);
+    const cam = camera.update(s.vehicle, dt, view.w / view.h, snap.timeScale, view.w, view.h);
     const scale = view.w / cam.width, px = 1 / scale;
     const halfH = view.h / scale / 2;
     vig += ((ts < 0.95 ? 1 : 0) - vig) * (1 - Math.pow(0.5, dt / 0.1));
@@ -179,7 +221,10 @@ export function createRenderer(canvas, opts = {}) {
     range.x0 = cam.x - cam.width / 2 - 1; range.x1 = cam.x + cam.width / 2 + 1; range.y0 = cy - halfH - 1; range.y1 = cy + halfH + 1;
     drawTerrain(ctx, st, range, px);
     skids.draw(ctx, range.x0, range.x1);
-    drawFinish(ctx, st.startX + 1.2, st.startY, px, 'start');
+    if (st.startX + 5 > range.x0 && st.startX - 5 < range.x1) drawFinish(ctx, st.startX + 1.2, st.startY, px, 'start');
+    if (lastFinishX !== null && st.finishX !== lastFinishX) { gates.push({ x: lastFinishX, y: lastFinishY }); if (gates.length > 3) gates.shift(); }
+    lastFinishX = st.finishX; lastFinishY = st.finishY;
+    for (const g of gates) if (g.x > range.x0 - 5 && g.x < range.x1 + 5) drawFinish(ctx, g.x, g.y, px, 'finish');
     drawFinish(ctx, st.finishX, st.finishY, px, 'finish');
     const hs = st.hints;
     if (hs) for (let i = 0; i < hs.length; i++) { const h = hs[i]; if (h.x > range.x0 - 1 && h.x < range.x1 + 1) drawHintSign(ctx, h.x, heightAt(st, h.x), h.icon, px, T); }
@@ -217,11 +262,16 @@ export function createRenderer(canvas, opts = {}) {
     // gölge
     const v = s.vehicle;
     const gy = heightAt(st, v.x);
-    drawShadow(ctx, v.x, gy, slopeAt(st, v.x), Math.max(0, v.y - gy - 0.5), v.id === 'koca' ? 2.8 : v.id === 'pasa' ? 2.0 : v.id === 'zipir' ? 1.5 : 1.9, px);
+    if (tier < 2) drawShadow(ctx, v.x, gy, slopeAt(st, v.x), Math.max(0, v.y - gy - 0.5), v.id === 'koca' ? 2.8 : v.id === 'pasa' ? 2.0 : v.id === 'zipir' ? 1.5 : 1.9, px);
     drawVehicleBack(ctx, v, st.vehicle, px, T);
+    for (const c of s.cargo) { if (c.x < range.x0 - 4 || c.x > range.x1 + 4) continue; drawCargo(ctx, c, px); }
     drawDriver(ctx, s.driver, px, T);
     drawVehicleFront(ctx, v, st.vehicle, px, T);
-    for (const c of s.cargo) { if (c.x < range.x0 - 4 || c.x > range.x1 + 4) continue; drawCargo(ctx, c, px); }
+    cargoFx(s, dtP);
+    if (s.combo && s.combo.count >= 2 && s.combo.timeLeft01 > 0) { // kombo halkası: araç çevresinde azalan yay
+      ctx.beginPath(); ctx.arc(v.x, v.y + 0.5, 2.1, Math.PI / 2, Math.PI / 2 + TAU * s.combo.timeLeft01);
+      ctx.lineWidth = 5 * px; ctx.strokeStyle = s.combo.multiplier >= 4 ? '#ff7a3c' : '#ffd23c'; ctx.globalAlpha = 0.85; ctx.lineCap = 'round'; ctx.stroke(); ctx.globalAlpha = 1;
+    }
     drawWater(ctx, st.water, range, px, T, true);
 
     // partiküller
@@ -233,11 +283,11 @@ export function createRenderer(canvas, opts = {}) {
 
     // ekran katmanı
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-    if (o.quality !== 'low' || st.biome === 'zirve') { ambient.update(dtP, bgBiome, cam.x - lastCamX, view); ambient.draw(ctx, bgBiome, view, T, o.quality); }
+    if (tier < 2 || bgBiome === 'zirve') { ambient.update(dtP, bgBiome, cam.x - lastCamX, view); ambient.draw(ctx, bgBiome, view, T, tier >= 1 ? 'low' : 'high'); }
     lastCamX = cam.x;
     // hız çizgileri
     const spd = v.speed;
-    if (spd > 18 && o.quality !== 'low') {
+    if (spd > 18 && tier < 1) {
       const a = clamp((spd - 18) / 14, 0, 1) * 0.35; ctx.globalAlpha = a; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath();
       for (let i = 0; i < 7; i++) { const yy = ((i * 0.137 + T * 0.9) % 1) * view.h, xx = ((i * 0.31 + T * 2.3) % 1) * view.w; ctx.moveTo(xx, yy); ctx.lineTo(xx - 40 - spd, yy); }
       ctx.stroke(); ctx.globalAlpha = 1;
@@ -254,12 +304,12 @@ export function createRenderer(canvas, opts = {}) {
   function onEvent(e) {
     if (e.name === 'levelStart') { particles.clear(); skids.clear(); texts.clear(); resetCargoFx(); lastMult = 1; flash = 0; vig = 0; shakeAmt = 0; return; }
     if (!cur || !st) return;
-    const v = cur.vehicle, q = o.quality === 'low' ? 0.6 : 1;
+    const v = cur.vehicle, q = tier >= 1 ? 0.6 : 1;
     switch (e.name) {
       case 'land': {
         const imp = e.impactSpeed ?? 0;
         if (imp > 1.5) addShake(imp * 0.75);
-        camera.kick(-clamp(imp * 0.5, 0, 8));
+        camera.kick(-clamp(imp * 0.5, 0, 8)); if (imp > 6) camera.punch(0.8);
         for (const w of v.wheels) if (w.onGround || imp > 2) { wheelContact(w, cp); dustBurst(cp.x, cp.y, w.surface ?? 'dirt', Math.min(16, 3 + imp * 1.3), 2 + imp * 0.4, 1 + imp * 0.12); }
         if (imp > 7) { flash = Math.max(flash, 0.1); flashCol = '#fff'; }
         break;
@@ -271,7 +321,17 @@ export function createRenderer(canvas, opts = {}) {
         if (e.speed > 6) camera.kick(-e.speed * 0.3);
         break;
       }
-      case 'cargoHit': { const c = cargoById(e.id); if (c) dustBurst(c.x, c.y - (c.h ?? c.r * 2) / 2, 'dirt', 2, 1.5, 1); break; }
+      case 'cargoHit': {
+        const c = cargoById(e.id);
+        if (c) {
+          const sp = e.speed ?? 2, hh = (c.h ?? c.r * 2) / 2;
+          dustBurst(c.x, c.y - hh, 'dirt', 2 + sp * 0.6, 1.5, 1);
+          if (c.type === 'crate' || c.type === 'piano') burst('crate', c.x, c.y, false);
+          if (e.wall) { const wx = c.x + (v.vx >= 0 ? 1 : -1) * ((c.w ?? c.r * 2) / 2 + 0.05); for (let i = 0; i < 6; i++) particles.spawn(2, wx, c.y, (Math.random() - 0.3) * 2.5, 0.5 + Math.random() * 2, 0.5, 0.04, '#d8a85c', -9, 0, 0, 8, 1); }
+          if (sp > 3) addShake(Math.min(4, sp * 0.4));
+        }
+        break;
+      }
       case 'cargoDamage': { const c = cargoById(e.id); if (c) { burst(c.type, c.x, c.y, false); flashCargo(e.id); } break; }
       case 'cargoLost': {
         const c = cargoById(e.id);
@@ -284,7 +344,7 @@ export function createRenderer(canvas, opts = {}) {
       }
       case 'cargoDelivered': {
         const c = cargoById(e.id);
-        if (c) { stars(c.x, c.y + 0.3, Math.round(7 * q), ['#ffd23c', '#fff', '#7be08a'], 3.5); texts.add('+' + e.value, c.x, c.y + 0.7, 0.42, '#7be08a', 1.0, 1.4); }
+        if (c) { stars(c.x, c.y + 0.3, Math.round(7 * q), ['#ffd23c', '#fff', '#7be08a'], 3.5); if (st.mode !== 'endless') texts.add('+' + e.value, c.x, c.y + 0.7, 0.42, '#7be08a', 1.0, 1.4); }
         break;
       }
       case 'coin': {
@@ -294,6 +354,8 @@ export function createRenderer(canvas, opts = {}) {
         texts.add('+' + (e.value ?? 5), p.x, p.y + 0.5, 0.3, '#ffd23c', 0.7, 2);
         break;
       }
+      case 'delivery': { const fx = st.finishX; for (let i = 0; i < 40 * q; i++) { const a = Math.PI * (0.2 + Math.random() * 0.6), sp = 5 + Math.random() * 7; particles.spawn(6, fx + (Math.random() - 0.5) * 3, st.finishY + 3, Math.cos(a) * sp * (Math.random() - 0.5) * 1.6, Math.sin(a) * sp, 1.6 + Math.random(), 0.07 + Math.random() * 0.05, ['#ffd23c', '#e8453c', '#19b5a5', '#fff', '#ff7a3c'][i % 5], -7, 0.6, 0, 6, 1); } break; }
+      case 'cargoSlide': { const c = cargoById(e.id); if (c) { const hh = (c.h ?? c.r * 2) / 2; for (let i = 0; i < 2; i++) particles.spawn(1, c.x, c.y - hh, (Math.random() - 0.5) * 1.5 - (v.vx >= 0 ? 0.5 : -0.5), 0.3 + Math.random() * 0.5, 0.4, 0.05, '#d9c9a4', 0.2, 2, 0.2, 0, 0.55); } break; }
       case 'comboChange': {
         if (e.count >= 2) {
           const m = 1 + Math.floor(e.count / 2);
@@ -304,11 +366,12 @@ export function createRenderer(canvas, opts = {}) {
       }
       case 'comboBank': { texts.add('+' + e.points, v.x, v.y + 2.0, 0.55, '#7be08a', 1.4, 1.6); stars(v.x, v.y + 1, Math.round(10 * q), ['#7be08a', '#fff', '#ffd23c'], 4); lastMult = 1; break; }
       case 'comboBurn': { lastMult = 1; for (let i = 0; i < 10 * q; i++) particles.spawn(1, v.x + (Math.random() - 0.5), v.y + 1.2, (Math.random() - 0.5) * 2, 1 + Math.random() * 2, 0.9, 0.12, '#4a4552', 0.8, 1, 0.5, 0, 0.7); texts.add('YANDI!', v.x, v.y + 2.0, 0.5, '#ff5a5f', 1.1, 1.2); break; }
-      case 'flip': { texts.add(e.count > 1 ? e.count + '× TAKLA!' : 'TAKLA!', v.x, v.y + 2.2, 0.62, '#4fd0ff', 1.2, 1.5); stars(v.x, v.y + 0.8, Math.round(9 * q), ['#4fd0ff', '#fff', '#ffd23c'], 5); particles.spawn(4, v.x, v.y + 0.6, 0, 0, 0.5, 0.5, '#4fd0ff', 0, 0, 6, 0, 1); break; }
+      case 'flip': { camera.punch(1.6); flash = Math.max(flash, 0.12); flashCol = '#bfeaff'; texts.add(e.count > 1 ? e.count + '× TAKLA!' : 'TAKLA!', v.x, v.y + 2.2, 0.62, '#4fd0ff', 1.2, 1.5); stars(v.x, v.y + 0.8, Math.round(9 * q), ['#4fd0ff', '#fff', '#ffd23c'], 5); particles.spawn(4, v.x, v.y + 0.6, 0, 0, 0.5, 0.5, '#4fd0ff', 0, 0, 6, 0, 1); break; }
       case 'wheelie': { texts.add('TEK TEKER! ' + e.duration.toFixed(1) + ' sn', v.x, v.y + 2.0, 0.42, '#ff7a3c', 1.1, 1.3); break; }
       case 'nearMiss': { texts.add('ÇOK YAKIN!', v.x, v.y + 2.0, 0.42, '#ffd23c', 0.9, 1.4); break; }
       case 'driverEject': {
         const p = e.pos ?? cur.driver.head;
+        if (e.cause === 'roofImpact' || e.cause === 'roofHold' || e.cause === 'roof') { const rp = vPos({ x: 0.9, y: 1.4 }); sparks(rp.x, rp.y, Math.round(14 * q), 0, 1); dustBurst(rp.x, rp.y - 0.4, 'dirt', 6); }
         addShake(10); flash = 0.35; flashCol = '#ff6a5a'; vigRed = 1; camera.kick(-4);
         stars(p.x, p.y, Math.round(10 * q), ['#ffd23c', '#fff', '#ff6a5a'], 5);
         texts.add('AY!', p.x, p.y + 1.0, 0.7, '#ff5a5f', 1.0, 1.6);
@@ -342,6 +405,7 @@ export function createRenderer(canvas, opts = {}) {
     /** Bölüm başında bir kez: sim.static. */
     setLevel(staticSnap) {
       if (st) clearTerrainCache(st);
+      lastFinishX = null; gates.length = 0; seenCargo.clear(); firstCargo = true;
       st = staticSnap; bgBiome = st.biome; bgPrev = null; bgFade = 1; camera.reset(); shakeAmt = 0; flash = 0; vig = 0; out = null; cur = null; lastMult = 1;
       particles.clear(); skids.clear(); texts.clear(); resetCargoFx(); clearBackdropCache();
       ART.biome = st.biome; ART.dpr = view.dpr;
@@ -353,8 +417,9 @@ export function createRenderer(canvas, opts = {}) {
     setOptions(p) {
       const q = o.quality;
       Object.assign(o, p);
-      if (p.quality && p.quality !== q) { ART.quality = o.quality; applyQuality(); clearBackdropCache(); if (st) clearTerrainCache(st); resize(); }
+      if (p.quality && p.quality !== q) { tier = o.quality === 'low' ? 2 : 0; goodT = 0; upWait = 14; applyQuality(); clearBackdropCache(); if (st) clearTerrainCache(st); resize(); }
     },
+    get tier() { return tier; },
     destroy() { if (st) clearTerrainCache(st); st = null; cur = null; out = null; },
   };
 }

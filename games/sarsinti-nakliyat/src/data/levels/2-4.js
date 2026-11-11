@@ -28,9 +28,9 @@ export default {
       { type: 'slope', len: 20, dy: 3.0, surface: 'gravel' },                 // 302 tepeye çık
       { type: 'slope', len: 54, dy: -6.0, surface: 'gravel' },                // 322 UZUN İNİŞ: hız kazan
       { type: 'flat', len: 44, surface: 'asphalt' },                          // 376 tam gaz: hız şartı
-      { type: 'ramp', len: 16, dy: 3.5, surface: 'asphalt' },                 // 420 (~12°: yüksek fırlatma)
-      { type: 'pts', pts: [[0, -13], [12, 0], [0, 10.5]], surface: 'gravel' }, // 436 DEV ÇUKUR (12 m; karşı kenar 2,5 m aşağıda)
-      { type: 'slope', len: 28, dy: -4.0, surface: 'gravel' },                // 447 iniş rampası: açıyı yakala
+      { type: 'ramp', len: 16, dy: 5.0, surface: 'asphalt' },                 // 420 (~17°: dik fırlatma, ≥1,5 sn hava)
+      { type: 'pts', pts: [[0, -17], [16, 0], [0, 9]], surface: 'gravel' }, // 436 DEV ÇUKUR (16 m; karşı kenar 8 m aşağıda)
+      { type: 'slope', len: 30, dy: -6.0, surface: 'gravel' },                // 452 iniş rampası (~11°)
       { type: 'flat', len: 26, surface: 'dirt' },                             // 475
       { type: 'bumps', len: 28, h: 0.3, n: 5, surface: 'gravel' },            // 501
       { type: 'hills', len: 60, amp: 1.1, waves: 2, surface: 'dirt' },        // 529
@@ -38,7 +38,7 @@ export default {
     ],
   },
   spawn: { x: 3 }, finish: { x: 'end' },
-  cargo: [{ type: 'eggs', count: 1 }, { type: 'crate', count: 5 }],
+  cargo: [{ type: 'eggs', count: 1 }, { type: 'crate', count: 4 }],
   minDelivered: 1,
   parTime: 52, timeLimit: null,
   objects: [
@@ -47,7 +47,7 @@ export default {
     { type: 'coins', x: 184, n: 4, spacing: 1.5, h: 2.8 },        // 1. çukur
     { type: 'coins', x: 236, n: 6, spacing: 1.8, h: 2.6 },        // kum tepeleri
     { type: 'coins', x: 340, n: 8, spacing: 2.2, h: 1.0 },        // uzun inişte
-    { type: 'coins', x: 430, n: 8, spacing: 2.0, h: 4.4 },        // DEV çukur üstü: tepe nokta ödülü (risk)
+    { type: 'coins', x: 430, n: 8, spacing: 2.0, h: 5.4 },        // DEV çukur üstü: tepe nokta ödülü (risk)
     { type: 'coins', x: 480, n: 5, spacing: 1.7, h: 1.1 },
     { type: 'coins', x: 540, n: 6, spacing: 1.7, h: 1.2 },
   ],
@@ -61,8 +61,8 @@ export default {
   ],
   stars: {
     2: [{ kind: 'delivered', min: 4, label: 'En az 4 kargo teslim' }],
-    3: [{ kind: 'flips', min: 1, label: 'Bir takla at' }, { kind: 'noHit', label: 'Sert iniş yok' }, { kind: 'delivered', min: 5, label: '5+ kargo teslim' }],
+    3: [{ kind: 'delivered', min: 5, label: '5 kargonun hepsi' }, { kind: 'noHit', label: 'Sert iniş yok' }, { kind: 'time', max: 48, label: '48 sn altında' }],
   },
   reward: { base: 140 },
-  bot: { speed: 15 },
+  bot: { speed: 14 },
 };

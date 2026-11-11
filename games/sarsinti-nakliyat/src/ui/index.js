@@ -6,6 +6,7 @@ import { createTouchControls } from './touch.js';
 import { createNav } from './nav.js';
 import { createHome } from './home.js';
 import { createLevels, createBrief } from './levels.js';
+import { createEndless } from './endless.js';
 import { createGarage } from './garage.js';
 import { createSettings } from './settings.js';
 import { createPause, createResult, createConfirm } from './overlays.js';
@@ -16,7 +17,7 @@ import { createHud } from './hud.js';
  */
 export function createUI({ root, input, save, flow, levels }) {
   root.innerHTML = '';
-  const hud = createHud({ flow });
+  const hud = createHud({ flow, save });
   root.appendChild(hud.el);
   const touch = createTouchControls(root, input);
   const layer = document.createElement('div');
@@ -52,19 +53,20 @@ export function createUI({ root, input, save, flow, levels }) {
   }
   const ctx = {
     save, flow, input, levels, nav, emit, applySettings, isFullscreen, toggleFullscreen,
-    currentLevel: () => levels.find((l) => l.id === levelId) ?? null,
+    currentLevel: () => (flow.mode === 'endless' ? null : levels.find((l) => l.id === levelId) ?? null),
+    isEndless: () => flow.mode === 'endless',
     confirm: (opts) => nav.push('confirm', opts),
     refreshAll: () => { for (const n of ['home', 'levels', 'garage']) screens[n].refresh?.(); },
     /** Oyundan (duraklat/sonuç) menü ekranlarına dön: önce flow.toMenu(), sonra istenen alt ekran. */
     goMenu(screen, region) {
-      pending = { screen, region: region ?? ctx.currentLevel()?.region };
+      pending = { screen: screen === 'home' ? null : screen, region: region ?? ctx.currentLevel()?.region };
       flow.toMenu();
       if (pending) api.show('menu');   // flow.toMenu show('menu') çağırmadıysa
     },
   };
 
   const screens = {
-    home: createHome(ctx), levels: createLevels(ctx), brief: createBrief(ctx), garage: createGarage(ctx),
+    home: createHome(ctx), levels: createLevels(ctx), brief: createBrief(ctx), endless: createEndless(ctx), garage: createGarage(ctx),
     settings: createSettings(ctx), pause: createPause(ctx), result: createResult(ctx), confirm: createConfirm(ctx),
   };
   for (const [name, s] of Object.entries(screens)) nav.register(name, s);
