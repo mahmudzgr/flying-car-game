@@ -35,11 +35,13 @@ Kullanıcıyla Türkçe konuş; arayüz metinleri Türkçe.
   `vendor/` içinde. Simülasyon (`src/sim/`) DOM'suz çalışır (bot Node'da koşar). Belgeler: `docs/TASARIM.md`
   (oyun tasarımı) ve `docs/MIMARI.md` (sözleşmeler; ekip dosya sahipliği §2). Test: `node games/sarsinti-nakliyat/tools/bot.mjs --strict`
   (`--matrix --determinism` ile tüm araçlar). Kayıt anahtarı `sarsinti.v1`; kayıt biçimini koru.
-- **Milimetrik Park** (`games/milimetrik-park/`) kuş bakışı park oyunu, **konsept sürüm** (kullanıcı geri bildirimi
-  bekleniyor; ardından tam oyuna dönüşecek). ES modülleri; fizik kendi kodu (`src/sim/physics.js`, `vehicle.js`),
-  dış kütüphane yok. Simülasyon (`src/sim/`) DOM'suz ve deterministik (240 Hz). Test: `node games/milimetrik-park/tools/bot.mjs`
-  (sürüş ölçümleri + `tools/solutions.json` çözümlerinin gerçek fizikle sürülmesi). Bölüm geometrisi değişince
-  `--plan` ile çözümleri yeniden üret. Tarayıcı testi: `tools/smoke.mjs`. Kayıt anahtarı `milimetrik.v1`.
+- **Milimetrik Park** (`games/milimetrik-park/`) kuş bakışı park oyunu. ES modülleri; fizik kendi kodu
+  (`src/sim/physics.js`, `vehicle.js`; römork mafsallı), dış kütüphane yok. Simülasyon (`src/sim/`) DOM'suz ve deterministik
+  (240 Hz). Bölümler `src/levels/zone1..6.js`, sınavlar `exam.js`; günlük görev ve vale `src/modes/`.
+  Test: `node games/milimetrik-park/tools/bot.mjs` (sürüş ölçümleri + `tools/solutions.json` çözümlerinin sürüş koluyla
+  gerçek fizikle sürülmesi + günlük görev). Bölüm geometrisi değişince `--plan --only <bölüm>` ile o bölümün çözümünü
+  yeniden üret (yavaş; paralel süreçlerle çalışabilir). Tarayıcı testi: `tools/smoke.mjs`. Kayıt anahtarı `milimetrik.v1`;
+  kayıt biçiminin sürümü kaydın içinde (`v: 2`, `src/save.js` → `migrate`).
 
 ## Komutlar
 

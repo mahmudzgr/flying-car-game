@@ -1,4 +1,54 @@
 {
+ "islak-zemin": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 5.6
+   }
+  ]
+ },
  "ilk-park": {
   "moves": 1,
   "segments": [
@@ -31,6 +81,331 @@
     "dir": 1,
     "steer": -1,
     "len": 5.4
+   }
+  ]
+ },
+ "romork-tanisma": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.4
+   }
+  ]
+ },
+ "duz-geri": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 12
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   }
+  ]
+ },
+ "avm": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 7.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   }
+  ]
+ },
+ "dolmus-duragi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 8.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   }
+  ]
+ },
+ "geri-geri": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
    }
   ]
  },
@@ -110,37 +485,27 @@
    {
     "dir": 1,
     "steer": -0.2,
-    "len": 0.4
+    "len": 0.6
    }
   ]
  },
- "paralel": {
-  "moves": 2,
+ "minik-kumru": {
+  "moves": 1,
   "segments": [
    {
     "dir": 1,
     "steer": 0,
-    "len": 9
-   },
-   {
-    "dir": 1,
-    "steer": -0.55,
     "len": 1.8
    },
    {
     "dir": 1,
     "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
     "len": 1.2
-   },
-   {
-    "dir": 1,
-    "steer": 1,
-    "len": 3
-   },
-   {
-    "dir": 1,
-    "steer": 0,
-    "len": 0.6
    },
    {
     "dir": 1,
@@ -148,19 +513,24 @@
     "len": 4.8
    },
    {
-    "dir": -1,
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
     "steer": -0.2,
     "len": 0.6
    },
    {
-    "dir": -1,
-    "steer": 0.55,
+    "dir": 1,
+    "steer": -1,
     "len": 0.6
    },
    {
-    "dir": -1,
-    "steer": -1,
-    "len": 2.2
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
    }
   ]
  },
@@ -225,6 +595,56 @@
    {
     "dir": -1,
     "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   }
+  ]
+ },
+ "kolon-ormani": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 7.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 9
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
     "len": 1.2
    },
    {
@@ -235,12 +655,247 @@
    {
     "dir": -1,
     "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 1
+   }
+  ]
+ },
+ "okul-servisi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
     "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.8
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.2
+   }
+  ]
+ },
+ "market-onu": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 9
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.4
+   }
+  ]
+ },
+ "su-birikintisi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 10.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   }
+  ]
+ },
+ "paralel": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
    },
    {
     "dir": -1,
     "steer": 0.55,
     "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
    }
   ]
  },
@@ -334,23 +989,103 @@
    }
   ]
  },
- "geri-geri": {
+ "yagmurlu-yokus": {
   "moves": 2,
   "segments": [
    {
     "dir": 1,
     "steer": 0,
-    "len": 2.4
+    "len": 6.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
    },
    {
     "dir": 1,
     "steer": -0.55,
-    "len": 3
+    "len": 5.4
    },
    {
     "dir": 1,
     "steer": -0.2,
-    "len": 2.4
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 1.8
+   }
+  ]
+ },
+ "firtina": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
    },
    {
     "dir": 1,
@@ -359,13 +1094,13 @@
    },
    {
     "dir": 1,
-    "steer": 0.55,
-    "len": 2.4
+    "steer": 0.2,
+    "len": 0.6
    },
    {
     "dir": 1,
-    "steer": 0,
-    "len": 1.8
+    "steer": 0.55,
+    "len": 0.6
    },
    {
     "dir": 1,
@@ -380,6 +1115,16 @@
    {
     "dir": -1,
     "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
     "len": 1.2
    },
    {
@@ -390,37 +1135,62 @@
    {
     "dir": -1,
     "steer": 0,
-    "len": 1.8
-   },
-   {
-    "dir": -1,
-    "steer": 1,
-    "len": 0.6
+    "len": 2.4
    }
   ]
  },
- "avm": {
+ "feribot": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 21.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   }
+  ]
+ },
+ "uzun-kuyruk": {
   "moves": 2,
   "segments": [
    {
     "dir": 1,
     "steer": 0,
-    "len": 0.6
+    "len": 1.2
    },
    {
     "dir": 1,
-    "steer": -0.2,
+    "steer": -0.55,
     "len": 3.6
    },
    {
     "dir": 1,
     "steer": 0,
-    "len": 7.8
+    "len": 1.2
    },
    {
     "dir": 1,
     "steer": 0.55,
-    "len": 1.2
+    "len": 2.4
    },
    {
     "dir": 1,
@@ -430,11 +1200,66 @@
    {
     "dir": 1,
     "steer": 0,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.2
+   }
+  ]
+ },
+ "yokus": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 9
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
     "len": 1.8
    },
    {
     "dir": 1,
-    "steer": -0.2,
+    "steer": 0,
     "len": 1.2
    },
    {
@@ -448,14 +1273,325 @@
     "len": 3
    },
    {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
     "dir": -1,
     "steer": -1,
+    "len": 1.2
+   }
+  ]
+ },
+ "otobus-duragi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 9
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
     "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
    },
    {
     "dir": -1,
     "steer": -0.55,
     "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   }
+  ]
+ },
+ "rampa-basi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 12.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   }
+  ]
+ },
+ "kavsak": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 14.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   }
+  ]
+ },
+ "kamyon-seridi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 5.4
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 6.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3.6
    },
    {
     "dir": -1,
@@ -469,12 +1605,203 @@
    },
    {
     "dir": -1,
+    "steer": 0.55,
+    "len": 0.2
+   }
+  ]
+ },
+ "sinav-b#0": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
     "steer": 0.2,
     "len": 0.6
    },
    {
-    "dir": -1,
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   }
+  ]
+ },
+ "sinav-b#1": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
     "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 6.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 7.8
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.8
+   }
+  ]
+ },
+ "otel-girisi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0,
     "len": 0.6
    },
    {
@@ -484,8 +1811,1148 @@
    },
    {
     "dir": -1,
+    "steer": -0.2,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.6
+   }
+  ]
+ },
+ "cikmaz-sokak": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
     "steer": -0.55,
     "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 7.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 4.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   }
+  ]
+ },
+ "gece-vardiyasi": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.4
+   }
+  ]
+ },
+ "spiral": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 21.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 4.2
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 7.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   }
+  ]
+ },
+ "kalabalik-avm": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 6.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 0.2
+   }
+  ]
+ },
+ "gece-otoparki": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 0.4
+   }
+  ]
+ },
+ "karanlik-sokak": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.2
+   }
+  ]
+ },
+ "benzinlik": {
+  "moves": 1,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 4.8
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 5.6
+   }
+  ]
+ },
+ "sinav-d#0": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 9.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3.8
+   }
+  ]
+ },
+ "sinav-d#1": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 6.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 9
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 4
+   }
+  ]
+ },
+ "usta-kaptan": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 4.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 0,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   }
+  ]
+ },
+ "genis-govde": {
+  "moves": 3,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 3.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 17.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 2.4
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 3.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   }
+  ]
+ },
+ "rampa-yanasma": {
+  "moves": 2,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 6.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 3
+   },
+   {
+    "dir": 1,
+    "steer": 0,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 5.4
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 2.4
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 5.4
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 1.8
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 1
+   }
+  ]
+ },
+ "sinav-e#0": {
+  "moves": 3,
+  "segments": [
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 15
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 3
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 3
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 3
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 4.8
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 1.2
+   },
+   {
+    "dir": -1,
+    "steer": -1,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": -0.55,
+    "len": 0.6
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": -1,
+    "steer": 0.55,
+    "len": 2.4
+   },
+   {
+    "dir": -1,
+    "steer": 1,
+    "len": 1.2
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": -0.2,
+    "len": 0.6
+   },
+   {
+    "dir": 1,
+    "steer": -1,
+    "len": 1.2
+   },
+   {
+    "reset": 1
+   },
+   {
+    "dir": 1,
+    "steer": 0.55,
+    "len": 1.2
+   },
+   {
+    "dir": 1,
+    "steer": 1,
+    "len": 1.8
+   },
+   {
+    "dir": 1,
+    "steer": -0.55,
+    "len": 0.4
    }
   ]
  }

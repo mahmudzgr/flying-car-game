@@ -3,7 +3,7 @@
 
 export function createAudio() {
   let ac = null, master = null, enabled = true;
-  let eng = null, squeal = null, scrape = null, beeper = null, noiseBuf = null;
+  let eng = null, squeal = null, scrape = null, beeper = null, noiseBuf = null, rainN = null;
   let beepT = 0, beepOn = false;
 
   function noise() {
@@ -63,6 +63,15 @@ export function createAudio() {
       const g = ac.createGain(); g.gain.value = 0;
       src.connect(bp).connect(g).connect(master);
       scrape = { g, bp };
+    }
+    // yağmur ambiyansı
+    {
+      const src = loopNoise();
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+      const g = ac.createGain(); g.gain.value = 0;
+      src.connect(hp).connect(lp).connect(g).connect(master);
+      rainN = { g };
     }
     // park sensörü
     {
@@ -129,6 +138,7 @@ export function createAudio() {
       squeal.g.gain.setTargetAtTime(on ? Math.min(0.16, Math.max(0, s.slip - 1.2) * 0.05) : 0, t, 0.04);
       squeal.bp.frequency.setTargetAtTime(900 + Math.min(600, s.slip * 60), t, 0.05);
       scrape.g.gain.setTargetAtTime(on ? Math.min(0.3, s.scrape * 0.25) * (0.7 + Math.random() * 0.6) : 0, t, 0.02);
+      rainN.g.gain.setTargetAtTime(enabled && s.rain ? 0.05 : 0, t, 0.4);
       // sensör bip'i
       const d = s.sensor;
       if (!on || !s.sensorOn || !(d < 1.5)) {
@@ -172,6 +182,7 @@ export function createAudio() {
         case 'perfect': [523, 659, 784, 1046, 1318].forEach((fr, i) => tone(fr, 0.22, 'triangle', 0.14, 0, i * 0.07)); break;
         case 'fail': tone(330, 0.25, 'sawtooth', 0.12, 0.6); tone(220, 0.4, 'sawtooth', 0.12, 0.5, 0.2); break;
         case 'free': tone(659, 0.1, 'triangle', 0.15); tone(988, 0.18, 'triangle', 0.15, 0, 0.09); break;
+        case 'horn': tone(392, 0.45, 'square', 0.05, 0.98); tone(494, 0.45, 'square', 0.05, 0.98); break;
         default: break;
       }
     },

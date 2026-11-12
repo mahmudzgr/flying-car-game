@@ -27,6 +27,7 @@ function baseShape(type, opt) {
     e: opt.e ?? 0.1,
     kind: opt.kind || 'solid',
     data: opt.data || null,
+    group: opt.group || 0,          // aynı (sıfır olmayan) gruptaki şekiller çarpışmaz (çekici + römork)
     body: null,
     minx: 0, miny: 0, maxx: 0, maxy: 0,
   };
@@ -86,9 +87,11 @@ export class Body {
     this.pvx = 0; this.pvy = 0; this.pw = 0;
     this.mass = o.mass || 0;
     this.inertia = o.inertia || 0;
-    this.invM = this.mass ? 1 / this.mass : 0;
-    this.invI = this.inertia ? 1 / this.inertia : 0;
-    this.isStatic = !this.mass;
+    // 'static' | 'dynamic' | 'kinematic' (kinematik: hızı dışarıdan verilir, sonsuz kütleli gibi davranır)
+    this.type = o.kinematic ? 'kinematic' : this.mass ? 'dynamic' : 'static';
+    this.invM = this.type === 'dynamic' ? 1 / this.mass : 0;
+    this.invI = this.type === 'dynamic' && this.inertia ? 1 / this.inertia : 0;
+    this.isStatic = this.type === 'static';
     this.linFric = o.linFric || 0;   // yer sürtünmesi (m/s²) — koni gibi serbest nesneler
     this.angFric = o.angFric || 0;   // (rad/s²)
     this.kind = o.kind || 'body';
@@ -263,7 +266,7 @@ export function collideShapes(sa, sb) {
 }
 
 const overlap = (a, b) => a.minx <= b.maxx && b.minx <= a.maxx && a.miny <= b.maxy && b.miny <= a.maxy;
-const canHit = (a, b) => (a.layer & b.mask) !== 0 && (b.layer & a.mask) !== 0;
+const canHit = (a, b) => (a.layer & b.mask) !== 0 && (b.layer & a.mask) !== 0 && !(a.group && a.group === b.group);
 
 // ---------------------------------------------------------------- dünya
 
@@ -272,18 +275,21 @@ export class World {
     this.ground = new Body({ kind: 'ground' });   // tüm statik şekiller bu cisimde
     this.bodies = [];                             // dinamik cisimler
     this.controllers = [];                        // araçlar: preStep/prepare/solve/postStep
+    this.joints = [];                             // römork bağlantısı vb.
     this.contacts = [];
     this.stepCount = 0;
   }
 
   addStatic(shape) { this.ground.add(shape); return shape; }
   addBody(b) { this.bodies.push(b); b.updateGeom(); return b; }
+  removeBody(b) { const i = this.bodies.indexOf(b); if (i >= 0) this.bodies.splice(i, 1); }
   finalizeStatics() { this.ground.updateGeom(); }
 
   step(dt) {
     const bodies = this.bodies;
     for (const b of bodies) {
       b.savePrev();
+      if (b.type !== 'dynamic') continue;
       if (b.linFric) {
         const sp = Math.hypot(b.vx, b.vy), dv = b.linFric * dt;
         if (sp <= dv) { b.vx = 0; b.vy = 0; } else { const k = (sp - dv) / sp; b.vx *= k; b.vy *= k; }
@@ -301,7 +307,7 @@ export class World {
     const g = this.ground;
     for (let i = 0; i < bodies.length; i++) {
       const A = bodies[i];
-      const moving = A.vx !== 0 || A.vy !== 0 || A.w !== 0 || !A.data?.sleepy;
+      const moving = A.type === 'dynamic' && (A.vx !== 0 || A.vy !== 0 || A.w !== 0 || !A.data?.sleepy);
       if (moving) {
         for (const sa of A.shapes) {
           for (const sb of g.shapes) {
@@ -313,6 +319,7 @@ export class World {
       }
       for (let j = i + 1; j < bodies.length; j++) {
         const B = bodies[j];
+        if (A.type !== 'dynamic' && B.type !== 'dynamic') continue;
         if (!overlap(A, B)) continue;
         for (const sa of A.shapes) {
           for (const sb of B.shapes) {
@@ -326,15 +333,18 @@ export class World {
     this.contacts = contacts;
 
     for (const m of contacts) prepareContact(m, dt);
+    for (const j of this.joints) j.prepare(dt);
     for (const c of this.controllers) c.prepare(dt);
 
     for (let it = 0; it < VEL_ITERS; it++) {
+      for (const j of this.joints) j.solve();
       for (const m of contacts) solveContact(m);
       for (const c of this.controllers) c.solve(it);
     }
     for (let it = 0; it < POS_ITERS; it++) for (const m of contacts) solvePosition(m);
 
     for (const b of bodies) {
+      if (b.type === 'static') continue;
       b.x += (b.vx + b.pvx) * dt;
       b.y += (b.vy + b.pvy) * dt;
       b.a += (b.w + b.pw) * dt;
@@ -349,6 +359,40 @@ export class World {
     m.mu = Math.sqrt(sa.mu * sb.mu);
     m.e = Math.max(sa.e, sb.e);
     return m;
+  }
+
+  /**
+   * Işın: (ox,oy) noktasından birim (dx,dy) yönünde en yakın engel uzaklığı (yoksa maxD).
+   * shapes verilirse yalnızca onlara bakar (sensörler aynı adayları birçok ışında kullanır).
+   */
+  raycast(ox, oy, dx, dy, maxD, shapes, skipGroup = 0) {
+    let best = maxD;
+    const ex = ox + dx * maxD, ey = oy + dy * maxD;
+    const minx = Math.min(ox, ex), maxx = Math.max(ox, ex), miny = Math.min(oy, ey), maxy = Math.max(oy, ey);
+    for (const sh of shapes) {
+      if (skipGroup && sh.group === skipGroup) continue;
+      if (sh.maxx < minx || sh.minx > maxx || sh.maxy < miny || sh.miny > maxy) continue;
+      if (sh.type === 'circle') {
+        const ocx = ox - sh.cx, ocy = oy - sh.cy;
+        const b = ocx * dx + ocy * dy, c = ocx * ocx + ocy * ocy - sh.r * sh.r;
+        const disc = b * b - c;
+        if (disc < 0) continue;
+        let t = -b - Math.sqrt(disc);
+        if (t < 0) t = c <= 0 ? 0 : -b + Math.sqrt(disc);
+        if (t >= 0 && t < best) best = t;
+      } else {
+        for (let i = 0; i < sh.n; i++) {
+          const j = (i + 1) % sh.n;
+          const p1x = sh.wx[i], p1y = sh.wy[i], e1 = sh.wx[j] - p1x, e2 = sh.wy[j] - p1y;
+          const den = dx * e2 - dy * e1;
+          if (Math.abs(den) < 1e-12) continue;
+          const qx = p1x - ox, qy = p1y - oy;
+          const t = (qx * e2 - qy * e1) / den, u = (qx * dy - qy * dx) / den;
+          if (t >= 0 && u >= 0 && u <= 1 && t < best) best = t;
+        }
+      }
+    }
+    return best;
   }
 
   /** Belirli bir noktadan geçen statik şekiller (hata ayıklama/yerleştirme denetimi). */
@@ -421,6 +465,68 @@ function solvePosition(m) {
     const px = lam * nx, py = lam * ny;
     A.pvx -= px * A.invM; A.pvy -= py * A.invM; A.pw -= A.invI * (p.rax * py - p.ray * px);
     B.pvx += px * B.invM; B.pvy += py * B.invM; B.pw += B.invI * (p.rbx * py - p.rby * px);
+  }
+}
+
+// ---------------------------------------------------------------- mafsal (römork bağlantısı)
+
+/**
+ * İki cismi bir noktadan birbirine bağlar (dönebilir). İsteğe bağlı göreli açı sınırı (lo..hi, rad)
+ * makaslamayı (jackknife) sınırlar. Hız düzeyinde çözülür; konum hatası Baumgarte ile düzeltilir.
+ */
+export class RevoluteJoint {
+  constructor(A, B, wx, wy, limit = null) {
+    this.A = A; this.B = B;
+    const ca = Math.cos(A.a), sa = Math.sin(A.a), cb = Math.cos(B.a), sb = Math.sin(B.a);
+    const ax = wx - A.x, ay = wy - A.y, bx = wx - B.x, by = wy - B.y;
+    this.lax = ax * ca + ay * sa; this.lay = -ax * sa + ay * ca;
+    this.lbx = bx * cb + by * sb; this.lby = -bx * sb + by * cb;
+    this.ref = B.a - A.a;
+    this.limit = limit;
+    this.angle = 0;
+  }
+
+  prepare(dt) {
+    const A = this.A, B = this.B;
+    const ca = Math.cos(A.a), sa = Math.sin(A.a), cb = Math.cos(B.a), sb = Math.sin(B.a);
+    this.rax = this.lax * ca - this.lay * sa; this.ray = this.lax * sa + this.lay * ca;
+    this.rbx = this.lbx * cb - this.lby * sb; this.rby = this.lbx * sb + this.lby * cb;
+    const mA = A.invM, mB = B.invM, iA = A.invI, iB = B.invI;
+    const k11 = mA + mB + iA * this.ray * this.ray + iB * this.rby * this.rby;
+    const k12 = -iA * this.rax * this.ray - iB * this.rbx * this.rby;
+    const k22 = mA + mB + iA * this.rax * this.rax + iB * this.rbx * this.rbx;
+    const det = k11 * k22 - k12 * k12 || 1e-12;
+    this.i11 = k22 / det; this.i12 = -k12 / det; this.i22 = k11 / det;
+    const cx = B.x + this.rbx - A.x - this.rax, cy = B.y + this.rby - A.y - this.ray;
+    const beta = 0.25 / dt;
+    this.bx = cx * beta; this.by = cy * beta;
+    // açı sınırı
+    let rel = B.a - A.a - this.ref;
+    rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+    this.angle = rel;
+    this.lim = 0; this.Pl = 0;
+    if (this.limit) {
+      this.mAng = 1 / ((iA + iB) || 1e-12);
+      if (rel <= this.limit[0]) { this.lim = -1; this.lbias = (rel - this.limit[0]) * beta; }
+      else if (rel >= this.limit[1]) { this.lim = 1; this.lbias = (rel - this.limit[1]) * beta; }
+    }
+  }
+
+  solve() {
+    const A = this.A, B = this.B;
+    if (this.lim) {
+      const cdot = B.w - A.w;
+      let lam = -this.mAng * (cdot + this.lbias);
+      const old = this.Pl;
+      this.Pl = this.lim < 0 ? Math.max(0, old + lam) : Math.min(0, old + lam);
+      lam = this.Pl - old;
+      A.w -= A.invI * lam; B.w += B.invI * lam;
+    }
+    const vx = (B.vx - B.w * this.rby) - (A.vx - A.w * this.ray) + this.bx;
+    const vy = (B.vy + B.w * this.rbx) - (A.vy + A.w * this.rax) + this.by;
+    const lx = -(this.i11 * vx + this.i12 * vy), ly = -(this.i12 * vx + this.i22 * vy);
+    A.vx -= lx * A.invM; A.vy -= ly * A.invM; A.w -= A.invI * (this.rax * ly - this.ray * lx);
+    B.vx += lx * B.invM; B.vy += ly * B.invM; B.w += B.invI * (this.rbx * ly - this.rby * lx);
   }
 }
 
