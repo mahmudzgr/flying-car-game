@@ -1,20 +1,22 @@
-// Milimetrik Park — giriş: klavye, gamepad ve dokunmatik (ui/controls.js setVirtual ile besler).
-// Çıktı (her kare): {throttle, brake, handbrake, steerAbs, steerDir, gear}
+// Milimetrik Park — giriş: klavye, oyun kolu ve dokunmatik (ui/controls.js setVirtual ile besler).
+// Çıktı (her kare): {throttle, brake, lever, handbrake, steerAbs, steerDir, gear, park}
+//  - lever: sürüş kolu (-1 geri … +1 ileri), yalnızca 'lever' şemasında
 //  - steerAbs: mutlak direksiyon hedefi (-1..1) ya da null (bırakıldı → araç kendini toplar)
 //  - steerDir: klavye yön tuşu (-1, 0, 1); tutulan süreye göre hızlanır (vehicle.js)
 
-const GEAR_KEYS = { KeyQ: 'R', KeyE: 'D', KeyP: 'P', KeyN: 'N' };
+const GEAR_KEYS = { KeyQ: 'R', KeyE: 'D', KeyN: 'N' };
 const ACTION_KEYS = { KeyR: 'retry', Escape: 'pause', KeyC: 'camera', KeyM: 'mute', KeyG: 'guides', Enter: 'confirm', Minus: 'zoomOut', NumpadSubtract: 'zoomOut', Equal: 'zoomIn', NumpadAdd: 'zoomIn', KeyH: 'help' };
-const DRIVE_KEYS = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'];
+const DRIVE_KEYS = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'ShiftLeft', 'ShiftRight'];
 
 export function createInput(target = window) {
   const keys = new Set();
-  const virt = { gas: 0, brake: 0, steerAbs: null, map: false };
-  const kb = { throttle: 0, brake: 0 };
+  const virt = { gas: 0, brake: 0, lever: 0, steerAbs: null, map: false };
+  const kb = { throttle: 0, brake: 0, lever: 0, held: 0 };
   const gearQueue = [];
+  let parkReq = false;
   const listeners = new Set();
   const pad = { connected: false, gas: 0, brake: 0, steer: 0, hb: false, map: false, prev: [] };
-  const state = { device: 'keyboard', map: false };
+  const state = { device: 'keyboard', map: false, scheme: 'lever' };
 
   const emit = (a, v) => { for (const fn of listeners) fn(a, v); };
 
@@ -25,12 +27,13 @@ export function createInput(target = window) {
     state.device = 'keyboard';
     if (DRIVE_KEYS.includes(e.code)) { keys.add(e.code); e.preventDefault(); }
     if (e.repeat) return;
+    if (e.code === 'KeyP') { parkReq = true; e.preventDefault(); return; }
     if (GEAR_KEYS[e.code]) { gearQueue.push(GEAR_KEYS[e.code]); e.preventDefault(); return; }
     const a = ACTION_KEYS[e.code];
     if (a) { emit(a); if (a !== 'confirm') e.preventDefault(); }
   };
   const onKeyUp = (e) => { keys.delete(e.code); };
-  const reset = () => { keys.clear(); kb.throttle = 0; kb.brake = 0; virt.gas = 0; virt.brake = 0; virt.steerAbs = null; virt.map = false; };
+  const reset = () => { keys.clear(); kb.throttle = 0; kb.brake = 0; kb.lever = 0; virt.gas = 0; virt.brake = 0; virt.lever = 0; virt.steerAbs = null; virt.map = false; parkReq = false; };
   target.addEventListener('keydown', onKeyDown);
   target.addEventListener('keyup', onKeyUp);
   target.addEventListener('blur', reset);
@@ -50,7 +53,7 @@ export function createInput(target = window) {
     pad.map = pressed(1);
     if (edge(5)) gearQueue.push('D');
     if (edge(4)) gearQueue.push('R');
-    if (edge(3)) gearQueue.push('P');
+    if (edge(3)) parkReq = true;
     if (edge(9)) emit('pause');
     if (edge(8)) emit('retry');
     if (edge(0)) emit('confirm');
@@ -58,33 +61,46 @@ export function createInput(target = window) {
     for (let i = 0; i < gp.buttons.length; i++) pad.prev[i] = pressed(i);
   }
 
+  const out = { throttle: 0, brake: 0, lever: 0, handbrake: false, steerAbs: null, steerDir: 0, gear: null, park: false, autoCenter: true };
+
   return {
     state,
     /** Her karede bir kez. */
     read(dt) {
       pollPad();
       const has = (...c) => c.some((k) => keys.has(k));
-      const up = has('KeyW', 'ArrowUp'), dn = has('KeyS', 'ArrowDown');
+      const up = has('KeyW', 'ArrowUp'), dn = has('KeyS', 'ArrowDown'), slow = has('ShiftLeft', 'ShiftRight');
+      // pedal şeması
       kb.throttle = up ? Math.min(1, kb.throttle + dt * 1.5) : Math.max(0, kb.throttle - dt * 7);
       kb.brake = dn ? Math.min(1, kb.brake + dt * 3.2) : Math.max(0, kb.brake - dt * 9);
+      // kol şeması: basınca yavaş başla, basılı tutunca hızlan; Shift: hassas sürünme
+      const want = up && !dn ? 1 : dn && !up ? -1 : 0;
+      if (want) {
+        kb.held = Math.sign(kb.lever) === want ? kb.held + dt : 0;
+        const mag = slow ? 0.24 : Math.min(1, 0.32 + kb.held * 0.42);
+        kb.lever = want * mag;
+      } else { kb.lever = 0; kb.held = 0; }
       const left = has('KeyA', 'ArrowLeft'), right = has('KeyD', 'ArrowRight');
       let steerAbs = virt.steerAbs;
       if (steerAbs == null && pad.connected && state.device === 'pad') steerAbs = pad.steer;
       state.map = virt.map || keys.has('Tab') || pad.map;
-      return {
-        throttle: Math.max(kb.throttle, virt.gas, pad.gas || 0),
-        brake: Math.max(kb.brake, virt.brake, pad.brake || 0),
-        handbrake: keys.has('Space') || pad.hb,
-        steerAbs,
-        steerDir: steerAbs == null ? (right ? 1 : 0) - (left ? 1 : 0) : 0,
-        gear: gearQueue.shift() || null,
-      };
+      const padLever = (pad.gas || 0) - (pad.brake || 0);
+      out.throttle = Math.max(kb.throttle, virt.gas, pad.gas || 0);
+      out.brake = Math.max(kb.brake, virt.brake, pad.brake || 0);
+      out.lever = Math.abs(virt.lever) > 0.01 ? virt.lever : Math.abs(kb.lever) > 0 ? kb.lever : padLever;
+      out.handbrake = keys.has('Space') || pad.hb;
+      out.steerAbs = steerAbs;
+      out.steerDir = steerAbs == null ? (right ? 1 : 0) - (left ? 1 : 0) : 0;
+      out.gear = gearQueue.shift() || null;
+      out.park = parkReq; parkReq = false;
+      return out;
     },
-    /** Dokunmatik: pedal değerleri (0..1), direksiyon (-1..1 | null), harita. */
+    /** Dokunmatik: pedal (0..1), kol (-1..1), direksiyon (-1..1 | null), harita. */
     setVirtual(name, v) { virt[name] = v; if (name !== 'map' && v) state.device = 'touch'; },
     requestGear(g) { gearQueue.push(g); },
+    requestPark() { parkReq = true; },
     onAction(fn) { listeners.add(fn); return () => listeners.delete(fn); },
-    clearGears() { gearQueue.length = 0; },
+    clearGears() { gearQueue.length = 0; parkReq = false; },
     reset,
   };
 }

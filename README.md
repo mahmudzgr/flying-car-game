@@ -10,7 +10,7 @@ hesap ya da derleme adımı yok. Site GitHub Pages ile yayınlanacak şekilde d�
 | **Uçan Roadster** | 2.5D fizik: dönen rampadan fırla, havada takla at, iticilerle platforma kon. 16 bölüm, sonsuz mod. | [`games/ucan-roadster/`](games/ucan-roadster/) |
 | **Paldır Küldür** | Fizik yıkım: sapanla gülle fırlat, kuleleri yık, jöleleri patlat. 40 bölüm, Sonsuz Kuşatma, Oyun Alanı. | [`games/paldir-kuldur/`](games/paldir-kuldur/) |
 | **Sarsıntı Nakliyat** | Yan görünüşlü fizik nakliyesi: yaylı süspansiyonlu araçla bozuk yollarda, çamurda, buzda ve sallanan köprülerde kargonu devirmeden teslim et. 16 bölüm, 4 araç, Uzun Yol (sonsuz) modu. | [`games/sarsinti-nakliyat/`](games/sarsinti-nakliyat/) |
-| **Milimetrik Park** | Kuş bakışı park: gerçekçi direksiyon (Ackermann), rölantide sürünen otomatik vites, kademeli fren, park sensörü ve yörünge çizgileri. 7 bölüm + antrenman alanı. *Konsept sürüm.* | [`games/milimetrik-park/`](games/milimetrik-park/) |
+| **Milimetrik Park** | Kuş bakışı park: gerçekçi direksiyon (Ackermann) ve araç dinamiği, sürüş kolu ya da pedal + vites, park sensörü ve yörünge çizgileri. 6 araç (minibüs ve römorklu kamyonet dahil), 6 bölge × 6 bölüm (trafik, gece, yağmur, katlı otopark, feribot), vale, günlük görev, sınav parkuru, garaj. | [`games/milimetrik-park/`](games/milimetrik-park/) |
 
 Her oyunun ayrıntıları kendi klasöründeki `README.md` dosyasında.
 
@@ -93,7 +93,7 @@ tools/capture-cover.mjs   Oyunun ekran görüntüsünden kapak üretme yardımc�
 npm run check     # oyun listesi ve klasör denetimi
 npm test          # denetim + Uçan Roadster otomatik pilot testleri + Sarsıntı Nakliyat botu + Milimetrik Park botu (~1 dk)
 node games/sarsinti-nakliyat/tools/bot.mjs --matrix --determinism   # Sarsıntı Nakliyat: tüm araçlar + determinizm
-node games/milimetrik-park/tools/bot.mjs --plan                     # Milimetrik Park: bölüm çözümlerini yeniden planla
+node games/milimetrik-park/tools/bot.mjs --plan --only <bölüm>      # Milimetrik Park: bölüm çözümünü yeniden planla
 ```
 
 ## Üçüncü taraf bileşenler

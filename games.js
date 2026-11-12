@@ -44,8 +44,8 @@ export const GAMES = [
   {
     id: 'milimetrik-park',
     title: 'Milimetrik Park',
-    tagline: 'Kuş bakışı park: gerçekçi direksiyon, rölantide sürünen otomatik vites, park sensörü ve yörünge çizgileri. Çizgilerin içine milimetrik park et.',
-    tags: ['Park', 'Gerçekçi sürüş', 'Kuş bakışı', 'Konsept'],
+    tagline: 'Kuş bakışı park: gerçekçi direksiyon ve araç dinamiği, park sensörü, yörünge çizgileri. Altı araçla (minibüs ve römorklu kamyonet dahil) gece, yağmur, katlı otopark ve feribotta milimetrik park et.',
+    tags: ['Park', 'Gerçekçi sürüş', '36 bölüm', 'Vale', 'Günlük görev'],
     accent: '#2f7bff',
     orientation: 'landscape',
   },
